@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>Net.Code.YaDal</id>
+    <version>1.0.0</version>
+    <authors>Jeroen Haegebaert</authors>
+    <owners>Jeroen Haegebaert</owners>
+    <projectUrl>http://github.org/jhgbrt/Net.Code</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>A simple ADO.Net helper</description>
+    <releaseNotes>Initial release.</releaseNotes>
+    <copyright>Copyright 2013</copyright>
+    <tags>ADO.Net</tags>
+  </metadata>
+</package>
