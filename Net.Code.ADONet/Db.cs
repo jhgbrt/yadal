@@ -274,7 +274,6 @@ namespace Net.Code.ADONet
 
             using (var reader = Command.ExecuteReader())
             {
-                if (reader == null) throw new NullReferenceException("reader");
                 do
                 {
                     var list = new List<dynamic>();
@@ -355,7 +354,7 @@ namespace Net.Code.ADONet
         {
             var p = Command.CreateParameter();
             p.ParameterName = name;
-            p.Value = value.ToDb();
+            p.Value = DBNullHelper.ToDb(value);
             Command.Parameters.Add(p);
             return this;
         }
@@ -396,7 +395,7 @@ namespace Net.Code.ADONet
             {
                 Type propType = prop.PropertyType;
 
-                if (propType.IsNullableType())
+                if (DBNullHelper.IsNullableType(propType))
                     propType = new NullableConverter(propType).UnderlyingType;
 
                 table.Columns.Add(prop.Name, propType);
@@ -432,7 +431,7 @@ namespace Net.Code.ADONet
             {
                 string name = rdr.GetName(i);
                 object value = rdr[i];
-                d.Add(name, value.FromDb());
+                d.Add(name, DBNullHelper.FromDb(value));
             }
             return e;
         }
@@ -486,7 +485,7 @@ namespace Net.Code.ADONet
             {
                 return ConvertRefType;
             }
-            if (type.IsNullableType())
+            if (DBNullHelper.IsNullableType(type))
             {
                 var delegateType = typeof(Func<object, T>);
                 var methodInfo = typeof(ConvertTo<T>).GetMethod("ConvertNullableValueType", BindingFlags.NonPublic | BindingFlags.Static);
@@ -500,14 +499,14 @@ namespace Net.Code.ADONet
         // (used via reflection!)
         private static TElem? ConvertNullableValueType<TElem>(object value) where TElem : struct
         {
-            return value.IsNull() ? (TElem?)null : ConvertPrivate<TElem>(value);
+            return DBNullHelper.IsNull(value) ? (TElem?)null : ConvertPrivate<TElem>(value);
         }
 
         // ReSharper restore UnusedMember.Local
 
         private static T ConvertRefType(object value)
         {
-            return value.IsNull() ? default(T) : ConvertPrivate<T>(value);
+            return DBNullHelper.IsNull(value) ? default(T) : ConvertPrivate<T>(value);
         }
 
         private static T ConvertValueType(object value)
@@ -529,28 +528,28 @@ namespace Net.Code.ADONet
 
     }
 
-    public static class ExtensionsForGettingRidOfDBNull
+    static class DBNullHelper
     {
-        public static bool IsNullableType(this Type type)
+        public static bool IsNullableType(Type type)
         {
             return
                 (type.IsGenericType && !type.IsGenericTypeDefinition) &&
                 (typeof(Nullable<>) == type.GetGenericTypeDefinition());
         }
 
-        public static bool IsNull(this object o)
+        public static bool IsNull(object o)
         {
             return o == null || DBNull.Value.Equals(o);
         }
 
-        public static object FromDb(this object o)
+        public static object FromDb(object o)
         {
-            return o.IsNull() ? null : o;
+            return IsNull(o) ? null : o;
         }
 
-        public static object ToDb(this object o)
+        public static object ToDb(object o)
         {
-            return o.IsNull() ? DBNull.Value : o;
+            return IsNull(o) ? DBNull.Value : o;
         }
 
     }
