@@ -11,7 +11,10 @@ using System.Linq;
 using System.Reflection;
 
 // Yet Another Data Access Layer
-// usage: using (var db = new Db()) {}; from there it should be discoverable.
+// usage: 
+//   using (var db = new Db()) {}; 
+//   using (var db = Db.FromConfig());
+// from there it should be discoverable.
 // inline SQL FTW!
 
 namespace Net.Code.ADONet

@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>Net.Code.ADONet</id>
+    <version>1.0.1</version>
+    <title>Net.Code.ADONet - Fluent ADO.Net helper</title>
+    <authors>Jeroen Haegebaert.</authors>
+    <owners>Jeroen Haegebaert</owners>
+    <licenseUrl>https://raw.github.com/jhgbrt/Net.Code/master/license.txt</licenseUrl>
+    <projectUrl>http://github.com/jhgbrt/Net.Code</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>This package delivers an ADO.Net helper class. Provides a fluent interface to throw some SQL or DDL at your database. Compatible with all ADO.Net providers, in as far as they implement the ADO.Net interfaces correctly. Quite frankly something like this should have been part of the framework in my opinion :-) </description>
+    <summary>ADO.Net helper class.</summary>
+    <releaseNotes>
+      1.0.0 Initial release.
+    </releaseNotes>
+    <copyright>Copyright 2013 - Jeroen Haegebaert</copyright>
+    <tags>CSV</tags>
+  </metadata>
+  <files>
+        <file src="Net.Code.ADONet\Db.cs" target="content\Db.cs" />
+  </files>
+</package>
