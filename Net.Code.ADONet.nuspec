@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>Net.Code.ADONet</id>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <title>Net.Code.ADONet - Fluent ADO.Net helper</title>
     <authors>Jeroen Haegebaert.</authors>
     <owners>Jeroen Haegebaert</owners>
