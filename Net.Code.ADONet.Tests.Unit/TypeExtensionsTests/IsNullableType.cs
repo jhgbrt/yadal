@@ -8,19 +8,19 @@ namespace Net.Code.ADONet.Tests.Unit.TypeExtensionsTests
         [Test]
         public void NullableType_True()
         {
-            Assert.IsTrue(typeof (int?).IsNullableType());
+            Assert.IsTrue(DBNullHelper.IsNullableType(typeof (int?)));
         }
 
         [Test]
         public void ValueType_False()
         {
-            Assert.IsFalse(typeof(int).IsNullableType());
+            Assert.IsFalse(DBNullHelper.IsNullableType(typeof(int)));
         }
 
         [Test]
         public void RefType_False()
         {
-            Assert.IsFalse(typeof(string).IsNullableType());
+            Assert.IsFalse(DBNullHelper.IsNullableType(typeof(string)));
         }
 
     }

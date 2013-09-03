@@ -77,7 +77,7 @@ namespace Net.Code.ADONet.Tests.Integration
         }
     }
 
-    public class database_context
+    public class given_an_initialized_database_with_one_table_and_two_records 
     {
         protected static IDb db;
         Establish context = () =>
@@ -97,14 +97,15 @@ namespace Net.Code.ADONet.Tests.Integration
 
     }
 
-    [Subject("querying a database table as an enumerable of dynamic objects")]
-    public class when_querying_as_dynamic : database_context
+    [Subject("when querying a database table as an enumerable of dynamic objects")]
+    public class when_querying_as_dynamic : given_an_initialized_database_with_one_table_and_two_records
     {
         protected static IList<dynamic> result;
 
         Establish context = () => result = SelectAll();
 
         It should_not_be_empty = () => result.ShouldNotBeEmpty();
+
         It should_contain_two_records = () => result.Count().ShouldEqual(2);
         
         protected static IList<dynamic> SelectAll()
@@ -114,14 +115,14 @@ namespace Net.Code.ADONet.Tests.Integration
     }
 
     [Subject("querying dynamic record with null values")]
-    public class second_record_null_values : when_querying_as_dynamic
+    public class when_retrieving_a_record_which_has_null_values : when_querying_as_dynamic
     {
         private Because of = () => record = result.Last();
 
-        private It should_have_empty_string_for_nonnull_string = () => ShouldExtensionMethods.ShouldEqual(record.StringNotNull, "");
-        private It should_have_null_string_for_null_string = () => ShouldExtensionMethods.ShouldBeNull(record.StringNull);
-        private It should_have_0_for_nonnull_int = () => ShouldExtensionMethods.ShouldEqual(record.IntNotNull, 0);
-        private It should_have_null_for_null_int = () => ShouldExtensionMethods.ShouldBeNull(record.IntNull);
+        private It should_have_empty_string_for_nonnull_string = () => record.StringNotNull.ShouldEqual("");
+        private It should_have_null_string_for_null_string = () => record.StringNull.ShouldBeNull();
+        private It should_have_0_for_nonnull_int = () => record.IntNotNull.ShouldEqual(0);
+        private It should_have_null_for_null_int = () => record.IntNull.ShouldBeNull();
 
         private static dynamic record;
     }
@@ -141,7 +142,7 @@ namespace Net.Code.ADONet.Tests.Integration
 
 
     [Subject("when retrieving a null value from an integer db column that is null")]
-    public class when_retrieving_scalar_value_for_integer_column_that_is_null : database_context
+    public class when_retrieving_scalar_value_for_integer_column_that_is_null : given_an_initialized_database_with_one_table_and_two_records
     {
         private static int? result;
 
@@ -151,7 +152,7 @@ namespace Net.Code.ADONet.Tests.Integration
     }
 
     [Subject("adding row with guid")]
-    public class when_adding_row_with_guid : database_context
+    public class when_adding_row_with_guid : given_an_initialized_database_with_one_table_and_two_records
     {
         private static Guid expected = Guid.NewGuid();
 

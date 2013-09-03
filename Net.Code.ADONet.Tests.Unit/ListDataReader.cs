@@ -84,7 +84,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
         public object GetValue(int i)
         {
-            return Properties[i].GetValue(_enumerator.Current, null).ToDb();
+            return DBNullHelper.ToDb(Properties[i].GetValue(_enumerator.Current, null));
         }
 
         public int GetValues(object[] values)
