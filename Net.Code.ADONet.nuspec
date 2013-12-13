@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>Net.Code.ADONet</id>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <title>Net.Code.ADONet - Fluent ADO.Net helper</title>
     <authors>Jeroen Haegebaert.</authors>
     <owners>Jeroen Haegebaert</owners>
@@ -13,6 +13,7 @@
     <summary>ADO.Net helper class.</summary>
     <releaseNotes>
       1.0.0 Initial release.
+      1.0.3 Oracle.DataAccess.Client - use named parameters by default
     </releaseNotes>
     <copyright>Copyright 2013 - Jeroen Haegebaert</copyright>
     <tags>CSV</tags>
