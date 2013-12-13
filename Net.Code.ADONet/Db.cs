@@ -21,7 +21,23 @@ namespace Net.Code.ADONet
 {
     public interface IConnectionFactory
     {
+        /// <summary>
+        /// Create the ADO.Net IDbConnection
+        /// </summary>
+        /// <param name="connectionString"></param>
+        /// <returns>the connection</returns>
         IDbConnection CreateConnection(string connectionString);
+
+        /// <summary>
+        /// Should return a class that does vendor-specific stuff <see cref="IVendor"/> for more information
+        /// </summary>
+        /// <returns>IVendor implementation</returns>
+        IVendor GetVendor();
+    }
+
+    public interface IVendor
+    {
+        void PrepareCommand(IDbCommand command);
     }
 
     public interface IDb : IDisposable
@@ -59,6 +75,41 @@ namespace Net.Code.ADONet
     /// </summary>
     public class Db : IDb
     {
+        public class Vendors
+        {
+            public static IVendor Oracle = new OracleVendor();
+            public static IVendor Default = new DefaultVendor();
+
+            class DefaultVendor : IVendor
+            {
+                public void PrepareCommand(IDbCommand command)
+                {
+                }
+            }
+
+            class OracleVendor : IVendor
+            {
+                // Oracle.DataAccess requires the command.BindByName property to be set to true in order
+                // to use named parameters in SQL queries.
+                public void PrepareCommand(IDbCommand command)
+                {
+                    dynamic c = command;
+                    c.BindByName = true;
+                }
+            }
+
+            public static IVendor Create(string providerInvariantName)
+            {
+                switch (providerInvariantName)
+                {
+                    case "Oracle.DataAccess.Client":
+                        return new OracleVendor();
+                    default:
+                        return new DefaultVendor();
+                }
+            }
+        }
+
         private class AdoNetProviderFactory : IConnectionFactory
         {
             private readonly string _providerInvariantName;
@@ -76,6 +127,11 @@ namespace Net.Code.ADONet
                 // ReSharper restore PossibleNullReferenceException
                 return connection;
             }
+
+            public IVendor GetVendor()
+            {
+                return Vendors.Create(_providerInvariantName);
+            }
         }
 
         /// <summary>
@@ -89,6 +145,7 @@ namespace Net.Code.ADONet
         private Lazy<IDbConnection> _connection;
         private readonly IConnectionFactory _connectionFactory;
         private readonly IDbConnection _externalConnection;
+        private readonly IVendor _vendor;
 
         /// <summary>
         /// Instantiate Db with existing connection. The connection is only used for creating commands; it must be Open, and should be disposed by the caller when done.
@@ -119,6 +176,7 @@ namespace Net.Code.ADONet
             _connectionString = connectionString;
             _connectionFactory = connectionFactory;
             _connection = new Lazy<IDbConnection>(CreateAndOpenConnection);
+            _vendor = connectionFactory.GetVendor();
         }
 
         /// <summary>
@@ -197,6 +255,7 @@ namespace Net.Code.ADONet
         private CommandBuilder CreateCommand(CommandType commandType, string command)
         {
             var cmd = Connection.CreateCommand();
+            _vendor.PrepareCommand(cmd);
             return new CommandBuilder(cmd) { LogFunc = Log }.OfType(commandType).WithCommandText(command);
         }
 
