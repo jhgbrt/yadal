@@ -151,9 +151,10 @@ namespace Net.Code.ADONet
         /// Instantiate Db with existing connection. The connection is only used for creating commands; it must be Open, and should be disposed by the caller when done.
         /// </summary>
         /// <param name="connection">The existing connection</param>
-        public Db(IDbConnection connection)
+        public Db(IDbConnection connection, string providerName= null)
         {
             _externalConnection = connection;
+            _vendor = Vendors.Create(providerName ?? DefaultProviderName);
         }
 
         /// <summary>
