@@ -264,9 +264,9 @@ namespace Net.Code.ADONet
         /// Create a SQL command and execute it immediately (non query)
         /// </summary>
         /// <param name="command"></param>
-        public void Execute(string command)
+        public int Execute(string command)
         {
-            Sql(command).AsNonQuery();
+            return Sql(command).AsNonQuery();
         }
     }
 
@@ -358,11 +358,11 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Executes the command as a SQL statement, not returning any results
         /// </summary>
-        public void AsNonQuery()
+        public int AsNonQuery()
         {
             Log();
             OpenConnectionIfClosed();
-            Command.ExecuteNonQuery();
+            return Command.ExecuteNonQuery();
         }
 
         private void OpenConnectionIfClosed()
