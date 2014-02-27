@@ -67,7 +67,7 @@ namespace Net.Code.ADONet
         /// Create a SQL command and execute it immediately (non query)
         /// </summary>
         /// <param name="command"></param>
-        void Execute(string command);
+        int Execute(string command);
     }
 
     /// <summary>
@@ -139,7 +139,7 @@ namespace Net.Code.ADONet
         /// </summary>
         public static string DefaultProviderName = "System.Data.SqlClient";
 
-        public Action<string> Log = s => Trace.WriteLine(s);
+        public static Action<string> Log = s => Trace.WriteLine(s);
 
         private readonly string _connectionString;
         private Lazy<IDbConnection> _connection;
@@ -222,7 +222,6 @@ namespace Net.Code.ADONet
         private IDbConnection CreateAndOpenConnection()
         {
             var connection = _connectionFactory.CreateConnection(_connectionString);
-            connection.Open();
             return connection;
         }
 
