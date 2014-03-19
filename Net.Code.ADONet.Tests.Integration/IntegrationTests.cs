@@ -1,10 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Data;
 using System.Data.Entity;
 using System.Data.Entity.ModelConfiguration.Conventions;
 using System.Data.Entity.Validation;
+using System.Data.SqlClient;
+using System.Data.SqlServerCe;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 // ReSharper disable UnusedMember.Local
@@ -97,7 +101,7 @@ namespace Net.Code.ADONet.Tests.Integration
             }
 
             db = new Db(connectionString, "System.Data.SqlServerCe.4.0");
-
+            db.Configure().SetAsyncAdapter(new SqlCeAsyncAdapter());
             Given();
             When();
         }
@@ -105,6 +109,41 @@ namespace Net.Code.ADONet.Tests.Integration
         protected virtual void Given() { }
         protected virtual void When() { }
     }
+
+
+    public class SqlCeAsyncAdapter : IAsyncAdapter
+    {    
+        public async Task<int> ExecuteNonQueryAsync(IDbCommand command)
+        {
+            var sqlCeCommand = (SqlCeCommand)command;
+            var result = await sqlCeCommand.ExecuteNonQueryAsync();
+            return result;
+        }
+
+        public async Task<object> ExecuteScalarAsync(IDbCommand command)
+        {
+            var sqlCeCommand = (SqlCeCommand)command;
+            var result = await sqlCeCommand.ExecuteScalarAsync();
+            return result;
+        }
+
+        public async Task<IDataReader> ExecuteReaderAsync(IDbCommand command)
+        {
+            var sqlCeCommand = (SqlCeCommand)command;
+            var result = await sqlCeCommand.ExecuteReaderAsync();
+            return result;
+        }
+
+        public async Task OpenConnectionAsync(IDbConnection connection)
+        {
+            if (connection.State == ConnectionState.Closed)
+            {
+                var sqlConnection = (SqlCeConnection)connection;
+                await sqlConnection.OpenAsync();
+            }
+        }
+    }
+
 
     [TestClass]
     public class when_querying_as_dynamic : given_an_initialized_database_with_one_table_and_two_records
@@ -128,9 +167,23 @@ namespace Net.Code.ADONet.Tests.Integration
         }
 
         [TestMethod]
+        public void ItShouldNotBeEmptyAsync()
+        {
+            db.Configure().SetAsyncAdapter(new SqlCeAsyncAdapter());
+            var result2 = SelectAllAsync().Result;
+            Assert.IsTrue(result2.Any());
+        }
+
+        [TestMethod]
         public void It_should_contain_two_records()
         {
             Assert.AreEqual(2, result.Count());
+        }
+
+        protected async static Task<IList<dynamic>> SelectAllAsync()
+        {
+            var objects = await db.Sql("SELECT * FROM MyTable").AsEnumerableAsync();
+            return objects.ToList();
         }
 
         protected static IList<dynamic> SelectAll()
@@ -224,6 +277,24 @@ namespace Net.Code.ADONet.Tests.Integration
         {
             base.When();
             result = db.Sql("SELECT TOP 1 IntNull FROM MyTable WHERE IntNull is null").AsScalar<int?>();
+        }
+
+        [TestMethod]
+        public void It_should_be_null()
+        {
+            Assert.IsFalse(result.HasValue);
+        }
+    }
+
+    [TestClass]
+    public class when_retrieving_scalar_value_for_integer_column_that_is_null_async : given_an_initialized_database_with_one_table_and_two_records
+    {
+        private static int? result;
+
+        protected override void When()
+        {
+            base.When();
+            result = db.Sql("SELECT TOP 1 IntNull FROM MyTable WHERE IntNull is null").AsScalarAsync<int?>().Result;
         }
 
         [TestMethod]

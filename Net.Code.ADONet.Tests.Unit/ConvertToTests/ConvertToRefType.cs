@@ -28,18 +28,19 @@ namespace Net.Code.ADONet.Tests.Unit.ConvertToTests
             Convert(o);
         }
 
-        [Test, ExpectedException(typeof(InvalidCastException))]
-        public void FromIncompatibleValueType_ShouldThrow()
+        [Test]
+        public void FromValueType_ShouldConvertToString()
         {
             int o = 1;
-            Convert(o);
+            var result = Convert(o);
+            Assert.AreEqual("1", result);
         }
 
-        [Test, ExpectedException(typeof(InvalidCastException))]
-        public void FromIncompatibleNullableType_ShouldThrow()
+        [Test]
+        public void FromNullableType_DoesNotThrow()
         {
             int? o = 1;
-            Convert(o);
+            Assert.AreEqual("1", Convert(o));
         }
 
         [Test]

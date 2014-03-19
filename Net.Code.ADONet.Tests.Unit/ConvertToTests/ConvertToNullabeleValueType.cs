@@ -20,7 +20,7 @@ namespace Net.Code.ADONet.Tests.Unit.ConvertToTests
             Assert.IsNull(result);
         }
 
-        [Test, ExpectedException(typeof(InvalidCastException))]
+        [Test, ExpectedException(typeof(FormatException))]
         public void FromString_ShouldThrow()
         {
             object o = "";

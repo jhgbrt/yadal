@@ -16,6 +16,8 @@ using System.Reflection;
 //   using (var db = Db.FromConfig());
 // from there it should be discoverable.
 // inline SQL FTW!
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Net.Code.ADONet
 {
@@ -27,17 +29,6 @@ namespace Net.Code.ADONet
         /// <param name="connectionString"></param>
         /// <returns>the connection</returns>
         IDbConnection CreateConnection(string connectionString);
-
-        /// <summary>
-        /// Should return a class that does vendor-specific stuff <see cref="IVendor"/> for more information
-        /// </summary>
-        /// <returns>IVendor implementation</returns>
-        IVendor GetVendor();
-    }
-
-    public interface IVendor
-    {
-        void PrepareCommand(IDbCommand command);
     }
 
     public interface IDb : IDisposable
@@ -48,6 +39,14 @@ namespace Net.Code.ADONet
         IDbConnection Connection { get; }
 
         string ConnectionString { get; }
+
+        /// <summary>
+        /// Entry point for configuring the db with provider-specific stuff.
+        /// Specifically, allows to set the async adapter
+        /// </summary>
+        /// <returns></returns>
+        
+        IDbConfigurationBuilder Configure();
 
         /// <summary>
         /// Create a SQL query command builder
@@ -70,68 +69,118 @@ namespace Net.Code.ADONet
         int Execute(string command);
     }
 
+    public class Logger
+    {
+        public static Action<string> Log = s => Trace.WriteLine(s);
+    }
+
+    public interface IDbConfigurationBuilder
+    {
+        IDbConfigurationBuilder SetAsyncAdapter(IAsyncAdapter asyncAdapter);
+        IDbConfigurationBuilder OnPrepareCommand(Action<IDbCommand> action);
+    }
+
+    class DbConfigurationBuilder : IDbConfigurationBuilder
+    {
+        private readonly DbConfig _dbConfig;
+ 
+        internal DbConfigurationBuilder(DbConfig dbConfig)
+        {
+            _dbConfig = dbConfig;
+        }
+
+        public IDbConfigurationBuilder SetAsyncAdapter(IAsyncAdapter asyncAdapter)
+        {
+            _dbConfig.AsyncAdapter = asyncAdapter;
+            return this;
+        }
+
+        public IDbConfigurationBuilder OnPrepareCommand(Action<IDbCommand> action)
+        {
+            _dbConfig.PrepareCommand = action;
+            return this;
+        }
+
+        public DbConfigurationBuilder Default()
+        {
+            SetAsyncAdapter(new NotSupportedAsyncAdapter());
+            OnPrepareCommand(a => {});
+            return this;
+        }
+
+        public DbConfigurationBuilder SqlServer()
+        {
+            SetAsyncAdapter(new SqlAsyncAdapter());
+            OnPrepareCommand(a => { });
+            return this;
+        }
+
+        public DbConfigurationBuilder Oracle()
+        {
+            SetAsyncAdapter(new NotSupportedAsyncAdapter());
+            OnPrepareCommand(command =>
+                             {
+                                 dynamic c = command;
+                                 c.BindByName = true;
+                             });
+            return this;
+        }
+
+        public DbConfigurationBuilder FromProviderName(string providerName)
+        {
+            switch (providerName)
+            {
+                case "Oracle.DataAccess.Client":
+                    return Oracle();
+                case "System.Data.SqlClient":
+                    return SqlServer();
+                default :
+                    return Default();
+
+            }
+        }
+    }
+
+    class AdoNetProviderFactory : IConnectionFactory
+    {
+        private readonly string _providerInvariantName;
+
+        public AdoNetProviderFactory(string providerInvariantName)
+        {
+            _providerInvariantName = providerInvariantName;
+        }
+
+        public IDbConnection CreateConnection(string connectionString)
+        {
+            var connection = DbProviderFactories.GetFactory(_providerInvariantName).CreateConnection();
+            // ReSharper disable once PossibleNullReferenceException
+            connection.ConnectionString = connectionString;
+            return connection;
+        }
+
+    }
+
+    internal class DbConfig
+    {
+        public Action<IDbCommand> PrepareCommand { get; internal set; }
+        public IAsyncAdapter AsyncAdapter { get; internal set; }
+    }
+
     /// <summary>
     /// A class that wraps a database.
     /// </summary>
     public class Db : IDb
     {
-        public class Vendors
+        private readonly DbConfig _config = new DbConfig();
+
+        public IDbConfigurationBuilder Configure()
         {
-            public static IVendor Oracle = new OracleVendor();
-            public static IVendor Default = new DefaultVendor();
-
-            class DefaultVendor : IVendor
-            {
-                public void PrepareCommand(IDbCommand command)
-                {
-                }
-            }
-
-            class OracleVendor : IVendor
-            {
-                // Oracle.DataAccess requires the command.BindByName property to be set to true in order
-                // to use named parameters in SQL queries.
-                public void PrepareCommand(IDbCommand command)
-                {
-                    dynamic c = command;
-                    c.BindByName = true;
-                }
-            }
-
-            public static IVendor Create(string providerInvariantName)
-            {
-                switch (providerInvariantName)
-                {
-                    case "Oracle.DataAccess.Client":
-                        return new OracleVendor();
-                    default:
-                        return new DefaultVendor();
-                }
-            }
+            return ConfigurePriv();
         }
 
-        private class AdoNetProviderFactory : IConnectionFactory
+        private DbConfigurationBuilder ConfigurePriv()
         {
-            private readonly string _providerInvariantName;
-
-            public AdoNetProviderFactory(string providerInvariantName)
-            {
-                _providerInvariantName = providerInvariantName;
-            }
-
-            public IDbConnection CreateConnection(string connectionString)
-            {
-                var connection = DbProviderFactories.GetFactory(_providerInvariantName).CreateConnection();
-                // ReSharper disable PossibleNullReferenceException
-                connection.ConnectionString = connectionString;
-                // ReSharper restore PossibleNullReferenceException
-                return connection;
-            }
-
-            public IVendor GetVendor()
-            {
-                return Vendors.Create(_providerInvariantName);
-            }
+            return new DbConfigurationBuilder(_config);
         }
 
         /// <summary>
@@ -139,22 +188,20 @@ namespace Net.Code.ADONet
         /// </summary>
         public static string DefaultProviderName = "System.Data.SqlClient";
 
-        public static Action<string> Log = s => Trace.WriteLine(s);
-
         private readonly string _connectionString;
         private Lazy<IDbConnection> _connection;
         private readonly IConnectionFactory _connectionFactory;
         private readonly IDbConnection _externalConnection;
-        private readonly IVendor _vendor;
 
         /// <summary>
-        /// Instantiate Db with existing connection. The connection is only used for creating commands; it must be Open, and should be disposed by the caller when done.
+        /// Instantiate Db with existing connection. The connection is only used for creating commands; it should be disposed by the caller when done.
         /// </summary>
         /// <param name="connection">The existing connection</param>
-        public Db(IDbConnection connection, string providerName= null)
+        /// <param name="providerName"></param>
+        public Db(IDbConnection connection, string providerName = null)
         {
             _externalConnection = connection;
-            _vendor = Vendors.Create(providerName ?? DefaultProviderName);
+            ConfigurePriv().FromProviderName(providerName);
         }
 
         /// <summary>
@@ -163,7 +210,7 @@ namespace Net.Code.ADONet
         /// <param name="connectionString">The connection string</param>
         /// <param name="providerName">The ADO .Net Provider name. When not specified, the default value is used (see DefaultProviderName)</param>
         public Db(string connectionString, string providerName = null)
-            : this(connectionString, new AdoNetProviderFactory(providerName ?? DefaultProviderName))
+            : this(connectionString, new AdoNetProviderFactory(providerName ?? DefaultProviderName), providerName)
         {
         }
 
@@ -172,13 +219,15 @@ namespace Net.Code.ADONet
         /// </summary>
         /// <param name="connectionString">the connection string</param>
         /// <param name="connectionFactory">the connection factory</param>
-        public Db(string connectionString, IConnectionFactory connectionFactory)
+        public Db(string connectionString, IConnectionFactory connectionFactory, string providerName = null)
         {
             _connectionString = connectionString;
             _connectionFactory = connectionFactory;
-            _connection = new Lazy<IDbConnection>(CreateAndOpenConnection);
-            _vendor = connectionFactory.GetVendor();
+            _connection = new Lazy<IDbConnection>(CreateConnection);
+            var providerInvariantName = providerName ?? DefaultProviderName;
+            ConfigurePriv().FromProviderName(providerInvariantName);
         }
+
 
         /// <summary>
         /// Factory method, instantiating the Db class from the first connectionstring in the app.config or web.config file.
@@ -219,7 +268,7 @@ namespace Net.Code.ADONet
             get { return _connectionString; }
         }
 
-        private IDbConnection CreateAndOpenConnection()
+        private IDbConnection CreateConnection()
         {
             var connection = _connectionFactory.CreateConnection(_connectionString);
             return connection;
@@ -255,8 +304,8 @@ namespace Net.Code.ADONet
         private CommandBuilder CreateCommand(CommandType commandType, string command)
         {
             var cmd = Connection.CreateCommand();
-            _vendor.PrepareCommand(cmd);
-            return new CommandBuilder(cmd) { LogFunc = Log }.OfType(commandType).WithCommandText(command);
+            _config.PrepareCommand(cmd);
+            return new CommandBuilder(cmd, _config.AsyncAdapter).OfType(commandType).WithCommandText(command);
         }
 
         /// <summary>
@@ -269,7 +318,7 @@ namespace Net.Code.ADONet
         }
     }
 
-    public static class DataReaderExtensions
+    static class DataReaderExtensions
     {
         public static IEnumerable<IDataRecord> AsEnumerable(this IDataReader reader)
         {
@@ -280,15 +329,34 @@ namespace Net.Code.ADONet
         {
             return from item in input select item.ToExpando();
         }
+
+        public static IEnumerable<IEnumerable<dynamic>> ToMultiResultSet(this IDataReader reader)
+        {
+            do
+            {
+                yield return GetResultSet(reader);
+            } while (reader.NextResult());
+        }
+
+        private static IEnumerable<dynamic> GetResultSet(IDataReader reader)
+        {
+            while (reader.Read()) yield return reader.ToExpando();
+        }
     }
 
     public class CommandBuilder
     {
         private readonly IDbCommand _command;
+        private readonly IAsyncAdapter _asyncAdapter;
 
-        public CommandBuilder(IDbCommand command)
+        public CommandBuilder(IDbCommand command) : this(command, null)
+        {
+        }
+ 
+        public CommandBuilder(IDbCommand command, IAsyncAdapter asyncAdapter)
         {
             _command = command;
+            _asyncAdapter = asyncAdapter;
         }
 
         /// <summary>
@@ -305,40 +373,18 @@ namespace Net.Code.ADONet
         /// <returns></returns>
         public IEnumerable<dynamic> AsEnumerable()
         {
-            Log();
-            OpenConnectionIfClosed();
-            return Command.ExecuteReader().AsEnumerable().ToDynamic();
+            return Execute().Reader().AsEnumerable().ToDynamic();
         }
-
-        private void Log()
-        {
-            LogFunc(Command.CommandText);
-            foreach (IDbDataParameter p in Command.Parameters)
-            {
-                LogFunc(string.Format("{0} = {1}", p.ParameterName, p.Value));
-            }
-        }
-
-        public Action<string> LogFunc = s => { };
 
         /// <summary>
         /// executes the query and returns the result as a list of lists
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<IList<dynamic>> AsMultiResultSet()
+        public IEnumerable<IEnumerable<dynamic>> AsMultiResultSet()
         {
-
-            Log();
-            OpenConnectionIfClosed();
-
-            using (var reader = Command.ExecuteReader())
+            using (var reader = Execute().Reader())
             {
-                do
-                {
-                    var list = new List<dynamic>();
-                    while (reader.Read()) list.Add(reader.ToExpando());
-                    yield return list;
-                } while (reader.NextResult());
+                return reader.ToMultiResultSet();
             }
         }
 
@@ -349,9 +395,8 @@ namespace Net.Code.ADONet
         /// <returns></returns>
         public T AsScalar<T>()
         {
-            Log();
-            OpenConnectionIfClosed();
-            return ConvertTo<T>.From(Command.ExecuteScalar());
+            var result = Execute().Scalar();
+            return ConvertTo<T>.From(result);
         }
 
         /// <summary>
@@ -359,14 +404,63 @@ namespace Net.Code.ADONet
         /// </summary>
         public int AsNonQuery()
         {
-            Log();
-            OpenConnectionIfClosed();
-            return Command.ExecuteNonQuery();
+            return Execute().NonQuery();
         }
 
-        private void OpenConnectionIfClosed()
+        private Executor Execute()
         {
-            if (Command.Connection.State == ConnectionState.Closed) Command.Connection.Open();
+            Log();
+            return new Executor(_command);
+        }
+
+        public async Task<int> AsNonQueryAsync()
+        {
+            await PrepareAsync();
+            return await AsyncAdapter.ExecuteNonQueryAsync(_command);
+        }
+
+        public async Task<T> AsScalarAsync<T>()
+        {
+            await PrepareAsync();
+            var result = await AsyncAdapter.ExecuteScalarAsync(_command);
+            return ConvertTo<T>.From(result);
+        }
+
+        public async Task<IEnumerable<dynamic>> AsEnumerableAsync()
+        {
+            await PrepareAsync();
+            var reader = await AsyncAdapter.ExecuteReaderAsync(_command);
+            return reader.AsEnumerable().ToDynamic();
+        }
+
+        public async Task<IEnumerable<IEnumerable<dynamic>>> AsMultiResultSetAsync()
+        {
+            await PrepareAsync();
+            using (var reader = await AsyncAdapter.ExecuteReaderAsync(_command))
+            {
+                return reader.ToMultiResultSet();
+            }
+        }
+
+        private async Task PrepareAsync()
+        {
+            Log();
+            await AsyncAdapter.OpenConnectionAsync(Command.Connection);
+        }
+
+        private void Log()
+        {
+            Logger.Log(Command.CommandText);
+            if (Command.Parameters != null) foreach (IDbDataParameter p in Command.Parameters)
+            {
+                Logger.Log(string.Format("{0} = {1}", p.ParameterName, p.Value));
+            }
+        }
+
+
+        private IAsyncAdapter AsyncAdapter
+        {
+            get { return _asyncAdapter; }
         }
 
         public CommandBuilder WithCommandText(string text)
@@ -438,6 +532,121 @@ namespace Net.Code.ADONet
 
             Command.Parameters.Add(p);
             return this;
+        }
+
+    }
+
+    public class Executor
+    {
+        private IDbCommand _command;
+
+        public Executor(IDbCommand command)
+        {
+            _command = command;
+        }
+
+        /// <summary>
+        /// executes the query as a datareader
+        /// </summary>
+        /// <returns></returns>
+        public IDataReader Reader()
+        {
+            return Prepare().ExecuteReader();
+        }
+
+        /// <summary>
+        /// Executes the command, returning the first column of the first result as a scalar value
+        /// </summary>
+        /// <returns></returns>
+        public object Scalar()
+        {
+            var result = Prepare().ExecuteScalar();
+            return result;
+        }
+
+        /// <summary>
+        /// Executes the command as a SQL statement, returning the number of rows affected
+        /// </summary>
+        public int NonQuery()
+        {
+            return Prepare().ExecuteNonQuery();
+        }
+
+        private IDbCommand Prepare()
+        {
+            Logger.Log(_command.CommandText);
+            foreach (IDbDataParameter p in _command.Parameters)
+            {
+                Logger.Log(string.Format("{0} = {1}", p.ParameterName, p.Value));
+            }
+            if (_command.Connection.State == ConnectionState.Closed)
+                _command.Connection.Open();
+            return _command;
+        }
+
+    }
+
+    public interface IAsyncAdapter
+    {
+        Task<int> ExecuteNonQueryAsync(IDbCommand command);
+        Task<object> ExecuteScalarAsync(IDbCommand command);
+        Task<IDataReader> ExecuteReaderAsync(IDbCommand command);
+        Task OpenConnectionAsync(IDbConnection connection);
+    }
+
+    public class SqlAsyncAdapter : IAsyncAdapter
+    {
+        public async Task<int> ExecuteNonQueryAsync(IDbCommand command)
+        {
+            var sqlCommand = (SqlCommand)command;
+            var result = await sqlCommand.ExecuteNonQueryAsync(CancellationToken.None);
+            return result;
+        }
+
+        public async Task<object> ExecuteScalarAsync(IDbCommand command)
+        {
+            var sqlCommand = (SqlCommand)command;
+            var result = await sqlCommand.ExecuteScalarAsync();
+            return result;
+        }
+
+        public async Task<IDataReader> ExecuteReaderAsync(IDbCommand command)
+        {
+            var sqlCommand = (SqlCommand)command;
+            var result = await sqlCommand.ExecuteReaderAsync();
+            return result;
+        }
+
+        public async Task OpenConnectionAsync(IDbConnection connection)
+        {
+            if (connection.State == ConnectionState.Closed)
+            {
+                var sqlConnection = (SqlConnection)connection;
+                await sqlConnection.OpenAsync();
+            }
+        }
+    }
+
+    public class NotSupportedAsyncAdapter : IAsyncAdapter
+    {
+        public Task<int> ExecuteNonQueryAsync(IDbCommand command)
+        {
+            throw new NotSupportedException("Async is not supported or not configured for this provider. Enable async support by setting the IAsyncAdapter via Db.Configure().");
+        }
+
+        public Task<object> ExecuteScalarAsync(IDbCommand command)
+        {
+            throw new NotSupportedException("Async is not supported or not configured for this provider. Enable async support by setting the IAsyncAdapter via Db.Configure().");
+        }
+
+        public Task<IDataReader> ExecuteReaderAsync(IDbCommand command)
+        {
+            throw new NotSupportedException("Async is not supported or not configured for this provider. Enable async support by setting the IAsyncAdapter via Db.Configure().");
+        }
+
+        public Task OpenConnectionAsync(IDbConnection connection)
+        {
+            throw new NotSupportedException();
         }
     }
 
@@ -560,7 +769,6 @@ namespace Net.Code.ADONet
         {
             return DBNullHelper.IsNull(value) ? (TElem?)null : ConvertPrivate<TElem>(value);
         }
-
         // ReSharper restore UnusedMember.Local
 
         private static T ConvertRefType(object value)
@@ -570,19 +778,16 @@ namespace Net.Code.ADONet
 
         private static T ConvertValueType(object value)
         {
-            if (DBNull.Value.Equals(value))
+            if (DBNullHelper.IsNull(value))
             {
-                throw new NullReferenceException("Value is DbNull"); // TODO or should we throw InvalidCastException here? Or a custom exception?
+                throw new NullReferenceException("Value is DbNull");
             }
             return ConvertPrivate<T>(value);
         }
 
         private static TElem ConvertPrivate<TElem>(object value)
         {
-            // TODO decide on whether we should simply cast (current behaviour) or use the Convert.ChangeType function
-            //      maybe this should be configurable?
-            return (TElem)(value);
-            //return (T)(Convert.ChangeType(value, typeof(T)));
+            return (TElem)(Convert.ChangeType(value, typeof(TElem)));
         }
 
     }

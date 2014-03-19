@@ -54,7 +54,11 @@
     <Compile Include="ConvertToTests\ConvertToRefType.cs" />
     <Compile Include="ConvertToTests\ConvertToValueType.cs" />
     <Compile Include="DbTests\DbCommandTests.cs" />
+    <Compile Include="DbTests\DbConfigurationBuilderTests.cs" />
     <Compile Include="DbTests\DbConstructorTests.cs" />
+    <Compile Include="DbTests\FakeAsyncAdapter.cs" />
+    <Compile Include="DbTests\FakeOracleDbCommand.cs" />
+    <Compile Include="DbTests\NotSupportedAsyncAdapterTests.cs" />
     <Compile Include="ListDataReader.cs" />
     <Compile Include="obj\Debug\TemporaryGeneratedFile_036C0B5B-1481-4323-8D20-8F5ADCB23D92.cs" />
     <Compile Include="obj\Debug\TemporaryGeneratedFile_5937a670-0e60-4077-877b-f7221da3dda1.cs" />

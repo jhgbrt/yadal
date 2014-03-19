@@ -18,7 +18,7 @@ namespace Net.Code.ADONet.Tests.Unit.ConvertToTests
             Convert(DBNull.Value);
         }
 
-        [Test, ExpectedException(typeof(InvalidCastException))]
+        [Test, ExpectedException(typeof(FormatException))]
         public void FromString_ShouldThrow()
         {
             object o = "";

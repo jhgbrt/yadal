@@ -172,7 +172,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
             command.Setup(c => c.ExecuteReader()).Returns(listDataReader).Verifiable();
 
-            var result = commandBuilder.AsMultiResultSet().ToList();
+            var result = commandBuilder.AsMultiResultSet().Select(i => i.ToArray()).ToList();
 
             connection.VerifyAll();
             command.Verify(c => c.ExecuteReader(), Times.Once());
