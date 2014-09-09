@@ -115,26 +115,53 @@ namespace Net.Code.ADONet.Tests.Sqlite
             }
         }
 
-
         [TestMethod]
-        public void TestMethod1()
+        public void An_inserted_object_can_be_selected()
         {
             var myObject = new MyObject
-                           {
-                               Id = 1,
-                               StringNotNull = "StringNotNull",
-                               StringNull = "StringNull",
-                               NonNullableUniqueId = Guid.NewGuid(),
-                               NullableUniqueId = Guid.NewGuid(),
-                               NullableInt = 2,
-                               NonNullableInt = 3
-                           };
+            {
+                Id = 1,
+                StringNotNull = "StringNotNull",
+                StringNull = "StringNull",
+                NonNullableUniqueId = Guid.NewGuid(),
+                NullableUniqueId = Guid.NewGuid(),
+                NullableInt = 2,
+                NonNullableInt = 3
+            };
 
             Insert("sqlite", myObject);
 
             var item = Select("sqlite").First();
 
             Assert.AreEqual(myObject, item);
+        }
+        [TestMethod]
+        public void An_parameter_can_be_updated()
+        {
+            var myObject = new MyObject
+            {
+                Id = 1,
+                StringNotNull = "StringNotNull",
+                StringNull = "StringNull",
+                NonNullableUniqueId = Guid.NewGuid(),
+                NullableUniqueId = Guid.NewGuid(),
+                NullableInt = 2,
+                NonNullableInt = 3
+            };
+
+            Insert("sqlite", myObject);
+
+            using (var db = Db.FromConfig("sqlite"))
+            {
+                var commandBuilder = db.Sql("UPDATE MyTable SET StringNull = @stringValue WHERE Id = @id")
+                    .WithParameter("id", 1)
+                    .WithParameter("stringValue", "StringNull updated");
+                commandBuilder.AsNonQuery();
+                commandBuilder.WithParameter("stringValue", "StringNull updated again");
+                commandBuilder.AsNonQuery();
+                var result = db.Sql("SELECT StringNull FROM MyTable where Id = 1").AsScalar<string>();
+                Assert.AreEqual("StringNull updated again", result);
+            }
         }
     }
 }

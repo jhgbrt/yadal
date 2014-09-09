@@ -163,10 +163,10 @@ namespace Net.Code.ADONet
     {
         private static readonly Action<IDbCommand> Empty = c => {};
 
-        public DbConfig()
+        public DbConfig() : this(Empty)
         {
-            PrepareCommand = Empty;
         }
+
         public DbConfig(Action<IDbCommand> prepareCommand)
         {
             PrepareCommand = prepareCommand;
@@ -550,10 +550,20 @@ namespace Net.Code.ADONet
         /// <returns>the same CommandBuilder instance</returns>
         public CommandBuilder WithParameter(string name, object value)
         {
-            var p = Command.CreateParameter();
-            p.ParameterName = name;
-            p.Value = DBNullHelper.ToDb(value);
-            Command.Parameters.Add(p);
+
+            IDataParameter p;
+            if (Command.Parameters.Contains(name))
+            {
+                p = (IDbDataParameter) Command.Parameters[name];
+                p.Value = DBNullHelper.ToDb(value);
+            }
+            else
+            {
+                p = Command.CreateParameter();
+                p.ParameterName = name;
+                p.Value = DBNullHelper.ToDb(value);
+                Command.Parameters.Add(p);
+            }
             return this;
         }
 
