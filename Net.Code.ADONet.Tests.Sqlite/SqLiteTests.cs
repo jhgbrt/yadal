@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Data.SQLite;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Net.Code.ADONet.Tests.Sqlite
@@ -35,14 +38,14 @@ namespace Net.Code.ADONet.Tests.Sqlite
             {
                 db.Execute("DROP TABLE IF EXISTS MyTable");
                 db.Execute("CREATE TABLE MyTable (" +
-                       "Id int not null, " +
-                       "StringNotNull nvarchar(25) not null," +
-                       "StringNull nvarchar(25) null," +
-                       "NullableUniqueId uniqueidentifier null," +
-                       "NonNullableUniqueId uniqueidentifier not null," +
-                       "NullableInt int null," +
-                       "NonNullableInt int not null" +
-                       ")"
+                           "Id int not null, " +
+                           "StringNotNull nvarchar(25) not null," +
+                           "StringNull nvarchar(25) null," +
+                           "NullableUniqueId uniqueidentifier null," +
+                           "NonNullableUniqueId uniqueidentifier not null," +
+                           "NullableInt int null," +
+                           "NonNullableInt int not null" +
+                           ")"
                     );
             }
         }
@@ -90,21 +93,21 @@ namespace Net.Code.ADONet.Tests.Sqlite
             using (var db = Db.FromConfig(connectionStringName))
             {
                 db.Sql("INSERT INTO MyTable(" +
-                        "Id, " +
-                        "StringNotNull, " +
-                        "StringNull, " +
-                        "NullableUniqueId, " +
-                        "NonNullableUniqueId," +
-                        "NullableInt," +
-                        "NonNullableInt" +
+                       "Id, " +
+                       "StringNotNull, " +
+                       "StringNull, " +
+                       "NullableUniqueId, " +
+                       "NonNullableUniqueId," +
+                       "NullableInt," +
+                       "NonNullableInt" +
                        ") VALUES (" +
-                        "@Id, " +
-                        "@StringNotNull, " +
-                        "@StringNull, " +
-                        "@NullableUniqueId," +
-                        "@NonNullableUniqueId," +
-                        "@NullableInt," +
-                        "@NonNullableInt" +
+                       "@Id, " +
+                       "@StringNotNull, " +
+                       "@StringNull, " +
+                       "@NullableUniqueId," +
+                       "@NonNullableUniqueId," +
+                       "@NullableInt," +
+                       "@NonNullableInt" +
                        ")")
                     .WithParameters(
                         myObject

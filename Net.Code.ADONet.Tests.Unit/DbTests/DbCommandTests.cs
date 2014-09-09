@@ -1,6 +1,7 @@
-﻿using System.Data;
+﻿using System;
+using System.Data;
 using System.Data.SqlClient;
-using System.Linq;
+using System.Text;
 using Moq;
 using NUnit.Framework;
 
@@ -15,12 +16,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         [TestFixtureSetUp]
         public void Setup()
         {
-            var commandStub = new Mock<IDbCommand>().SetupAllProperties().Object;
-
-            var connection = new Mock<IDbConnection>();
-            connection.Setup(c => c.CreateCommand()).Returns(commandStub);
-            _db = new Db(connection.Object);
-   
+            _db = new Db(new SqlConnection());
         }
 
         [Test]
@@ -53,46 +49,77 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
     }
 
     [TestFixture]
-    public class CommandBuilderAsync_ConfiguredWithFakeAsyncAdapter
+    public class DbCommandBuilderTests
     {
-        private Db _db;
+        private SqlCommand _sqlCommand;
+        private CommandBuilder _builder;
+        private StringBuilder _logging;
 
         [SetUp]
         public void Setup()
         {
-            var commandStub = new Mock<IDbCommand>().SetupAllProperties().Object;
-
-            var connection = new Mock<IDbConnection>();
-            connection.Setup(c => c.CreateCommand()).Returns(commandStub);
-
-            _db = new Db(connection.Object, "Unknown");
-            _db.Configure().SetAsyncAdapter(new FakeAsyncAdapter());
+            _logging = new StringBuilder();
+            Logger.Log = s => _logging.AppendLine(s);
+            _sqlCommand = new SqlCommand();
+            _builder = new CommandBuilder(_sqlCommand);
         }
 
         [Test]
-        public void AsScalarAsync_Throws()
+        public void WithParameter_AddsParameterWithCorrectNameAndValue()
         {
-            var result = _db.Sql("").AsScalarAsync<int>().Result;
-            Assert.AreEqual(1, result);
+            _builder.WithParameter("myparam", "myvalue");
+            Assert.AreEqual(1, _sqlCommand.Parameters.Count, "expected exactly one parameter");
+            Assert.AreEqual("myparam", _sqlCommand.Parameters[0].ParameterName);
+            Assert.AreEqual("myvalue", _sqlCommand.Parameters[0].Value);
         }
 
         [Test]
-        public void AsNonQuerytAsync_Throws()
+        public void WithParameters_AnonymousObject_AddsParameterWithCorrectNameAndValue()
         {
-            var result = _db.Sql("").AsNonQueryAsync().Result;
-            Assert.AreEqual(1, result);
+            _builder.WithParameters(new
+                                    {
+                                        myparam1 = "myvalue", 
+                                        myparam2 = 999
+                                    });
+            Assert.AreEqual(2, _sqlCommand.Parameters.Count, "expected exactly two parameters");
+            Assert.AreEqual("myparam1", _sqlCommand.Parameters[0].ParameterName);
+            Assert.AreEqual("myvalue", _sqlCommand.Parameters[0].Value);
+            Assert.AreEqual("myparam2", _sqlCommand.Parameters[1].ParameterName);
+            Assert.AreEqual(999, _sqlCommand.Parameters[1].Value);
         }
 
         [Test]
-        public void AsMultiResultSetAsync_Throws()
+        public void WithTimeout_SetsCommandTimeOut()
         {
-            var result = _db.Sql("").AsMultiResultSetAsync().Result;
+            var timeout = TimeSpan.FromMinutes(42);
+            _builder.WithTimeout(timeout);
+            Assert.AreEqual(timeout, TimeSpan.FromSeconds(_sqlCommand.CommandTimeout));
         }
 
         [Test]
-        public void AsEnumerableAsync_Throws()
+        public void WithParameter_TableValued_SetsParameter()
         {
-            var result = _db.Sql("").AsEnumerableAsync().Result;
+            var input = new[] {1, 2, 3};
+            _builder.WithParameter("tableValuedParameter", input, "arrayOfInt");
+            Assert.AreEqual(1, _sqlCommand.Parameters.Count, "expected exactly one parameter");
+            Assert.AreEqual("tableValuedParameter", _sqlCommand.Parameters[0].ParameterName);
+            Assert.AreEqual(SqlDbType.Structured, _sqlCommand.Parameters[0].SqlDbType);
+            Assert.AreEqual("arrayOfInt", _sqlCommand.Parameters[0].TypeName);
+        }
+
+        [Test]
+        public void OfType_SetsCommandType()
+        {
+            _builder.OfType(CommandType.StoredProcedure);
+            Assert.AreEqual(CommandType.StoredProcedure, _sqlCommand.CommandType);
+        }
+
+        [Test]
+        public void WithCommandText_SetsCommandText()
+        {
+            var text = "SELECT 42 FROM DUAL";
+            _builder.WithCommandText(text);
+            Assert.AreEqual(text, _sqlCommand.CommandText);
         }
     }
 

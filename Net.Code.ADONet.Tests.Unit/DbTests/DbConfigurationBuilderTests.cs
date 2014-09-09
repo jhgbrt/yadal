@@ -16,24 +16,10 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         }
 
         [Test]
-        public void Default_AsyncAdapter_IsNotSupportedAdapter()
-        {
-            _dbConfigurationBuilder.FromProviderName("unknown");
-            Assert.IsInstanceOf(typeof(NotSupportedAsyncAdapter), _config.AsyncAdapter);
-        }
-
-        [Test]
         public void Default_PrepareCommand_DoesNothing()
         {
             _dbConfigurationBuilder.FromProviderName("unknown");
             _config.PrepareCommand(null);
-        }
-
-        [Test]
-        public void SqlServer_AsyncAdapter_SetSqlAsyncAdapter()
-        {
-            _dbConfigurationBuilder.FromProviderName("System.Data.SqlClient");
-            Assert.IsInstanceOf(typeof(SqlAsyncAdapter), _config.AsyncAdapter);
         }
 
         [Test]
@@ -51,13 +37,5 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             _config.PrepareCommand(oracleCommand);
             Assert.IsTrue(oracleCommand.BindByName);
         }
-
-        [Test]
-        public void Oracle_AsyncAdapter_IsNotSupported()
-        {
-            _dbConfigurationBuilder.FromProviderName("Oracle.DataAccess.Client");
-            Assert.IsInstanceOf(typeof(NotSupportedAsyncAdapter), _config.AsyncAdapter);
-        }
-
     }
 }

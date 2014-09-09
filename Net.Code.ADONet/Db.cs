@@ -72,11 +72,19 @@ namespace Net.Code.ADONet
     public class Logger
     {
         public static Action<string> Log = s => Trace.WriteLine(s);
+
+        internal static void LogCommand(IDbCommand command)
+        {
+            Log(command.CommandText);
+            foreach (IDbDataParameter p in command.Parameters)
+            {
+                Log(string.Format("{0} = {1}", p.ParameterName, p.Value));
+            }
+        }
     }
 
     public interface IDbConfigurationBuilder
     {
-        IDbConfigurationBuilder SetAsyncAdapter(IAsyncAdapter asyncAdapter);
         IDbConfigurationBuilder OnPrepareCommand(Action<IDbCommand> action);
     }
 
@@ -89,12 +97,6 @@ namespace Net.Code.ADONet
             _dbConfig = dbConfig;
         }
 
-        public IDbConfigurationBuilder SetAsyncAdapter(IAsyncAdapter asyncAdapter)
-        {
-            _dbConfig.AsyncAdapter = asyncAdapter;
-            return this;
-        }
-
         public IDbConfigurationBuilder OnPrepareCommand(Action<IDbCommand> action)
         {
             _dbConfig.PrepareCommand = action;
@@ -103,21 +105,18 @@ namespace Net.Code.ADONet
 
         public DbConfigurationBuilder Default()
         {
-            SetAsyncAdapter(new NotSupportedAsyncAdapter());
             OnPrepareCommand(a => {});
             return this;
         }
 
         public DbConfigurationBuilder SqlServer()
         {
-            SetAsyncAdapter(new SqlAsyncAdapter());
             OnPrepareCommand(a => { });
             return this;
         }
 
         public DbConfigurationBuilder Oracle()
         {
-            SetAsyncAdapter(new NotSupportedAsyncAdapter());
             OnPrepareCommand(command =>
                              {
                                  dynamic c = command;
@@ -160,10 +159,20 @@ namespace Net.Code.ADONet
 
     }
 
-    internal class DbConfig
+    public class DbConfig
     {
+        private static readonly Action<IDbCommand> Empty = c => {};
+
+        public DbConfig()
+        {
+            PrepareCommand = Empty;
+        }
+        public DbConfig(Action<IDbCommand> prepareCommand)
+        {
+            PrepareCommand = prepareCommand;
+        }
+
         public Action<IDbCommand> PrepareCommand { get; internal set; }
-        public IAsyncAdapter AsyncAdapter { get; internal set; }
     }
 
     /// <summary>
@@ -305,7 +314,7 @@ namespace Net.Code.ADONet
         {
             var cmd = Connection.CreateCommand();
             _config.PrepareCommand(cmd);
-            return new CommandBuilder(cmd, _config.AsyncAdapter).OfType(commandType).WithCommandText(command);
+            return new CommandBuilder(cmd, _config).OfType(commandType).WithCommandText(command);
         }
 
         /// <summary>
@@ -347,16 +356,17 @@ namespace Net.Code.ADONet
     public class CommandBuilder
     {
         private readonly IDbCommand _command;
-        private readonly IAsyncAdapter _asyncAdapter;
+        private readonly DbConfig _config;
 
-        public CommandBuilder(IDbCommand command) : this(command, null)
+        public CommandBuilder(IDbCommand command)
+            : this(command, new DbConfig())
         {
         }
- 
-        public CommandBuilder(IDbCommand command, IAsyncAdapter asyncAdapter)
+
+        public CommandBuilder(IDbCommand command, DbConfig config)
         {
             _command = command;
-            _asyncAdapter = asyncAdapter;
+            _config = config;
         }
 
         /// <summary>
@@ -368,7 +378,7 @@ namespace Net.Code.ADONet
         }
 
         /// <summary>
-        /// executes the query and returns the result as a list of dynamic objects
+        /// Executes the query and returns the result as a list of dynamic objects
         /// </summary>
         /// <returns></returns>
         public IEnumerable<dynamic> AsEnumerable()
@@ -377,7 +387,7 @@ namespace Net.Code.ADONet
         }
 
         /// <summary>
-        /// executes the query and returns the result as a list of lists
+        /// Executes the query and returns the result as a list of lists
         /// </summary>
         /// <returns></returns>
         public IEnumerable<IEnumerable<dynamic>> AsMultiResultSet()
@@ -400,7 +410,7 @@ namespace Net.Code.ADONet
         }
 
         /// <summary>
-        /// Executes the command as a SQL statement, not returning any results
+        /// Executes the command as a SQL statement, returning the number of rows affected
         /// </summary>
         public int AsNonQuery()
         {
@@ -413,39 +423,59 @@ namespace Net.Code.ADONet
             return new Executor(_command);
         }
 
-        public async Task<int> AsNonQueryAsync()
+        /// <summary>
+        /// Executes the command as a statement, returning the number of rows affected asynchronously
+        /// This method is only supported if the underlying provider users the ADO.Net base classes (i.e., their IDbCommand implementation
+        /// inherits from System.Data.DbCommand). Moreover, this async method only makes sense if the provider
+        /// implements the async behaviour by overriding the appropriate method.
+        /// </summary>
+        /// <returns></returns>
+        public Task<int> AsNonQueryAsync()
         {
-            await PrepareAsync();
-            return await AsyncAdapter.ExecuteNonQueryAsync(_command);
+            return ExecuteAsync().NonQuery();
         }
 
+        /// <summary>
+        /// Executes the command, returning the first column of the first result, converted to the type T asynchronously. 
+        /// This method is only supported if the underlying provider users the ADO.Net base classes (i.e., their IDbCommand implementation
+        /// inherits from System.Data.DbCommand). Moreover, this async method only makes sense if the provider
+        /// implements the async behaviour by overriding the appropriate method.
+        /// </summary>
+        /// <typeparam name="T">return type</typeparam>
+        /// <returns></returns>
         public async Task<T> AsScalarAsync<T>()
         {
-            await PrepareAsync();
-            var result = await AsyncAdapter.ExecuteScalarAsync(_command);
+            var result = await ExecuteAsync().Scalar();
             return ConvertTo<T>.From(result);
         }
 
+        /// <summary>
+        /// Executes the query and returns the result as a list of dynamic objects asynchronously
+        /// This method is only supported if the underlying provider users the ADO.Net base classes (i.e., their IDbCommand implementation
+        /// inherits from System.Data.DbCommand). Moreover, this async method only makes sense if the provider
+        /// implements the async behaviour by overriding the appropriate method.
+        /// </summary>
+        /// <typeparam name="T">return type</typeparam>
+        /// <returns></returns>
         public async Task<IEnumerable<dynamic>> AsEnumerableAsync()
         {
-            await PrepareAsync();
-            var reader = await AsyncAdapter.ExecuteReaderAsync(_command);
+            var reader = await ExecuteAsync().ReaderAsync();
             return reader.AsEnumerable().ToDynamic();
         }
 
+        /// <summary>
+        /// Executes the query and returns the result as a list of lists asynchronously
+        /// This method is only supported if the underlying provider users the ADO.Net base classes (i.e., their IDbCommand implementation
+        /// inherits from System.Data.DbCommand). Moreover, this async method only makes sense if the provider
+        /// implements the async behaviour by overriding the appropriate method.
+        /// </summary>
+        /// <returns></returns>
         public async Task<IEnumerable<IEnumerable<dynamic>>> AsMultiResultSetAsync()
         {
-            await PrepareAsync();
-            using (var reader = await AsyncAdapter.ExecuteReaderAsync(_command))
+            using (var reader = await ExecuteAsync().ReaderAsync())
             {
                 return reader.ToMultiResultSet();
             }
-        }
-
-        private async Task PrepareAsync()
-        {
-            Log();
-            await AsyncAdapter.OpenConnectionAsync(Command.Connection);
         }
 
         private void Log()
@@ -458,30 +488,45 @@ namespace Net.Code.ADONet
         }
 
 
-        private IAsyncAdapter AsyncAdapter
+        private AsyncExecutor ExecuteAsync()
         {
-            get { return _asyncAdapter; }
+            return new AsyncExecutor((DbCommand) _command);
         }
 
+        /// <summary>
+        /// Sets the command text
+        /// </summary>
+        /// <param name="text"></param>
+        /// <returns></returns>
         public CommandBuilder WithCommandText(string text)
         {
             _command.CommandText = text;
             return this;
         }
 
+        /// <summary>
+        /// Sets the command type
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
         public CommandBuilder OfType(CommandType type)
         {
             _command.CommandType = type;
             return this;
         }
 
-        public CommandBuilder WithParameters(dynamic parameters)
+        /// <summary>
+        /// Adds a parameter for each property of the given object, with the property name as the name of the parameter 
+        /// and the property value as the corresponding parameter value
+        /// </summary>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
+        public CommandBuilder WithParameters(object parameters)
         {
-            object o = parameters;
-            var props = o.GetType().GetProperties();
+            var props = parameters.GetType().GetProperties();
             foreach (var item in props)
             {
-                WithParameter(item.Name, item.GetValue(o, null));
+                WithParameter(item.Name, item.GetValue(parameters, null));
             }
             return this;
         }
@@ -522,6 +567,7 @@ namespace Net.Code.ADONet
         /// <returns></returns>
         public CommandBuilder WithParameter<T>(string name, IEnumerable<T> values, string udtTypeName)
         {
+            
             var dataTable = values.ToDataTable();
 
             var p = new SqlParameter(name, SqlDbType.Structured)
@@ -538,7 +584,7 @@ namespace Net.Code.ADONet
 
     public class Executor
     {
-        private IDbCommand _command;
+        private readonly IDbCommand _command;
 
         public Executor(IDbCommand command)
         {
@@ -574,11 +620,7 @@ namespace Net.Code.ADONet
 
         private IDbCommand Prepare()
         {
-            Logger.Log(_command.CommandText);
-            foreach (IDbDataParameter p in _command.Parameters)
-            {
-                Logger.Log(string.Format("{0} = {1}", p.ParameterName, p.Value));
-            }
+            Logger.LogCommand(_command);
             if (_command.Connection.State == ConnectionState.Closed)
                 _command.Connection.Open();
             return _command;
@@ -586,69 +628,54 @@ namespace Net.Code.ADONet
 
     }
 
-    public interface IAsyncAdapter
+    public class AsyncExecutor
     {
-        Task<int> ExecuteNonQueryAsync(IDbCommand command);
-        Task<object> ExecuteScalarAsync(IDbCommand command);
-        Task<IDataReader> ExecuteReaderAsync(IDbCommand command);
-        Task OpenConnectionAsync(IDbConnection connection);
+        private readonly DbCommand _command;
+
+        public AsyncExecutor(DbCommand command)
+        {
+            _command = command;
+        }
+
+        /// <summary>
+        /// executes the query as a datareader
+        /// </summary>
+        /// <returns></returns>
+        public async Task<IDataReader> ReaderAsync()
+        {
+            var command = await PrepareAsync();
+            return await command.ExecuteReaderAsync();
+        }
+
+        /// <summary>
+        /// Executes the command, returning the first column of the first result as a scalar value
+        /// </summary>
+        /// <returns></returns>
+        public async Task<object> Scalar()
+        {
+            var command = await PrepareAsync();
+            return await command.ExecuteScalarAsync();
+        }
+
+        /// <summary>
+        /// Executes the command as a SQL statement, returning the number of rows affected
+        /// </summary>
+        public async Task<int> NonQuery()
+        {
+            var command = await PrepareAsync();
+            return await command.ExecuteNonQueryAsync();
+        }
+
+        private async Task<DbCommand> PrepareAsync()
+        {
+            Logger.LogCommand(_command);
+            if (_command.Connection.State == ConnectionState.Closed)
+                await _command.Connection.OpenAsync();
+            return _command;
+        }
+
     }
 
-    public class SqlAsyncAdapter : IAsyncAdapter
-    {
-        public async Task<int> ExecuteNonQueryAsync(IDbCommand command)
-        {
-            var sqlCommand = (SqlCommand)command;
-            var result = await sqlCommand.ExecuteNonQueryAsync(CancellationToken.None);
-            return result;
-        }
-
-        public async Task<object> ExecuteScalarAsync(IDbCommand command)
-        {
-            var sqlCommand = (SqlCommand)command;
-            var result = await sqlCommand.ExecuteScalarAsync();
-            return result;
-        }
-
-        public async Task<IDataReader> ExecuteReaderAsync(IDbCommand command)
-        {
-            var sqlCommand = (SqlCommand)command;
-            var result = await sqlCommand.ExecuteReaderAsync();
-            return result;
-        }
-
-        public async Task OpenConnectionAsync(IDbConnection connection)
-        {
-            if (connection.State == ConnectionState.Closed)
-            {
-                var sqlConnection = (SqlConnection)connection;
-                await sqlConnection.OpenAsync();
-            }
-        }
-    }
-
-    public class NotSupportedAsyncAdapter : IAsyncAdapter
-    {
-        public Task<int> ExecuteNonQueryAsync(IDbCommand command)
-        {
-            throw new NotSupportedException("Async is not supported or not configured for this provider. Enable async support by setting the IAsyncAdapter via Db.Configure().");
-        }
-
-        public Task<object> ExecuteScalarAsync(IDbCommand command)
-        {
-            throw new NotSupportedException("Async is not supported or not configured for this provider. Enable async support by setting the IAsyncAdapter via Db.Configure().");
-        }
-
-        public Task<IDataReader> ExecuteReaderAsync(IDbCommand command)
-        {
-            throw new NotSupportedException("Async is not supported or not configured for this provider. Enable async support by setting the IAsyncAdapter via Db.Configure().");
-        }
-
-        public Task OpenConnectionAsync(IDbConnection connection)
-        {
-            throw new NotSupportedException();
-        }
-    }
 
     public static class EnumerableToDatatable
     {
@@ -657,11 +684,11 @@ namespace Net.Code.ADONet
         {
             var table = new DataTable(typeof(T).Name);
 
-            PropertyInfo[] props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
             foreach (var prop in props)
             {
-                Type propType = prop.PropertyType;
+                var propType = prop.PropertyType;
 
                 if (DBNullHelper.IsNullableType(propType))
                     propType = new NullableConverter(propType).UnderlyingType;
@@ -711,7 +738,10 @@ namespace Net.Code.ADONet
         /// </summary>
         public static TResult Get<TResult>(this IDataRecord reader, string name)
         {
-            return reader.Get<TResult>(reader.GetOrdinal(name));
+            var c = reader.GetOrdinal(name);
+            dynamic value = reader[c];
+            return value;
+            //return reader.Get<TResult>(reader.GetOrdinal(name));
         }
 
         /// <summary>
@@ -721,7 +751,9 @@ namespace Net.Code.ADONet
         /// </summary>
         public static TResult Get<TResult>(this IDataRecord reader, int c)
         {
-            return ConvertTo<TResult>.From(reader[c]);
+            dynamic value = reader[c];
+            return value;
+            //return ConvertTo<TResult>.From(reader[c]);
         }
     }
 
@@ -730,14 +762,13 @@ namespace Net.Code.ADONet
     // not needed if you use ToExpando()
     public static class ConvertTo<T>
     {
-        // ReSharper disable StaticFieldInGenericType
+        // ReSharper disable once StaticFieldInGenericType
         // clearly we *want* a static field for each instantiation of this generic class...
         /// <summary>
         /// The actual conversion method. Converts an object to any type using standard casting functionality, taking into account null/nullable types
         /// and avoiding DBNull issues. This method is set as a delegate at runtime (in the static constructor).
         /// </summary>
         public static readonly Func<object, T> From;
-        // ReSharper restore StaticFieldInGenericType
 
         /// <summary>
         /// Set the <see cref="From"/> delegate, depending on whether T is a reference type, a nullable value type or a value type.
@@ -763,13 +794,12 @@ namespace Net.Code.ADONet
             return ConvertValueType;
         }
 
-        // ReSharper disable UnusedMember.Local
+        // ReSharper disable once UnusedMember.Local
         // (used via reflection!)
         private static TElem? ConvertNullableValueType<TElem>(object value) where TElem : struct
         {
             return DBNullHelper.IsNull(value) ? (TElem?)null : ConvertPrivate<TElem>(value);
         }
-        // ReSharper restore UnusedMember.Local
 
         private static T ConvertRefType(object value)
         {

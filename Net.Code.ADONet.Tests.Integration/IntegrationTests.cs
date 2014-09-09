@@ -101,7 +101,6 @@ namespace Net.Code.ADONet.Tests.Integration
             }
 
             db = new Db(connectionString, "System.Data.SqlServerCe.4.0");
-            db.Configure().SetAsyncAdapter(new SqlCeAsyncAdapter());
             Given();
             When();
         }
@@ -110,39 +109,6 @@ namespace Net.Code.ADONet.Tests.Integration
         protected virtual void When() { }
     }
 
-
-    public class SqlCeAsyncAdapter : IAsyncAdapter
-    {    
-        public async Task<int> ExecuteNonQueryAsync(IDbCommand command)
-        {
-            var sqlCeCommand = (SqlCeCommand)command;
-            var result = await sqlCeCommand.ExecuteNonQueryAsync();
-            return result;
-        }
-
-        public async Task<object> ExecuteScalarAsync(IDbCommand command)
-        {
-            var sqlCeCommand = (SqlCeCommand)command;
-            var result = await sqlCeCommand.ExecuteScalarAsync();
-            return result;
-        }
-
-        public async Task<IDataReader> ExecuteReaderAsync(IDbCommand command)
-        {
-            var sqlCeCommand = (SqlCeCommand)command;
-            var result = await sqlCeCommand.ExecuteReaderAsync();
-            return result;
-        }
-
-        public async Task OpenConnectionAsync(IDbConnection connection)
-        {
-            if (connection.State == ConnectionState.Closed)
-            {
-                var sqlConnection = (SqlCeConnection)connection;
-                await sqlConnection.OpenAsync();
-            }
-        }
-    }
 
 
     [TestClass]
@@ -169,7 +135,6 @@ namespace Net.Code.ADONet.Tests.Integration
         [TestMethod]
         public void ItShouldNotBeEmptyAsync()
         {
-            db.Configure().SetAsyncAdapter(new SqlCeAsyncAdapter());
             var result2 = SelectAllAsync().Result;
             Assert.IsTrue(result2.Any());
         }

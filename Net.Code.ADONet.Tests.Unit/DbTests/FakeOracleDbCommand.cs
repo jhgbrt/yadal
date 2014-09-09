@@ -7,6 +7,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
     {
         public bool BindByName { get; set; }
 
+        #region IDbCommand implementation (not implemented)
         public void Dispose()
         {
             throw new NotImplementedException();
@@ -52,7 +53,8 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         public string CommandText { get; set; }
         public int CommandTimeout { get; set; }
         public CommandType CommandType { get; set; }
-        public IDataParameterCollection Parameters { get; private set; }
+        public IDataParameterCollection Parameters { get; set; }
         public UpdateRowSource UpdatedRowSource { get; set; }
+        #endregion
     }
 }
