@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
 using System.Text;
 using Moq;
 using NUnit.Framework;
@@ -12,11 +13,13 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
     public class DbCommandTests
     {
         private IDb _db;
+        private FakeConnection _fakeConnection;
 
         [TestFixtureSetUp]
         public void Setup()
         {
-            _db = new Db(new SqlConnection());
+            _fakeConnection = new FakeConnection();
+            _db = new Db(_fakeConnection);
         }
 
         [Test]
@@ -45,6 +48,15 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         {
             var result = _db.StoredProcedure("").Command;
             Assert.AreEqual(CommandType.StoredProcedure, result.CommandType);
+        }
+
+        [Test]
+        public void Execute_ExecutesCommand()
+        {
+            _db.Execute("COMMANDTEXT");
+            var fakeCommand = _fakeConnection.Commands.Single();
+            Assert.AreEqual("COMMANDTEXT", fakeCommand.CommandText);
+            Assert.AreEqual(CommandMode.NonQuery, fakeCommand.Mode);
         }
     }
 

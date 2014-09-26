@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 
@@ -8,23 +10,22 @@ namespace Net.Code.ADONet.Tests.Unit
 {
     public static class ListDataReader
     {
-        public static IDataReader AsDataReader<T>(this IEnumerable<T> input)
+        public static DbDataReader AsDataReader<T>(this IEnumerable<T> input)
         {
             return new ListDataReader<T>(input);
         }
-        public static IDataReader AsMultiDataReader<T>(this IEnumerable<IEnumerable<T>> input)
+        public static DbDataReader AsMultiDataReader<T>(this IEnumerable<IEnumerable<T>> input)
         {
             return new ListDataReader<T>(input);
         }
     }
 
 
-
     /// <summary>
     /// Adapter from IEnumerable[T] to IDataReader
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class ListDataReader<T> : IDataReader
+    public class ListDataReader<T> : DbDataReader
     {
         private readonly IEnumerable<IEnumerable<T>> _lists;
         private IEnumerator<IEnumerable<T>> _listEnumerator;
@@ -59,150 +60,144 @@ namespace Net.Code.ADONet.Tests.Unit
             _enumerator = _listEnumerator.Current.GetEnumerator();
         }
 
-        public void Dispose()
-        {
-            if (_disposed) throw new ObjectDisposedException("ListDataReader");
-            _listEnumerator.Dispose();
-            _enumerator.Dispose();
-            _disposed = true;
-        }
-
-        public string GetName(int i)
+        public override string GetName(int i)
         {
             return Properties[i].Name;
         }
 
-        public string GetDataTypeName(int i)
+        public override string GetDataTypeName(int i)
         {
             return GetFieldType(i).Name;
         }
 
-        public Type GetFieldType(int i)
+        public override IEnumerator GetEnumerator()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Type GetFieldType(int i)
         {
             return Properties[i].PropertyType;
         }
 
-        public object GetValue(int i)
+        public override object GetValue(int i)
         {
             return DBNullHelper.ToDb(Properties[i].GetValue(_enumerator.Current, null));
         }
 
-        public int GetValues(object[] values)
+        public override int GetValues(object[] values)
         {
             throw new NotSupportedException();
         }
 
-        public int GetOrdinal(string name)
+        public override int GetOrdinal(string name)
         {
             return PropertyIndexesByName.Value[name];
         }
 
-        public bool GetBoolean(int i)
+        public override bool GetBoolean(int i)
         {
             throw new NotSupportedException();
         }
 
-        public byte GetByte(int i)
+        public override byte GetByte(int i)
         {
             throw new NotSupportedException();
         }
 
-        public long GetBytes(int i, long fieldOffset, byte[] buffer, int bufferoffset, int length)
+        public override long GetBytes(int i, long fieldOffset, byte[] buffer, int bufferoffset, int length)
         {
             throw new NotSupportedException();
         }
 
-        public char GetChar(int i)
+        public override char GetChar(int i)
         {
             throw new NotSupportedException();
         }
 
-        public long GetChars(int i, long fieldoffset, char[] buffer, int bufferoffset, int length)
+        public override long GetChars(int i, long fieldoffset, char[] buffer, int bufferoffset, int length)
         {
             throw new NotSupportedException();
         }
 
-        public Guid GetGuid(int i)
+        public override Guid GetGuid(int i)
         {
             throw new NotSupportedException();
         }
 
-        public short GetInt16(int i)
+        public override short GetInt16(int i)
         {
             throw new NotSupportedException();
         }
 
-        public int GetInt32(int i)
+        public override int GetInt32(int i)
         {
             throw new NotSupportedException();
         }
 
-        public long GetInt64(int i)
+        public override long GetInt64(int i)
         {
             throw new NotSupportedException();
         }
 
-        public float GetFloat(int i)
+        public override float GetFloat(int i)
         {
             throw new NotSupportedException();
         }
 
-        public double GetDouble(int i)
+        public override double GetDouble(int i)
         {
             throw new NotSupportedException();
         }
 
-        public string GetString(int i)
+        public override string GetString(int i)
         {
             throw new NotSupportedException();
         }
 
-        public decimal GetDecimal(int i)
+        public override decimal GetDecimal(int i)
         {
             throw new NotSupportedException();
         }
 
-        public DateTime GetDateTime(int i)
+        public override DateTime GetDateTime(int i)
         {
             throw new NotSupportedException();
         }
 
-        public IDataReader GetData(int i)
-        {
-            throw new NotSupportedException();
-        }
-
-        public bool IsDBNull(int i)
+        public override bool IsDBNull(int i)
         {
             return DBNull.Value.Equals(GetValue(i));
         }
 
-        public int FieldCount
+        public override int FieldCount
         {
             get { return Properties.Length; }
         }
 
-        object IDataRecord.this[int i]
+
+        public override bool HasRows
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public override object this[int i]
         {
             get { return GetValue(i); }
         }
 
-        object IDataRecord.this[string name]
+        public override object this[string name]
         {
             get { return GetValue(GetOrdinal(name)); }
         }
 
-        public void Close()
-        {
-            Dispose();
-        }
 
         public DataTable GetSchemaTable()
         {
             throw new NotSupportedException();
         }
 
-        public bool NextResult()
+        public override bool NextResult()
         {
             if (!_listEnumerator.MoveNext()) return false;
             _enumerator.Dispose();
@@ -210,22 +205,22 @@ namespace Net.Code.ADONet.Tests.Unit
             return true; // only one list
         }
 
-        public bool Read()
+        public override bool Read()
         {
             return _enumerator.MoveNext();
         }
 
-        public int Depth
+        public override int Depth
         {
             get { return 0; }
         }
 
-        public bool IsClosed
+        public override bool IsClosed
         {
             get { return _disposed; }
         }
 
-        public int RecordsAffected
+        public override int RecordsAffected
         {
             get 
             { 

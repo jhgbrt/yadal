@@ -50,7 +50,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AdoNetProviderFactoryTests.cs" />
+    <Compile Include="Fakes\FakeParameterCollection.cs" />
     <Compile Include="CommandBuilderTests.cs" />
+    <Compile Include="CommandExecutionTests.cs" />
     <Compile Include="ConvertToTests\ConvertToNullabeleValueType.cs" />
     <Compile Include="ConvertToTests\ConvertToRefType.cs" />
     <Compile Include="ConvertToTests\ConvertToValueType.cs" />
@@ -58,10 +60,16 @@
     <Compile Include="DbTests\DbConfigurationBuilderTests.cs" />
     <Compile Include="DbTests\DbConstructorTests.cs" />
     <Compile Include="DbTests\FakeOracleDbCommand.cs" />
+    <Compile Include="Fakes\FakeCommand.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Fakes\FakeConnection.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Fakes\FakeParameter.cs" />
+    <Compile Include="Fakes\FakeTransaction.cs" />
     <Compile Include="ListDataReader.cs" />
-    <Compile Include="obj\Debug\TemporaryGeneratedFile_036C0B5B-1481-4323-8D20-8F5ADCB23D92.cs" />
-    <Compile Include="obj\Debug\TemporaryGeneratedFile_5937a670-0e60-4077-877b-f7221da3dda1.cs" />
-    <Compile Include="obj\Debug\TemporaryGeneratedFile_E7A71F73-0F8D-4B9B-B56E-8E70B10BC5D3.cs" />
+    <Compile Include="Person.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ToDatatableTests\EnumerableToDatatableTests.cs" />
     <Compile Include="TypeExtensionsTests\DataRecordExtensionsTests.cs" />
@@ -70,7 +78,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="obj\Debug\DesignTimeResolveAssemblyReferencesInput.cache" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
@@ -79,9 +86,7 @@
       <Name>Net.Code.ADONet</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="obj\Debug\TempPE\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>

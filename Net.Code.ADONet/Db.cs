@@ -459,7 +459,7 @@ namespace Net.Code.ADONet
         /// <returns></returns>
         public async Task<IEnumerable<dynamic>> AsEnumerableAsync()
         {
-            var reader = await ExecuteAsync().ReaderAsync();
+            var reader = await ExecuteAsync().Reader();
             return reader.AsEnumerable().ToDynamic();
         }
 
@@ -472,7 +472,7 @@ namespace Net.Code.ADONet
         /// <returns></returns>
         public async Task<IEnumerable<IEnumerable<dynamic>>> AsMultiResultSetAsync()
         {
-            using (var reader = await ExecuteAsync().ReaderAsync())
+            using (var reader = await ExecuteAsync().Reader())
             {
                 return reader.ToMultiResultSet();
             }
@@ -480,11 +480,7 @@ namespace Net.Code.ADONet
 
         private void Log()
         {
-            Logger.Log(Command.CommandText);
-            if (Command.Parameters != null) foreach (IDbDataParameter p in Command.Parameters)
-            {
-                Logger.Log(string.Format("{0} = {1}", p.ParameterName, p.Value));
-            }
+            Logger.LogCommand(Command);
         }
 
 
@@ -651,7 +647,7 @@ namespace Net.Code.ADONet
         /// executes the query as a datareader
         /// </summary>
         /// <returns></returns>
-        public async Task<IDataReader> ReaderAsync()
+        public async Task<IDataReader> Reader()
         {
             var command = await PrepareAsync();
             return await command.ExecuteReaderAsync();
@@ -685,7 +681,6 @@ namespace Net.Code.ADONet
         }
 
     }
-
 
     public static class EnumerableToDatatable
     {

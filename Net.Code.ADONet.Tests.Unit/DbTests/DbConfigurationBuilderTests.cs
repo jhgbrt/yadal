@@ -1,3 +1,4 @@
+using System.Linq;
 using NUnit.Framework;
 
 namespace Net.Code.ADONet.Tests.Unit.DbTests
@@ -36,6 +37,17 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             var oracleCommand = new FakeOracleDbCommand();
             _config.PrepareCommand(oracleCommand);
             Assert.IsTrue(oracleCommand.BindByName);
+        }
+
+
+        [Test]
+        public void GivenDb_WhenOnPrepareIsConfigured__AndExecuteIsCalled_CommandIsPrepared()
+        {
+            var fakeConnection = new FakeConnection();
+            var db = new Db(fakeConnection);
+            db.Configure().OnPrepareCommand(c => ((FakeCommand)c).Comment = "PREPARED");
+            db.Execute("");
+            Assert.AreEqual("PREPARED", fakeConnection.Commands.Single().Comment);
         }
     }
 }
