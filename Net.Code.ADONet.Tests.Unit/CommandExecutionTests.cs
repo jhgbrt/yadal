@@ -22,6 +22,20 @@ namespace Net.Code.ADONet.Tests.Unit
             Person.VerifySingleResultSet(result);
         }
 
+        [Test]
+        public void AsEnumerableWithSelector_WhenCalled_ReturnsResults()
+        {
+            var command = PrepareCommand();
+
+            var commandBuilder = new CommandBuilder(command);
+
+            command.SetResultSet(Person.GetSingleResultSet());
+
+            var result = commandBuilder.AsEnumerable(d => new Person {FirstName = d.FirstName}).ToList();
+
+            Person.VerifySingleResultSet(result);
+        }
+
 
         [Test]
         public void AsScalar_WhenCalled_ReturnsScalarValue()
@@ -47,6 +61,7 @@ namespace Net.Code.ADONet.Tests.Unit
             
             Assert.AreEqual(1, result);
         }
+
         [Test]
         public void AsMultiResultSet_WhenCalled_ReturnsMultipleResultSets()
         {
@@ -70,6 +85,18 @@ namespace Net.Code.ADONet.Tests.Unit
             command.SetResultSet(Person.GetSingleResultSet());
 
             var result = (await commandBuilder.AsEnumerableAsync()).ToList();
+
+            Person.VerifySingleResultSet(result);
+        }
+
+        [Test]
+        public async Task AsEnumerableAsyncWithSelector_WhenCalledAndAwaited_ReturnsResultSet()
+        {
+            var command = PrepareCommand();
+            var commandBuilder = new CommandBuilder(command);
+            command.SetResultSet(Person.GetSingleResultSet());
+
+            var result = (await commandBuilder.AsEnumerableAsync(d => new Person{FirstName = d.FirstName})).ToList();
 
             Person.VerifySingleResultSet(result);
         }

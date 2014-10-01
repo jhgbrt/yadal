@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SQLite;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Transactions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Net.Code.ADONet.Tests.Sqlite
@@ -75,15 +77,40 @@ namespace Net.Code.ADONet.Tests.Sqlite
                               "FROM MyTable")
                     .AsEnumerable()
                     .Select(d => new MyObject
-                                 {
-                                     Id = d.Id,
-                                     StringNotNull = d.StringNotNull,
-                                     StringNull = d.StringNull,
-                                     NullableUniqueId = d.NullableUniqueId,
-                                     NonNullableUniqueId = d.NonNullableUniqueId,
-                                     NullableInt = d.NullableInt,
-                                     NonNullableInt = d.NonNullableInt
-                                 })
+                    {
+                        Id = d.Id,
+                        StringNotNull = d.StringNotNull,
+                        StringNull = d.StringNull,
+                        NullableUniqueId = d.NullableUniqueId,
+                        NonNullableUniqueId = d.NonNullableUniqueId,
+                        NullableInt = d.NullableInt,
+                        NonNullableInt = d.NonNullableInt
+                    })
+                    .ToList();
+            }
+        }
+        private static IEnumerable<MyObject> SelectFast(string connectionStringName)
+        {
+            using (var db = Db.FromConfig(connectionStringName))
+            {
+                return db.Sql("SELECT Id, " +
+                              "StringNotNull, " +
+                              "StringNull, " +
+                              "NullableUniqueId, " +
+                              "NonNullableUniqueId," +
+                              "NullableInt," +
+                              "NonNullableInt " +
+                              "FROM MyTable")
+                    .AsEnumerable(d => new MyObject
+                    {
+                        Id = d.Id,
+                        StringNotNull = d.StringNotNull,
+                        StringNull = d.StringNull,
+                        NullableUniqueId = d.NullableUniqueId,
+                        NonNullableUniqueId = d.NonNullableUniqueId,
+                        NullableInt = d.NullableInt,
+                        NonNullableInt = d.NonNullableInt
+                    })
                     .ToList();
             }
         }
@@ -92,27 +119,32 @@ namespace Net.Code.ADONet.Tests.Sqlite
         {
             using (var db = Db.FromConfig(connectionStringName))
             {
-                db.Sql("INSERT INTO MyTable(" +
-                       "Id, " +
-                       "StringNotNull, " +
-                       "StringNull, " +
-                       "NullableUniqueId, " +
-                       "NonNullableUniqueId," +
-                       "NullableInt," +
-                       "NonNullableInt" +
-                       ") VALUES (" +
-                       "@Id, " +
-                       "@StringNotNull, " +
-                       "@StringNull, " +
-                       "@NullableUniqueId," +
-                       "@NonNullableUniqueId," +
-                       "@NullableInt," +
-                       "@NonNullableInt" +
-                       ")")
-                    .WithParameters(
-                        myObject
-                    ).AsNonQuery();
+                Insert(db, myObject);
             }
+        }
+
+        private static void Insert(Db db, MyObject myObject)
+        {
+            db.Sql("INSERT INTO MyTable(" +
+                   "Id, " +
+                   "StringNotNull, " +
+                   "StringNull, " +
+                   "NullableUniqueId, " +
+                   "NonNullableUniqueId," +
+                   "NullableInt," +
+                   "NonNullableInt" +
+                   ") VALUES (" +
+                   "@Id, " +
+                   "@StringNotNull, " +
+                   "@StringNull, " +
+                   "@NullableUniqueId," +
+                   "@NonNullableUniqueId," +
+                   "@NullableInt," +
+                   "@NonNullableInt" +
+                   ")")
+                .WithParameters(
+                    myObject
+                ).AsNonQuery();
         }
 
         [TestMethod]
@@ -162,6 +194,54 @@ namespace Net.Code.ADONet.Tests.Sqlite
                 var result = db.Sql("SELECT StringNull FROM MyTable where Id = 1").AsScalar<string>();
                 Assert.AreEqual("StringNull updated again", result);
             }
+        }
+
+        
+
+        [TestMethod]
+        public void PerformanceTest()
+        {
+            Logger.Log = null;
+            RunTest(1);
+            var faster = RunTest(10000);
+            Assert.IsTrue(faster);
+        }
+
+        private static bool RunTest(int count)
+        {
+            var objects = Enumerable.Range(1, count).Select(i =>
+                new MyObject
+                {
+                    Id = i,
+                    StringNotNull = "StringNotNull",
+                    StringNull = "StringNull",
+                    NonNullableUniqueId = Guid.NewGuid(),
+                    NullableUniqueId = Guid.NewGuid(),
+                    NullableInt = 2,
+                    NonNullableInt = 3
+                });
+
+            using (var tx = new TransactionScope())
+            using (var db = Db.FromConfig("sqlite"))
+            {
+                foreach (var myObject in objects)
+                    Insert(db, myObject);
+                tx.Complete();
+            }
+
+            var sw = Stopwatch.StartNew();
+            SelectFast("sqlite");
+            var fast = sw.Elapsed;
+
+            sw = Stopwatch.StartNew();
+            Select("sqlite");
+            var slow = sw.Elapsed;
+
+            Console.WriteLine(slow);
+            Console.WriteLine(fast);
+
+            var faster = fast < slow;
+            return faster;
         }
     }
 }

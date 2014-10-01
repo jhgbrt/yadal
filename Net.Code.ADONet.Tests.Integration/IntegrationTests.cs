@@ -22,7 +22,8 @@ namespace Net.Code.ADONet.Tests.Integration
             return value != null;
         }
     }
-    class MyTable
+
+    public class MyTable
     {
         public int Id { get; set; }
         [MyRequired]
@@ -114,7 +115,7 @@ namespace Net.Code.ADONet.Tests.Integration
     [TestClass]
     public class when_querying_as_dynamic : given_an_initialized_database_with_one_table_and_two_records
     {
-        protected static IList<dynamic> result;
+        protected static IList<MyTable> result;
 
         protected override void Given()
         {
@@ -145,15 +146,31 @@ namespace Net.Code.ADONet.Tests.Integration
             Assert.AreEqual(2, result.Count());
         }
 
-        protected async static Task<IList<dynamic>> SelectAllAsync()
+        protected async static Task<IList<MyTable>> SelectAllAsync()
         {
-            var objects = await db.Sql("SELECT * FROM MyTable").AsEnumerableAsync();
+            var objects = await db.Sql("SELECT * FROM MyTable").AsEnumerableAsync(x => new MyTable
+            {
+                GuidNull = x.GuidNull,
+                Id = x.Id,
+                IntNotNull = x.IntNotNull,
+                IntNull = x.IntNull,
+                StringNotNull = x.StringNotNull,
+                StringNull = x.StringNull
+            });
             return objects.ToList();
         }
 
-        protected static IList<dynamic> SelectAll()
+        protected static IList<MyTable> SelectAll()
         {
-            return db.Sql("SELECT * FROM MyTable").AsEnumerable().ToList();
+            return db.Sql("SELECT * FROM MyTable").AsEnumerable(x => new MyTable
+                                                                     {
+                                                                         GuidNull = x.GuidNull,
+                                                                         Id = x.Id,
+                                                                         IntNotNull = x.IntNotNull,
+                                                                         IntNull = x.IntNull,
+                                                                         StringNotNull = x.StringNotNull,
+                                                                         StringNull = x.StringNull
+                                                                     }).ToList();
         }
     }
 
