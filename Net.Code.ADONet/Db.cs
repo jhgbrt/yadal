@@ -5,11 +5,11 @@ using System.Configuration;
 using System.Data;
 using System.Data.Common;
 using System.Data.SqlClient;
-using System.Diagnostics;
 using System.Dynamic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Microsoft.CSharp.RuntimeBinder;
 
 // Yet Another Data Access Layer
 // usage: 
@@ -41,7 +41,6 @@ namespace Net.Code.ADONet
 
         /// <summary>
         /// Entry point for configuring the db with provider-specific stuff.
-        /// Specifically, allows to set the async adapter
         /// </summary>
         /// <returns></returns>
         
@@ -68,9 +67,12 @@ namespace Net.Code.ADONet
         int Execute(string command);
     }
 
+    /// <summary>
+    /// To enable logging, set the Log property of the Logger class
+    /// </summary>
     public class Logger
     {
-        public static Action<string> Log = s => Trace.WriteLine(s);
+        public static Action<string> Log;
 
         internal static void LogCommand(IDbCommand command)
         {
@@ -85,6 +87,14 @@ namespace Net.Code.ADONet
 
     public interface IDbConfigurationBuilder
     {
+        /// <summary>
+        /// Provides a hook to configure an ADO.Net DbCommmand just after it is created. 
+        /// For example, the Oracle.DataAccess API requires the BindByName property to be set
+        /// to true for the datareader to enable named access to the result columns (Note that 
+        /// for this situation you don't need to do anything, it's handled by default).
+        /// </summary>
+        /// <param name="action"></param>
+        /// <returns></returns>
         IDbConfigurationBuilder OnPrepareCommand(Action<IDbCommand> action);
     }
 
@@ -103,24 +113,37 @@ namespace Net.Code.ADONet
             return this;
         }
 
-        public DbConfigurationBuilder Default()
+        private DbConfigurationBuilder Default()
         {
             OnPrepareCommand(a => {});
             return this;
         }
 
-        public DbConfigurationBuilder SqlServer()
+        private DbConfigurationBuilder SqlServer()
         {
-            OnPrepareCommand(a => { });
+            OnPrepareCommand(command => { });
             return this;
         }
 
-        public DbConfigurationBuilder Oracle()
+        private DbConfigurationBuilder Oracle()
         {
+            // By default, the Oracle driver does not support binding parameters by name;
+            // one has to set the BindByName property on the OracleDbCommand.
+            // Since we don't want to have a hard reference to Oracle.DataAccess here,
+            // we use 'dynamic'.
+            // The day Oracle decides to make a breaking change, this will blow up with 
+            // a runtime exception
             OnPrepareCommand(command =>
                              {
                                  dynamic c = command;
-                                 c.BindByName = true;
+                                 try
+                                 {
+                                     c.BindByName = true;
+                                 }
+                                 catch (RuntimeBinderException)
+                                 {
+                                     throw new InvalidOperationException(string.Format("Exception while trying to set the BindByName property on {0} to 'true'. This used to be required for Oracle DataAccess. To avoid this exception, configure your Db instance differently, using the db.Configure() API.", command.GetType()));
+                                 }
                              });
             return this;
         }
@@ -337,12 +360,12 @@ namespace Net.Code.ADONet
 
         public static IEnumerable<dynamic> ToDynamic(this IEnumerable<IDataRecord> input)
         {
-            return from item in input select item.ToExpando();
+            return from item in input select item.ToDynamic();
         }
 
         public static IEnumerable<dynamic> ToDynamicDataRecord(this IEnumerable<IDataRecord> input)
         {
-            return from item in input select new DynamicDataRecord(item);
+            return from item in input select Dynamic.DataRecord(item);
         }
 
         public static IEnumerable<IEnumerable<dynamic>> ToMultiResultSet(this IDataReader reader)
@@ -355,7 +378,7 @@ namespace Net.Code.ADONet
 
         private static IEnumerable<dynamic> GetResultSet(IDataReader reader)
         {
-            while (reader.Read()) yield return reader.ToExpando();
+            while (reader.Read()) yield return reader.ToDynamic();
         }
     }
 
@@ -387,14 +410,27 @@ namespace Net.Code.ADONet
         }
 
         /// <summary>
-        /// Executes the query and returns the result as a list of [T]
+        /// Executes the query and returns the result as a list of [T]. This method is slightly faster
+        /// than doing AsEnumerable().Select(selector).
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="selector">mapping function that transforms a datarecord (wrapped as a dynamic object) to an instance of type [T]</param>
         /// <returns></returns>
         public IEnumerable<T> AsEnumerable<T>(Func<dynamic, T> selector)
         {
+            return Select(selector);
+        }
+
+        // enables linq 'select' syntax
+        public IEnumerable<T> Select<T>(Func<dynamic, T> selector)
+        {
             return Execute().Reader().AsEnumerable().ToDynamicDataRecord().Select(selector);
+        }
+
+        // enables linq 'where' syntax
+        public IEnumerable<dynamic> Where(Func<dynamic, bool> predicate)
+        {
+            return AsEnumerable().Where(predicate);
         }
 
         /// <summary>
@@ -435,7 +471,7 @@ namespace Net.Code.ADONet
 
         /// <summary>
         /// Executes the command as a statement, returning the number of rows affected asynchronously
-        /// This method is only supported if the underlying provider users the ADO.Net base classes (i.e., their IDbCommand implementation
+        /// This method is only supported if the underlying provider uses the ADO.Net base classes (i.e., their IDbCommand implementation
         /// inherits from System.Data.DbCommand). Moreover, this async method only makes sense if the provider
         /// implements the async behaviour by overriding the appropriate method.
         /// </summary>
@@ -447,7 +483,7 @@ namespace Net.Code.ADONet
 
         /// <summary>
         /// Executes the command, returning the first column of the first result, converted to the type T asynchronously. 
-        /// This method is only supported if the underlying provider users the ADO.Net base classes (i.e., their IDbCommand implementation
+        /// This method is only supported if the underlying provider uses the ADO.Net base classes (i.e., their IDbCommand implementation
         /// inherits from System.Data.DbCommand). Moreover, this async method only makes sense if the provider
         /// implements the async behaviour by overriding the appropriate method.
         /// </summary>
@@ -461,7 +497,7 @@ namespace Net.Code.ADONet
 
         /// <summary>
         /// Executes the query and returns the result as a list of dynamic objects asynchronously
-        /// This method is only supported if the underlying provider users the ADO.Net base classes (i.e., their IDbCommand implementation
+        /// This method is only supported if the underlying provider uses the ADO.Net base classes (i.e., their IDbCommand implementation
         /// inherits from System.Data.DbCommand). Moreover, this async method only makes sense if the provider
         /// implements the async behaviour by overriding the appropriate method.
         /// </summary>
@@ -474,7 +510,7 @@ namespace Net.Code.ADONet
 
         /// <summary>
         /// Executes the query and returns the result as a list of [T] asynchronously
-        /// This method is only supported if the underlying provider users the ADO.Net base classes (i.e., their IDbCommand implementation
+        /// This method is only supported if the underlying provider uses the ADO.Net base classes (i.e., their IDbCommand implementation
         /// inherits from System.Data.DbCommand). Moreover, this async method only makes sense if the provider
         /// implements the async behaviour by overriding the appropriate method.
         /// </summary>
@@ -489,7 +525,7 @@ namespace Net.Code.ADONet
 
         /// <summary>
         /// Executes the query and returns the result as a list of lists asynchronously
-        /// This method is only supported if the underlying provider users the ADO.Net base classes (i.e., their IDbCommand implementation
+        /// This method is only supported if the underlying provider uses the ADO.Net base classes (i.e., their IDbCommand implementation
         /// inherits from System.Data.DbCommand). Moreover, this async method only makes sense if the provider
         /// implements the async behaviour by overriding the appropriate method.
         /// </summary>
@@ -591,7 +627,6 @@ namespace Net.Code.ADONet
         /// <returns></returns>
         public CommandBuilder WithParameter<T>(string name, IEnumerable<T> values, string udtTypeName)
         {
-            
             var dataTable = values.ToDataTable();
 
             var p = new SqlParameter(name, SqlDbType.Structured)
@@ -604,6 +639,10 @@ namespace Net.Code.ADONet
             return this;
         }
 
+        /// <summary>
+        /// Executes the command as a datareader. Use this if you need best performance.
+        /// </summary>
+        /// <returns></returns>
         public IDataReader AsReader()
         {
             return Execute().Reader();
@@ -731,49 +770,87 @@ namespace Net.Code.ADONet
 
                 table.Rows.Add(values);
             }
-
             return table;
         }
     }
 
-    class DynamicDataRecord : DynamicObject
+    static class Dynamic
     {
-        private readonly IDataRecord _record;
-
-        public DynamicDataRecord(IDataRecord record)
+        public static dynamic DataRow(DataRow row)
         {
-            _record = record;
+            return From(row, (r, s) => r[s]);
         }
-
-        public override bool TryGetMember(GetMemberBinder binder, out object result)
+        public static dynamic DataRecord(IDataRecord record)
         {
-            var memberName = binder.Name;
-            var value = _record[memberName];
-            result = DBNullHelper.FromDb(value);
-            return true;
+            return From(record, (r, s) => r[s]);
+        }
+        public static dynamic Dictionary<TValue>(IReadOnlyDictionary<string, TValue> dictionary)
+        {
+            return From(dictionary, (d, s) => d[s]);
+        }
+        static dynamic From<T>(T item, Func<T, string, object> getter)
+        {
+            return new DynamicIndexer<T>(item, getter);
+        }
+        class DynamicIndexer<T> : DynamicObject
+        {
+            private readonly T _item;
+            private readonly Func<T, string, object> _getter;
+
+            public DynamicIndexer(T item, Func<T, string, object> getter)
+            {
+                _item = item;
+                _getter = getter;
+            }
+
+            public override sealed bool TryGetMember(GetMemberBinder binder, out object result)
+            {
+                var memberName = binder.Name;
+                var value = _getter(_item, memberName);
+                result = DBNullHelper.FromDb(value);
+                return true;
+            }
+        }
+    }
+    
+    public static class DataTableExtensions
+    {
+        public static dynamic ToDynamic(this DataRow dr)
+        {
+            return Dynamic.DataRow(dr);
+        }
+        public static IEnumerable<dynamic> AsEnumerable(this DataTable dataTable)
+        {
+            return dataTable.Rows.OfType<DataRow>().Select(ToDynamic);
+        }
+        public static IEnumerable<T> Select<T>(this DataTable dt, Func<dynamic, T> selector)
+        {
+            return dt.AsEnumerable().Select(selector);
+        }
+        public static IEnumerable<dynamic> Where(this DataTable dt, Func<dynamic, bool> predicate)
+        {
+            return dt.AsEnumerable().Where(predicate);
         }
     }
 
     public static class DataRecordExtensions
     {
-        // stolen from Massive
         /// <summary>
         /// Convert a datarecord into a dynamic object, so that properties can be simply accessed
         /// using standard C# syntax.
         /// </summary>
         /// <param name="rdr">the data record</param>
         /// <returns>A dynamic object with fields corresponding to the database columns</returns>
-        public static dynamic ToExpando(this IDataRecord rdr)
+        public static dynamic ToDynamic(this IDataRecord rdr)
         {
-            dynamic e = new ExpandoObject();
-            var d = e as IDictionary<string, object>;
+            var d = new Dictionary<string,object>();
             for (var i = 0; i < rdr.FieldCount; i++)
             {
-                string name = rdr.GetName(i);
-                object value = rdr[i];
-                d.Add(name, DBNullHelper.FromDb(value));
+                var name = rdr.GetName(i);
+                var value = rdr[i];
+                d.Add(name, value);
             }
-            return e;
+            return Dynamic.Dictionary(d);
         }
 
         /// <summary>
@@ -800,7 +877,7 @@ namespace Net.Code.ADONet
 
     // refined this after finding somewhere on the interweb but can't find original source anymore
     // this class is a helper class for the Get<> extension method on IDataRecord
-    // not needed if you use ToExpando()
+    // not needed if you use ToDynamic()
     public static class ConvertTo<T>
     {
         // ReSharper disable once StaticFieldInGenericType

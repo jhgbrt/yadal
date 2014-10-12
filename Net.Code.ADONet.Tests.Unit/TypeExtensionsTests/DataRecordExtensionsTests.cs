@@ -15,7 +15,7 @@ namespace Net.Code.ADONet.Tests.Unit.TypeExtensionsTests
         public void ToExpando_WithEmptyDataRecord_ShouldNotThrow()
         {
             var dataRecord = new Mock<IDataRecord>().SetupAllProperties().Object;
-            dataRecord.ToExpando();
+            dataRecord.ToDynamic();
         }
 
         [Test]
@@ -23,7 +23,7 @@ namespace Net.Code.ADONet.Tests.Unit.TypeExtensionsTests
         {
             var dataRecord = CreateFakeDataRecord();
             
-            var result = dataRecord.ToExpando();
+            var result = dataRecord.ToDynamic();
 
             int x = result.x;
 

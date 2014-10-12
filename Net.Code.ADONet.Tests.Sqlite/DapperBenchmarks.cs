@@ -13,10 +13,10 @@ namespace SqlMapper
     [TestClass]
     public class PerfTest
     {
-        [TestMethod]
+        //[TestMethod]
         public void DoPerfTest()
         {
-            //Logger.Log = null;
+            //Logger.Log = Trace.WriteLine;
             using (var db = Db.FromConfig("sqlite"))
             {
                 db.Execute(@"create table if not exists Posts (
@@ -59,7 +59,6 @@ namespace SqlMapper
             var difference = (decimal)min / max;
             if (difference < .333m)
                 Assert.Fail("One of the scenarios performs more than 3 times more slowly!");
-
         }
     }
 

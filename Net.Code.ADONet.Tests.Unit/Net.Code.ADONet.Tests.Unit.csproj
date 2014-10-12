@@ -51,6 +51,7 @@
   <ItemGroup>
     <Compile Include="AdoNetProviderFactoryTests.cs" />
     <Compile Include="DataRecordExtensionTests\DataRecordExtension.cs" />
+    <Compile Include="DataTableExtensions\DataTableExtensionsTests.cs" />
     <Compile Include="Fakes\FakeParameterCollection.cs" />
     <Compile Include="CommandBuilderTests.cs" />
     <Compile Include="CommandExecutionTests.cs" />

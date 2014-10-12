@@ -121,7 +121,7 @@ namespace Net.Code.ADONet.Tests.Unit
             var p = (SqlParameter)b.Command.Parameters[0];
             Assert.AreEqual("ParamName", p.ParameterName);
             Assert.IsTrue(p.Value is DataTable);
-            Assert.IsTrue(((DataTable)p.Value).AsEnumerable().Single().Field<int>("ID") == 123);
+            Assert.IsTrue(System.Data.DataTableExtensions.AsEnumerable(((DataTable)p.Value)).Single().Field<int>("ID") == 123);
             Assert.AreEqual("dbo.udtname", p.TypeName);
             Assert.AreEqual(SqlDbType.Structured, p.SqlDbType);
         }

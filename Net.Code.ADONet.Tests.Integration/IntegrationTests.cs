@@ -162,15 +162,18 @@ namespace Net.Code.ADONet.Tests.Integration
 
         protected static IList<MyTable> SelectAll()
         {
-            return db.Sql("SELECT * FROM MyTable").AsEnumerable(x => new MyTable
-                                                                     {
-                                                                         GuidNull = x.GuidNull,
-                                                                         Id = x.Id,
-                                                                         IntNotNull = x.IntNotNull,
-                                                                         IntNull = x.IntNull,
-                                                                         StringNotNull = x.StringNotNull,
-                                                                         StringNull = x.StringNull
-                                                                     }).ToList();
+            var query = from x in db.Sql("SELECT * FROM MyTable")
+                select new MyTable
+                       {
+                           GuidNull = x.GuidNull,
+                           Id = x.Id,
+                           IntNotNull = x.IntNotNull,
+                           IntNull = x.IntNull,
+                           StringNotNull = x.StringNotNull,
+                           StringNull = x.StringNull
+                       };
+
+            return query.ToList();
         }
     }
 
