@@ -1,7 +1,6 @@
-﻿using System;
-using System.Configuration;
+﻿using System.Configuration;
 using System.Data;
-using Moq;
+using NSubstitute;
 using NUnit.Framework;
 
 namespace Net.Code.ADONet.Tests.Unit.DbTests
@@ -13,27 +12,25 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         [Test]
         public void GivenDbWithExternalConnection_WhenDisposed_ConnectionIsNotDisposed()
         {
-            var fakeConnection = new Mock<IDbConnection>();
+            var fakeConnection = Substitute.For<IDbConnection>();
 
-            fakeConnection
-                .Setup(c => c.Dispose())
-                .Throws(new Exception("External connection should not be disposed with the Db"));
-
-            var db = new Db(fakeConnection.Object);
-
+            var db = new Db(fakeConnection);
             db.Dispose();
+
+            // External connection should not be disposed with the Db
+            fakeConnection.DidNotReceive().Dispose();
         }
 
         [Test]
         public void GivenDbWithConnectionString_WhenDisposed_ConnectionIsDisposed()
         {
-            var fakeConnection = new Mock<IDbConnection>();
-            fakeConnection.Setup(c => c.Dispose()).Verifiable();
+            var fakeConnection = Substitute.For<IDbConnection>();
 
-            var fakeFactory = new Mock<IConnectionFactory>();
-            fakeFactory.Setup(p => p.CreateConnection("")).Returns(fakeConnection.Object);
+            var fakeFactory = Substitute.For<IConnectionFactory>();
 
-            using (var db = new Db("", fakeFactory.Object))
+            fakeFactory.CreateConnection("").Returns(fakeConnection);
+
+            using (var db = new Db("", fakeFactory))
             {
                 // ensure the connection is actually instantiated
                 // ReSharper disable UnusedVariable
@@ -41,7 +38,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
                 // ReSharper restore UnusedVariable
             }
 
-            fakeConnection.VerifyAll();
+            fakeConnection.Received().Dispose();
         }
 
         [Test]

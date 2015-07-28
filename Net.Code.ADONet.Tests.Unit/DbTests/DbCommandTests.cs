@@ -3,7 +3,6 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
-using Moq;
 using NUnit.Framework;
 
 namespace Net.Code.ADONet.Tests.Unit.DbTests

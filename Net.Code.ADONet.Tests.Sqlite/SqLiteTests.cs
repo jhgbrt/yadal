@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Data.SQLite;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Transactions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -26,6 +23,21 @@ namespace Net.Code.ADONet.Tests.Sqlite
                    };
         }
 
+    }
+
+    [TestClass]
+    public class SqlServer
+    {
+        [TestMethod]
+        public void TestInitialize()
+        {
+            var connectionStringName = "sqlserver";
+
+            using (var db = Db.FromConfig(connectionStringName))
+            {
+                db.Execute("SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE 1 = 0");
+            }
+        }
     }
 
     [TestClass]

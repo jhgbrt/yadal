@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Data;
 using System.Data.Entity;
 using System.Data.Entity.ModelConfiguration.Conventions;
 using System.Data.Entity.Validation;
-using System.Data.SqlClient;
-using System.Data.SqlServerCe;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -120,7 +117,7 @@ namespace Net.Code.ADONet.Tests.Integration
         protected override void Given()
         {
             base.Given();
-            result = SelectAll();
+            result = LinqSelect();
         }
 
         protected override void When()
@@ -160,7 +157,7 @@ namespace Net.Code.ADONet.Tests.Integration
             return objects.ToList();
         }
 
-        protected static IList<MyTable> SelectAll()
+        protected static IList<MyTable> LinqSelect()
         {
             var query = from x in db.Sql("SELECT * FROM MyTable")
                 select new MyTable
@@ -175,6 +172,7 @@ namespace Net.Code.ADONet.Tests.Integration
 
             return query.ToList();
         }
+
     }
 
     [TestClass]

@@ -20,7 +20,8 @@ using Microsoft.CSharp.RuntimeBinder;
 
 namespace Net.Code.ADONet
 {
-    public interface IConnectionFactory
+ 
+   public interface IConnectionFactory
     {
         /// <summary>
         /// Create the ADO.Net IDbConnection
@@ -56,7 +57,7 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Create a Stored Procedure command
         /// </summary>
-        /// <param name="sprocName">name of the sproc</param>
+        /// <param name="sprocName">name of the stored procedure</param>
         /// <returns>a CommandBuilder instance</returns>
         CommandBuilder StoredProcedure(string sprocName);
 
@@ -80,7 +81,7 @@ namespace Net.Code.ADONet
             Log(command.CommandText);
             foreach (IDbDataParameter p in command.Parameters)
             {
-                Log(string.Format("{0} = {1}", p.ParameterName, p.Value));
+                Log($"{p.ParameterName} = {p.Value}");
             }
         }
     }
@@ -142,7 +143,8 @@ namespace Net.Code.ADONet
                                  }
                                  catch (RuntimeBinderException)
                                  {
-                                     throw new InvalidOperationException(string.Format("Exception while trying to set the BindByName property on {0} to 'true'. This used to be required for Oracle DataAccess. To avoid this exception, configure your Db instance differently, using the db.Configure() API.", command.GetType()));
+                                     var message = $"Exception while trying to set the BindByName property on {command.GetType()} to 'true'. This used to be required for Oracle DataAccess. To avoid this exception, configure your Db instance differently, using the db.Configure() API.";
+                                     throw new InvalidOperationException(message);
                                  }
                              });
             return this;
@@ -229,7 +231,7 @@ namespace Net.Code.ADONet
         /// Instantiate Db with existing connection. The connection is only used for creating commands; it should be disposed by the caller when done.
         /// </summary>
         /// <param name="connection">The existing connection</param>
-        /// <param name="providerName"></param>
+        /// <param name="providerName">The ADO .Net Provider name. When not specified, the default value is used (see DefaultProviderName)</param>
         public Db(IDbConnection connection, string providerName = null)
         {
             _externalConnection = connection;
@@ -294,12 +296,9 @@ namespace Net.Code.ADONet
         /// <summary>
         /// The actual IDbConnection (which will be open)
         /// </summary>
-        public IDbConnection Connection { get { return _externalConnection ?? _connection.Value; } }
+        public IDbConnection Connection => _externalConnection ?? _connection.Value;
 
-        public string ConnectionString
-        {
-            get { return _connectionString; }
-        }
+        public string ConnectionString => _connectionString;
 
         private IDbConnection CreateConnection()
         {
@@ -358,9 +357,9 @@ namespace Net.Code.ADONet
             using (reader) { while (reader.Read()) yield return reader; }
         }
 
-        public static IEnumerable<dynamic> ToDynamic(this IEnumerable<IDataRecord> input)
+        public static IEnumerable<dynamic> ToExpandoList(this IEnumerable<IDataRecord> input)
         {
-            return from item in input select item.ToDynamic();
+            return from item in input select item.ToExpando();
         }
 
         public static IEnumerable<dynamic> ToDynamicDataRecord(this IEnumerable<IDataRecord> input)
@@ -378,7 +377,7 @@ namespace Net.Code.ADONet
 
         private static IEnumerable<dynamic> GetResultSet(IDataReader reader)
         {
-            while (reader.Read()) yield return reader.ToDynamic();
+            while (reader.Read()) yield return reader.ToExpando();
         }
     }
 
@@ -395,10 +394,7 @@ namespace Net.Code.ADONet
         /// <summary>
         /// The raw IDbCommand instance
         /// </summary>
-        public IDbCommand Command
-        {
-            get { return _command; }
-        }
+        public IDbCommand Command => _command;
 
         /// <summary>
         /// Executes the query and returns the result as a list of dynamic objects. 
@@ -406,12 +402,13 @@ namespace Net.Code.ADONet
         /// <returns></returns>
         public IEnumerable<dynamic> AsEnumerable()
         {
-            return Execute().Reader().AsEnumerable().ToDynamic();
+            return Execute().Reader().AsEnumerable().ToExpandoList();
         }
 
         /// <summary>
-        /// Executes the query and returns the result as a list of [T]. This method is slightly faster
-        /// than doing AsEnumerable().Select(selector).
+        /// Executes the query and returns the result as a list of [T]. This method is slightly faster. 
+        /// than doing AsEnumerable().Select(selector). The selector is required to map objects as the 
+        /// underlying datareader is enumerated.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="selector">mapping function that transforms a datarecord (wrapped as a dynamic object) to an instance of type [T]</param>
@@ -425,12 +422,6 @@ namespace Net.Code.ADONet
         public IEnumerable<T> Select<T>(Func<dynamic, T> selector)
         {
             return Execute().Reader().AsEnumerable().ToDynamicDataRecord().Select(selector);
-        }
-
-        // enables linq 'where' syntax
-        public IEnumerable<dynamic> Where(Func<dynamic, bool> predicate)
-        {
-            return AsEnumerable().Where(predicate);
         }
 
         /// <summary>
@@ -505,7 +496,7 @@ namespace Net.Code.ADONet
         public async Task<IEnumerable<dynamic>> AsEnumerableAsync()
         {
             var reader = await ExecuteAsync().Reader();
-            return reader.AsEnumerable().ToDynamic();
+            return reader.AsEnumerable().ToExpandoList();
         }
 
         /// <summary>
@@ -815,7 +806,7 @@ namespace Net.Code.ADONet
     
     public static class DataTableExtensions
     {
-        public static dynamic ToDynamic(this DataRow dr)
+        static dynamic ToDynamic(this DataRow dr)
         {
             return Dynamic.DataRow(dr);
         }
@@ -841,7 +832,7 @@ namespace Net.Code.ADONet
         /// </summary>
         /// <param name="rdr">the data record</param>
         /// <returns>A dynamic object with fields corresponding to the database columns</returns>
-        public static dynamic ToDynamic(this IDataRecord rdr)
+        public static dynamic ToExpando(this IDataRecord rdr)
         {
             var d = new Dictionary<string,object>();
             for (var i = 0; i < rdr.FieldCount; i++)
@@ -906,7 +897,7 @@ namespace Net.Code.ADONet
             {
                 var delegateType = typeof(Func<object, T>);
                 var methodInfo = typeof(ConvertTo<T>).GetMethod("ConvertNullableValueType", BindingFlags.NonPublic | BindingFlags.Static);
-                var genericMethodForElement = methodInfo.MakeGenericMethod(new[] { type.GetGenericArguments()[0] });
+                var genericMethodForElement = methodInfo.MakeGenericMethod(type.GetGenericArguments()[0]);
                 return (Func<object, T>)Delegate.CreateDelegate(delegateType, genericMethodForElement);
             }
             return ConvertValueType;
