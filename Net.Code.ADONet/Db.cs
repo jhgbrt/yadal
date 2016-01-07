@@ -794,9 +794,20 @@ namespace Net.Code.ADONet
                 _getter = getter;
             }
 
+            public override bool TryGetIndex(GetIndexBinder binder, object[] indexes, out object result)
+            {
+                var memberName = (string)indexes[0];
+                return ByMemberName(out result, memberName);
+            }
+
             public override sealed bool TryGetMember(GetMemberBinder binder, out object result)
             {
                 var memberName = binder.Name;
+                return ByMemberName(out result, memberName);
+            }
+
+            private bool ByMemberName(out object result, string memberName)
+            {
                 var value = _getter(_item, memberName);
                 result = DBNullHelper.FromDb(value);
                 return true;
