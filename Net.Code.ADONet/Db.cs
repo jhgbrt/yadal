@@ -638,6 +638,15 @@ namespace Net.Code.ADONet
         {
             return Execute().Reader();
         }
+
+        /// <summary>
+        /// Executes the command and fills a DataTable.
+        /// </summary>
+        /// <returns></returns>
+        public DataTable AsDataTable()
+        {
+            return Execute().DataTable();
+        }
     }
 
     public class Executor
@@ -656,6 +665,20 @@ namespace Net.Code.ADONet
         public IDataReader Reader()
         {
             return Prepare().ExecuteReader();
+        }
+
+        /// <summary>
+        /// Executes the query (using datareader) and fills a datatable
+        /// </summary>
+        /// <returns></returns>
+        public DataTable DataTable()
+        {
+            using (var reader = Reader())
+            {
+                var tb = new DataTable();
+                tb.Load(reader);
+                return tb;
+            }
         }
 
         /// <summary>
