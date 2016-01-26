@@ -740,6 +740,10 @@ namespace Net.Code.ADONet
             return Prepare().ExecuteReader();
         }
 
+        /// <summary>
+        /// Executes the query (using datareader) and fills a datatable
+        /// </summary>
+        /// <returns></returns>
         public DataTable DataTable()
         {
             using (var reader = Reader())
