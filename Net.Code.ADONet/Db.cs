@@ -1,4 +1,8 @@
-﻿using System;
+﻿// to support older C#/.Net versions, undefine some of these 
+#define DYNAMIC
+#define ASYNC
+
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Configuration;
@@ -8,43 +12,52 @@ using System.Data.SqlClient;
 using System.Dynamic;
 using System.Linq;
 using System.Reflection;
+#if ASYNC
 using System.Threading.Tasks;
+#endif
+#if DYNAMIC
 using Microsoft.CSharp.RuntimeBinder;
+#endif
+#if DEBUG 
+using System.Diagnostics;
+#endif
 
 // Yet Another Data Access Layer
 // usage: 
 //   using (var db = new Db()) {}; 
+//   using (var db = new Db(connectionString)) {}; 
+//   using (var db = new Db(connectionString, providerName)) {}; 
 //   using (var db = Db.FromConfig());
 // from there it should be discoverable.
 // inline SQL FTW!
-
 namespace Net.Code.ADONet
 {
- 
-   public interface IConnectionFactory
-    {
-        /// <summary>
-        /// Create the ADO.Net IDbConnection
-        /// </summary>
-        /// <param name="connectionString"></param>
-        /// <returns>the connection</returns>
-        IDbConnection CreateConnection(string connectionString);
-    }
-
     public interface IDb : IDisposable
     {
+        void Connect();
         /// <summary>
         /// The actual IDbConnection (which will be open)
         /// </summary>
         IDbConnection Connection { get; }
 
+        /// <summary>
+        /// The ADO.Net connection string
+        /// </summary>
         string ConnectionString { get; }
+
+        /// <summary>
+        /// The ADO.Net ProviderName for this connection
+        /// </summary>
+        string ProviderName { get; }
 
         /// <summary>
         /// Entry point for configuring the db with provider-specific stuff.
         /// </summary>
         /// <returns></returns>
         
+        /// <summary>
+        /// Extension point for custom configuration of the db connection
+        /// </summary>
         IDbConfigurationBuilder Configure();
 
         /// <summary>
@@ -73,7 +86,11 @@ namespace Net.Code.ADONet
     /// </summary>
     public class Logger
     {
+#if DEBUG
+        public static Action<string> Log = s => { Debug.WriteLine(s); };
+#else
         public static Action<string> Log;
+#endif
 
         internal static void LogCommand(IDbCommand command)
         {
@@ -81,9 +98,19 @@ namespace Net.Code.ADONet
             Log(command.CommandText);
             foreach (IDbDataParameter p in command.Parameters)
             {
-                Log($"{p.ParameterName} = {p.Value}");
+                Log(string.Format("{0} = {1}", p.ParameterName, p.Value));
             }
         }
+    }
+
+    public interface IConnectionFactory
+    {
+        /// <summary>
+        /// Create the ADO.Net IDbConnection
+        /// </summary>
+        /// <param name="connectionString"></param>
+        /// <returns>the connection</returns>
+        IDbConnection CreateConnection(string connectionString);
     }
 
     public interface IDbConfigurationBuilder
@@ -125,28 +152,37 @@ namespace Net.Code.ADONet
             OnPrepareCommand(command => { });
             return this;
         }
+        class Option<T>
+        {
+            public bool HasValue { get; private set; }
+            public T Value { get; private set; }
 
+            public void SetValue(T v)
+            {
+                Value = v;
+                HasValue = true;
+            }
+        }
+        private static Option<PropertyInfo> _bindByName = new Option<PropertyInfo>();
         private DbConfigurationBuilder Oracle()
         {
             // By default, the Oracle driver does not support binding parameters by name;
             // one has to set the BindByName property on the OracleDbCommand.
             // Since we don't want to have a hard reference to Oracle.DataAccess here,
-            // we use 'dynamic'.
+            // we use reflection.
             // The day Oracle decides to make a breaking change, this will blow up with 
             // a runtime exception
             OnPrepareCommand(command =>
-                             {
-                                 dynamic c = command;
-                                 try
-                                 {
-                                     c.BindByName = true;
-                                 }
-                                 catch (RuntimeBinderException)
-                                 {
-                                     var message = $"Exception while trying to set the BindByName property on {command.GetType()} to 'true'. This used to be required for Oracle DataAccess. To avoid this exception, configure your Db instance differently, using the db.Configure() API.";
-                                     throw new InvalidOperationException(message);
-                                 }
-                             });
+            {
+                if (!_bindByName.HasValue)
+                {
+                    _bindByName.SetValue(command.GetType().GetProperty("BindByName"));
+                }
+                if (_bindByName.Value != null)
+                {
+                    _bindByName.Value.SetValue(command, true);
+                }
+            });
             return this;
         }
 
@@ -155,6 +191,7 @@ namespace Net.Code.ADONet
             switch (providerName)
             {
                 case "Oracle.DataAccess.Client":
+                case "Oracle.ManagedDataAccess.Client":
                     return Oracle();
                 case "System.Data.SqlClient":
                     return SqlServer();
@@ -207,6 +244,8 @@ namespace Net.Code.ADONet
     {
         private readonly DbConfig _config = new DbConfig();
 
+        public string ProviderName { get { return _providerName; }}
+
         public IDbConfigurationBuilder Configure()
         {
             return ConfigurePriv();
@@ -226,6 +265,7 @@ namespace Net.Code.ADONet
         private Lazy<IDbConnection> _connection;
         private readonly IConnectionFactory _connectionFactory;
         private readonly IDbConnection _externalConnection;
+        private readonly string _providerName;
 
         /// <summary>
         /// Instantiate Db with existing connection. The connection is only used for creating commands; it should be disposed by the caller when done.
@@ -244,7 +284,7 @@ namespace Net.Code.ADONet
         /// <param name="connectionString">The connection string</param>
         /// <param name="providerName">The ADO .Net Provider name. When not specified, the default value is used (see DefaultProviderName)</param>
         public Db(string connectionString, string providerName = null)
-            : this(connectionString, new AdoNetProviderFactory(providerName ?? DefaultProviderName), providerName)
+            : this(connectionString, new AdoNetProviderFactory(providerName ?? DefaultProviderName), providerName ?? DefaultProviderName)
         {
         }
 
@@ -259,8 +299,8 @@ namespace Net.Code.ADONet
             _connectionString = connectionString;
             _connectionFactory = connectionFactory;
             _connection = new Lazy<IDbConnection>(CreateConnection);
-            var providerInvariantName = providerName ?? DefaultProviderName;
-            ConfigurePriv().FromProviderName(providerInvariantName);
+            _providerName = providerName ?? DefaultProviderName;
+            ConfigurePriv().FromProviderName(_providerName);
         }
 
 
@@ -293,12 +333,30 @@ namespace Net.Code.ADONet
             return new Db(connectionString, providerName);
         }
 
+        public void Connect()
+        {
+            if (Connection.State != ConnectionState.Open)
+                Connection.Open();
+        }
+
         /// <summary>
         /// The actual IDbConnection (which will be open)
         /// </summary>
-        public IDbConnection Connection => _externalConnection ?? _connection.Value;
+        public IDbConnection Connection
+        {
+            get
+            {
+                var dbConnection = _externalConnection ?? _connection.Value;
+                if (dbConnection.State == ConnectionState.Closed) 
+                    dbConnection.Open();
+                return dbConnection;
+            }
+        }
 
-        public string ConnectionString => _connectionString;
+        public string ConnectionString
+        {
+            get { return _connectionString; }
+        }
 
         private IDbConnection CreateConnection()
         {
@@ -357,6 +415,7 @@ namespace Net.Code.ADONet
             using (reader) { while (reader.Read()) yield return reader; }
         }
 
+#if DYNAMIC
         public static IEnumerable<dynamic> ToExpandoList(this IEnumerable<IDataRecord> input)
         {
             return from item in input select item.ToExpando();
@@ -380,6 +439,7 @@ namespace Net.Code.ADONet
             // need to materialize the record into an Expando here
             while (reader.Read()) yield return reader.ToExpando();
         }
+#endif
     }
 
     public class CommandBuilder
@@ -395,8 +455,12 @@ namespace Net.Code.ADONet
         /// <summary>
         /// The raw IDbCommand instance
         /// </summary>
-        public IDbCommand Command => _command;
+        public IDbCommand Command
+        {
+            get { return _command; }
+        }
 
+#if DYNAMIC 
         /// <summary>
         /// Executes the query and returns the result as a list of dynamic objects. 
         /// </summary>
@@ -405,7 +469,6 @@ namespace Net.Code.ADONet
         {
             return Execute().Reader().AsEnumerable().ToExpandoList();
         }
-
         /// <summary>
         /// Executes the query and returns the result as a list of [T]. This method is slightly faster. 
         /// than doing AsEnumerable().Select(selector). The selector is required to map objects as the 
@@ -436,7 +499,7 @@ namespace Net.Code.ADONet
                 return reader.ToMultiResultSet();
             }
         }
-
+#endif
         /// <summary>
         /// Executes the command, returning the first column of the first result, converted to the type T
         /// </summary>
@@ -446,6 +509,11 @@ namespace Net.Code.ADONet
         {
             var result = Execute().Scalar();
             return ConvertTo<T>.From(result);
+        }
+
+        public object AsScalar()
+        {
+            return Execute().Scalar();
         }
 
         /// <summary>
@@ -461,6 +529,7 @@ namespace Net.Code.ADONet
             return new Executor(_command);
         }
 
+#if ASYNC
         /// <summary>
         /// Executes the command as a statement, returning the number of rows affected asynchronously
         /// This method is only supported if the underlying provider uses the ADO.Net base classes (i.e., their IDbCommand implementation
@@ -487,6 +556,7 @@ namespace Net.Code.ADONet
             return ConvertTo<T>.From(result);
         }
 
+#if DYNAMIC
         /// <summary>
         /// Executes the query and returns the result as a list of dynamic objects asynchronously
         /// This method is only supported if the underlying provider uses the ADO.Net base classes (i.e., their IDbCommand implementation
@@ -529,11 +599,12 @@ namespace Net.Code.ADONet
                 return reader.ToMultiResultSet();
             }
         }
-
+#endif
         private AsyncExecutor ExecuteAsync()
         {
             return new AsyncExecutor((DbCommand) _command);
         }
+#endif // ASYNC
 
         /// <summary>
         /// Sets the command text
@@ -639,6 +710,17 @@ namespace Net.Code.ADONet
         {
             return Execute().Reader();
         }
+
+        public DataTable AsDataTable()
+        {
+            return Execute().DataTable();
+        }
+
+        public CommandBuilder InTransaction(IDbTransaction tx)
+        {
+            Command.Transaction = tx;
+            return this;
+        }
     }
 
     public class Executor
@@ -657,6 +739,20 @@ namespace Net.Code.ADONet
         public IDataReader Reader()
         {
             return Prepare().ExecuteReader();
+        }
+
+        /// <summary>
+        /// Executes the query (using datareader) and fills a datatable
+        /// </summary>
+        /// <returns></returns>
+        public DataTable DataTable()
+        {
+            using (var reader = Reader())
+            {
+                var tb = new DataTable();
+                tb.Load(reader);
+                return tb;
+            }
         }
 
         /// <summary>
@@ -687,6 +783,7 @@ namespace Net.Code.ADONet
 
     }
 
+#if ASYNC
     public class AsyncExecutor
     {
         private readonly DbCommand _command;
@@ -734,7 +831,7 @@ namespace Net.Code.ADONet
         }
 
     }
-
+#endif
     public static class EnumerableToDatatable
     {
 
@@ -795,9 +892,20 @@ namespace Net.Code.ADONet
                 _getter = getter;
             }
 
-            public override sealed bool TryGetMember(GetMemberBinder binder, out object result)
+            public override bool TryGetIndex(GetIndexBinder binder, object[] indexes, out object result)
+            {
+                var memberName = (string)indexes[0];
+                return ByMemberName(out result, memberName);
+            }
+
+            public sealed override bool TryGetMember(GetMemberBinder binder, out object result)
             {
                 var memberName = binder.Name;
+                return ByMemberName(out result, memberName);
+            }
+
+            private bool ByMemberName(out object result, string memberName)
+            {
                 var value = _getter(_item, memberName);
                 result = DBNullHelper.FromDb(value);
                 return true;
