@@ -377,6 +377,7 @@ namespace Net.Code.ADONet
 
         private static IEnumerable<dynamic> GetResultSet(IDataReader reader)
         {
+            // need to materialize the record into an Expando here
             while (reader.Read()) yield return reader.ToExpando();
         }
     }

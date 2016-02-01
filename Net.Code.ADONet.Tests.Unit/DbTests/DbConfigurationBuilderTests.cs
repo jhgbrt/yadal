@@ -1,4 +1,7 @@
+using System.Data;
+using System.Data.SqlClient;
 using System.Linq;
+using NSubstitute;
 using NUnit.Framework;
 
 namespace Net.Code.ADONet.Tests.Unit.DbTests
@@ -20,14 +23,16 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         public void Default_PrepareCommand_DoesNothing()
         {
             _dbConfigurationBuilder.FromProviderName("unknown");
-            _config.PrepareCommand(null);
+            var command = Substitute.For<IDbCommand>();
+            _config.PrepareCommand(command);
         }
 
         [Test]
         public void SqlServer_PrepareCommand_DoesNothing()
         {
             _dbConfigurationBuilder.FromProviderName("System.Data.SqlClient");
-            _config.PrepareCommand(null);
+            var command = new SqlCommand();
+            _config.PrepareCommand(command);
         }
 
         [Test]
