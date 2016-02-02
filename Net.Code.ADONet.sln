@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
+VisualStudioVersion = 12.0.40629.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Net.Code.ADONet", "Net.Code.ADONet\Net.Code.ADONet.csproj", "{F0B49F95-0B64-4FCE-AE4D-D9CE2A48A4F1}"
 EndProject
@@ -12,8 +12,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{CF11235F-AE8D-4E08-86E7-AC31FE0C6989}"
 	ProjectSection(SolutionItems) = preProject
 		.nuget\NuGet.Config = .nuget\NuGet.Config
-		.nuget\NuGet.exe = .nuget\NuGet.exe
-		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Net.Code.ADONet.Tests.Sqlite", "Net.Code.ADONet.Tests.Sqlite\Net.Code.ADONet.Tests.Sqlite.csproj", "{41BD5382-6503-4625-AB8D-672799CB495B}"

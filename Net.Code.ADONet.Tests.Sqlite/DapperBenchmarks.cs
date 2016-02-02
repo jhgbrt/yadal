@@ -13,16 +13,32 @@ namespace SqlMapper
     [TestClass]
     public class PerfTest
     {
-        //[TestMethod]
-        public void DoPerfTest()
+        [TestMethod]
+        public void DoPerfTest_SelectOne()
         {
             //Logger.Log = Trace.WriteLine;
+            Logger.Log = null;
+            var nofRecords = 1000;
+            Ensure(nofRecords);
+            Run(1000, PerformanceTests.SelectSingleRecordTests);
+        }
+
+        [TestMethod]
+        public void DoPerfTest_SelectAll()
+        {
+            Logger.Log = null;
+            var nofRecords = 1000;
+            Ensure(nofRecords);
+            Run(2, PerformanceTests.SelectAllRecordsTests);
+        }
+
+        private static void Ensure(int nofRecords)
+        {
             using (var db = Db.FromConfig("sqlite"))
             {
                 db.Execute(@"create table if not exists Posts (
     Id int primary key, [Text] varchar(2000) not null, CreationDate datetime not null, LastChangeDate datetime not null,
 	Counter1 int, Counter2 int, Counter3 int, Counter4 int, Counter5 int, Counter6 int, Counter7 int, Counter8 int, Counter9 int )");
-                var nofRecords = 200;
 
                 using (var tx = new TransactionScope())
                 {
@@ -36,27 +52,31 @@ namespace SqlMapper
                     {
                         db.Sql("delete from Posts where id > @p").WithParameter("p", count).AsNonQuery();
                     }
-                    else for (int i = count + 1; i <= nofRecords; i++)
-                    {
-                        db.Sql("insert into Posts values (@Id, @Text, @CreationDate, @LastChangeDate, " +
-                               "@Counter1, @Counter2, @Counter3, @Counter4, @Counter5, @Counter6, @Counter7, @Counter8, @Counter9)")
-                            .WithParameters(new Post
-                                            {
-                                                Id = i,
-                                                CreationDate = DateTime.Now,
-                                                LastChangeDate = DateTime.Now,
-                                                Text = text
-                                            }).AsNonQuery();
-                    }
+                    else
+                        for (int i = count + 1; i <= nofRecords; i++)
+                        {
+                            db.Sql("insert into Posts values (@Id, @Text, @CreationDate, @LastChangeDate, " +
+                                   "@Counter1, @Counter2, @Counter3, @Counter4, @Counter5, @Counter6, @Counter7, @Counter8, @Counter9)")
+                                .WithParameters(new Post
+                                {
+                                    Id = i,
+                                    CreationDate = DateTime.Now,
+                                    LastChangeDate = DateTime.Now,
+                                    Text = text
+                                }).AsNonQuery();
+                        }
                     tx.Complete();
                 }
-
             }
+        }
+
+        private static void Run(int iterations, Func<IDb, PerformanceTests.Tests> testGenerator)
+        {
             var performanceTests = new PerformanceTests();
-            var results = performanceTests.Run(50).ToList();
+            var results = performanceTests.Run(iterations, testGenerator).ToList();
             var max = results.Select(r => r.ElapsedMilliseconds).Max();
             var min = results.Select(r => r.ElapsedMilliseconds).Min();
-            var difference = (decimal)min / max;
+            var difference = (decimal) min/max;
             if (difference < .333m)
                 Assert.Fail("One of the scenarios performs more than 3 times more slowly!");
         }
@@ -64,7 +84,7 @@ namespace SqlMapper
 
     class PerformanceTests
     {
-        class Test
+        internal class Test
         {
             public static Test Create(Action<int> iteration, string name)
             {
@@ -98,7 +118,7 @@ namespace SqlMapper
             }
         }
 
-        class Tests : List<Test>
+        internal class Tests : List<Test>
         {
             public void Add(Action<int> iteration, string name)
             {
@@ -134,156 +154,287 @@ namespace SqlMapper
             }
         }
 
-
-        public IEnumerable<TestResult> Run(int iterations)
+        public IEnumerable<TestResult> Run(int iterations, Func<IDb, Tests> createTests)
         {
             Logger.Log = null;
             using (var db = Db.FromConfig("sqlite"))
-            using (var connection = db.Connection)
             {
-                var tests = new Tests();
-
-                var commandBuilder = db
-                    .Sql("select * from Posts where Id = @id");
-
-                tests.Add(id =>
-                {
-                    commandBuilder
-                              .WithParameter("id", id)
-                              .AsEnumerable(d => new Post
-                              {
-                                  Id = d.Id,
-                                  Text = d.Text,
-                                  CreationDate = d.CreationDate,
-                                  LastChangeDate = d.LastChangeDate,
-                                  Counter1 = d.Counter1,
-                                  Counter2 = d.Counter2,
-                                  Counter3 = d.Counter3,
-                                  Counter4 = d.Counter4,
-                                  Counter5 = d.Counter5,
-                                  Counter6 = d.Counter6,
-                                  Counter7 = d.Counter7,
-                                  Counter8 = d.Counter8,
-                                  Counter9 = d.Counter9
-                              }).First();
-                }, "Net.Code.AdoNet");
-
-                tests.Add(id =>
-                {
-                    commandBuilder
-                              .WithParameter("id", id)
-                              .AsEnumerable(d => new Post
-                              {
-                                  Id = d.Id,
-                                  Text = d.Text,
-                                  CreationDate = d.CreationDate,
-                                  LastChangeDate = d.LastChangeDate,
-                                  Counter1 = d.Counter1,
-                                  Counter2 = d.Counter2,
-                                  Counter3 = d.Counter3,
-                                  Counter4 = d.Counter4,
-                                  Counter5 = d.Counter5,
-                                  Counter6 = d.Counter6,
-                                  Counter7 = d.Counter7,
-                                  Counter8 = d.Counter8,
-                                  Counter9 = d.Counter9
-                              }).First();
-                }, "Net.Code.AdoNet dynamicdatarecord");
-
-
-                tests.Add(id =>
-                {
-                    using (var d = commandBuilder.WithParameter("id", id).AsReader())
-                    {
-                        d.Read();
-                        var post = new Post
-                                   {
-                                       Id = d.Get<int>(0),
-                                       Text = d.Get<string>(1),
-                                       CreationDate = d.Get<DateTime>(2),
-                                       LastChangeDate = d.Get<DateTime>(3)
-                                   };
-                        post.Counter1 = d.Get<int?>(4);
-                        post.Counter2 = d.Get<int?>(5);
-                        post.Counter3 = d.Get<int?>(6);
-                        post.Counter4 = d.Get<int?>(7);
-                        post.Counter5 = d.Get<int?>(8);
-                        post.Counter6 = d.Get<int?>(9);
-                        post.Counter7 = d.Get<int?>(10);
-                        post.Counter8 = d.Get<int?>(11);
-                        post.Counter9 = d.Get<int?>(12);
-                    }
-                }, "Net.Code.AdoNet datareader");
-
-
-                // HAND CODED 
-
-                var postCommand = connection.CreateCommand();
-                postCommand.CommandText = @"select Id, [Text], [CreationDate], LastChangeDate, 
-                Counter1,Counter2,Counter3,Counter4,Counter5,Counter6,Counter7,Counter8,Counter9 from Posts where Id = @Id";
-                var idParam = postCommand.CreateParameter();
-                idParam.ParameterName = "Id";
-                postCommand.Parameters.Add(idParam);
-                tests.Add(id =>
-                {
-                    idParam.Value = id;
-
-                    using (var reader = postCommand.ExecuteReader())
-                    {
-                        reader.Read();
-                        var post = new Post();
-                        post.Id = reader.GetInt32(0);
-                        post.Text = reader.GetNullableString(1);
-                        post.CreationDate = reader.GetDateTime(2);
-                        post.LastChangeDate = reader.GetDateTime(3);
-
-                        post.Counter1 = reader.GetNullableValue<int>(4);
-                        post.Counter2 = reader.GetNullableValue<int>(5);
-                        post.Counter3 = reader.GetNullableValue<int>(6);
-                        post.Counter4 = reader.GetNullableValue<int>(7);
-                        post.Counter5 = reader.GetNullableValue<int>(8);
-                        post.Counter6 = reader.GetNullableValue<int>(9);
-                        post.Counter7 = reader.GetNullableValue<int>(10);
-                        post.Counter8 = reader.GetNullableValue<int>(11);
-                        post.Counter9 = reader.GetNullableValue<int>(12);
-                    }
-                }, "hand coded");
-
-                DataTable table = new DataTable
-                {
-                    Columns =
-                    {
-                        {"Id", typeof (int)},
-                        {"Text", typeof (string)},
-                        {"CreationDate", typeof (DateTime)},
-                        {"LastChangeDate", typeof (DateTime)},
-                        {"Counter1", typeof (int)},
-                        {"Counter2", typeof (int)},
-                        {"Counter3", typeof (int)},
-                        {"Counter4", typeof (int)},
-                        {"Counter5", typeof (int)},
-                        {"Counter6", typeof (int)},
-                        {"Counter7", typeof (int)},
-                        {"Counter8", typeof (int)},
-                        {"Counter9", typeof (int)},
-                    }
-                };
-                tests.Add(id =>
-                {
-                    idParam.Value = id;
-                    object[] values = new object[13];
-                    using (var reader = postCommand.ExecuteReader())
-                    {
-                        reader.Read();
-                        reader.GetValues(values);
-                        table.Rows.Add(values);
-                    }
-                }, "DataTable via IDataReader.GetValues");
-
+                var tests = createTests(db);
                 return tests.Run(iterations).ToList();
             }
         }
 
+        public static Tests SelectAllRecordsTests(IDb db)
+        {
+            var connection = db.Connection;
+            var tests = new Tests();
+
+            var commandBuilder = db
+                .Sql("select * from Posts");
+
+            tests.Add(id =>
+            {
+                var p = commandBuilder
+                    .AsEnumerable(d => new Post
+                    {
+                        Id = d.Id,
+                        Text = d.Text,
+                        CreationDate = d.CreationDate,
+                        LastChangeDate = d.LastChangeDate,
+                        Counter1 = d.Counter1,
+                        Counter2 = d.Counter2,
+                        Counter3 = d.Counter3,
+                        Counter4 = d.Counter4,
+                        Counter5 = d.Counter5,
+                        Counter6 = d.Counter6,
+                        Counter7 = d.Counter7,
+                        Counter8 = d.Counter8,
+                        Counter9 = d.Counter9
+                    }).ToList();
+            }, "Net.Code.AdoNet with mapping from dynamic to T");
+
+            tests.Add(id =>
+            {
+                commandBuilder
+                    .AsEnumerable<Post>().ToList();
+            }, "Net.Code.AdoNet with mapping via reflection");
+
+
+            tests.Add(id =>
+            {
+                using (var d = commandBuilder.AsReader())
+                {
+                    while (d.Read())
+                    {
+                        var post = new Post
+                        {
+                            Id = d.Get<int>(0),
+                            Text = d.Get<string>(1),
+                            CreationDate = d.Get<DateTime>(2),
+                            LastChangeDate = d.Get<DateTime>(3),
+                            Counter1 = d.Get<int?>(4),
+                            Counter2 = d.Get<int?>(5),
+                            Counter3 = d.Get<int?>(6),
+                            Counter4 = d.Get<int?>(7),
+                            Counter5 = d.Get<int?>(8),
+                            Counter6 = d.Get<int?>(9),
+                            Counter7 = d.Get<int?>(10),
+                            Counter8 = d.Get<int?>(11),
+                            Counter9 = d.Get<int?>(12)
+                        };
+                    }
+                }
+            }, "Net.Code.AdoNet datareader");
+
+
+            // HAND CODED 
+
+            var postCommand = connection.CreateCommand();
+            postCommand.CommandText = @"select Id, [Text], [CreationDate], LastChangeDate, 
+                Counter1,Counter2,Counter3,Counter4,Counter5,Counter6,Counter7,Counter8,Counter9 from Posts";
+            tests.Add(id =>
+            {
+                using (var reader = postCommand.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var post = new Post
+                        {
+                            Id = reader.GetInt32(0),
+                            Text = reader.GetNullableString(1),
+                            CreationDate = reader.GetDateTime(2),
+                            LastChangeDate = reader.GetDateTime(3),
+                            Counter1 = reader.GetNullableValue<int>(4),
+                            Counter2 = reader.GetNullableValue<int>(5),
+                            Counter3 = reader.GetNullableValue<int>(6),
+                            Counter4 = reader.GetNullableValue<int>(7),
+                            Counter5 = reader.GetNullableValue<int>(8),
+                            Counter6 = reader.GetNullableValue<int>(9),
+                            Counter7 = reader.GetNullableValue<int>(10),
+                            Counter8 = reader.GetNullableValue<int>(11),
+                            Counter9 = reader.GetNullableValue<int>(12)
+                        };
+                    }
+                }
+            }, "hand coded");
+
+            DataTable table = new DataTable
+            {
+                Columns =
+                {
+                    {"Id", typeof (int)},
+                    {"Text", typeof (string)},
+                    {"CreationDate", typeof (DateTime)},
+                    {"LastChangeDate", typeof (DateTime)},
+                    {"Counter1", typeof (int)},
+                    {"Counter2", typeof (int)},
+                    {"Counter3", typeof (int)},
+                    {"Counter4", typeof (int)},
+                    {"Counter5", typeof (int)},
+                    {"Counter6", typeof (int)},
+                    {"Counter7", typeof (int)},
+                    {"Counter8", typeof (int)},
+                    {"Counter9", typeof (int)},
+                }
+            };
+            tests.Add(id =>
+            {
+                object[] values = new object[13];
+                using (var reader = postCommand.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        reader.GetValues(values);
+                        table.Rows.Add(values);
+                    }
+                }
+            }, "DataTable via IDataReader.GetValues");
+
+            tests.Add(id =>
+            {
+                commandBuilder.AsDataTable();
+            }, "Net.Code.ADONet AsDataTable");
+
+            return tests;
+        }
+        public static Tests SelectSingleRecordTests(IDb db)
+        {
+            var connection = db.Connection;
+            var tests = new Tests();
+
+            var commandBuilder = db
+                .Sql("select * from Posts where Id = @id");
+
+            tests.Add(id =>
+            {
+                var p = commandBuilder
+                    .WithParameter("id", id)
+                    .AsEnumerable(d => new Post
+                    {
+                        Id = d.Id,
+                        Text = d.Text,
+                        CreationDate = d.CreationDate,
+                        LastChangeDate = d.LastChangeDate,
+                        Counter1 = d.Counter1,
+                        Counter2 = d.Counter2,
+                        Counter3 = d.Counter3,
+                        Counter4 = d.Counter4,
+                        Counter5 = d.Counter5,
+                        Counter6 = d.Counter6,
+                        Counter7 = d.Counter7,
+                        Counter8 = d.Counter8,
+                        Counter9 = d.Counter9
+                    }).First();
+            }, "Net.Code.AdoNet with mapping from dynamic to T");
+
+            tests.Add(id =>
+            {
+                commandBuilder
+                    .WithParameter("id", id)
+                    .AsEnumerable<Post>().ToList();
+            }, "Net.Code.AdoNet with mapping via reflection");
+
+
+            tests.Add(id =>
+            {
+                using (var d = commandBuilder.WithParameter("id", id).AsReader())
+                {
+                    while (d.Read())
+                    {
+                        var post = new Post
+                        {
+                            Id = d.Get<int>(0),
+                            Text = d.Get<string>(1),
+                            CreationDate = d.Get<DateTime>(2),
+                            LastChangeDate = d.Get<DateTime>(3),
+                            Counter1 = d.Get<int?>(4),
+                            Counter2 = d.Get<int?>(5),
+                            Counter3 = d.Get<int?>(6),
+                            Counter4 = d.Get<int?>(7),
+                            Counter5 = d.Get<int?>(8),
+                            Counter6 = d.Get<int?>(9),
+                            Counter7 = d.Get<int?>(10),
+                            Counter8 = d.Get<int?>(11),
+                            Counter9 = d.Get<int?>(12)
+                        };
+                    }
+                }
+            }, "Net.Code.AdoNet datareader");
+
+
+            // HAND CODED 
+
+            var postCommand = connection.CreateCommand();
+            postCommand.CommandText = @"select Id, [Text], [CreationDate], LastChangeDate, 
+                Counter1,Counter2,Counter3,Counter4,Counter5,Counter6,Counter7,Counter8,Counter9 from Posts where Id = @Id";
+            var idParam = postCommand.CreateParameter();
+            idParam.ParameterName = "Id";
+            postCommand.Parameters.Add(idParam);
+            tests.Add(id =>
+            {
+                idParam.Value = id;
+
+                using (var reader = postCommand.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var post = new Post
+                        {
+                            Id = reader.GetInt32(0),
+                            Text = reader.GetNullableString(1),
+                            CreationDate = reader.GetDateTime(2),
+                            LastChangeDate = reader.GetDateTime(3),
+                            Counter1 = reader.GetNullableValue<int>(4),
+                            Counter2 = reader.GetNullableValue<int>(5),
+                            Counter3 = reader.GetNullableValue<int>(6),
+                            Counter4 = reader.GetNullableValue<int>(7),
+                            Counter5 = reader.GetNullableValue<int>(8),
+                            Counter6 = reader.GetNullableValue<int>(9),
+                            Counter7 = reader.GetNullableValue<int>(10),
+                            Counter8 = reader.GetNullableValue<int>(11),
+                            Counter9 = reader.GetNullableValue<int>(12)
+                        };
+                    }
+                }
+            }, "hand coded");
+
+            DataTable table = new DataTable
+            {
+                Columns =
+                {
+                    {"Id", typeof (int)},
+                    {"Text", typeof (string)},
+                    {"CreationDate", typeof (DateTime)},
+                    {"LastChangeDate", typeof (DateTime)},
+                    {"Counter1", typeof (int)},
+                    {"Counter2", typeof (int)},
+                    {"Counter3", typeof (int)},
+                    {"Counter4", typeof (int)},
+                    {"Counter5", typeof (int)},
+                    {"Counter6", typeof (int)},
+                    {"Counter7", typeof (int)},
+                    {"Counter8", typeof (int)},
+                    {"Counter9", typeof (int)},
+                }
+            };
+            tests.Add(id =>
+            {
+                idParam.Value = id;
+                object[] values = new object[13];
+                using (var reader = postCommand.ExecuteReader())
+                {
+                    reader.Read();
+                    reader.GetValues(values);
+                    table.Rows.Add(values);
+                }
+            }, "DataTable via IDataReader.GetValues");
+
+            //tests.Add(id =>
+            //{
+            //    commandBuilder.WithParameter("id", id).AsDataTable();
+            //}, "Net.Code.ADONet AsDataTable");
+            return tests;
+        }
     }
 
     internal class Post

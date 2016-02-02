@@ -1,6 +1,6 @@
 ﻿// to support older C#/.Net versions, undefine some of these 
-#define DYNAMIC
-#define ASYNC
+#define DYNAMIC // >= .NET 4
+#define ASYNC   // >= .NET 4.5
 
 using System;
 using System.Collections.Generic;
@@ -9,16 +9,15 @@ using System.Configuration;
 using System.Data;
 using System.Data.Common;
 using System.Data.SqlClient;
-using System.Dynamic;
 using System.Linq;
 using System.Reflection;
 #if ASYNC
 using System.Threading.Tasks;
 #endif
 #if DYNAMIC
-using Microsoft.CSharp.RuntimeBinder;
+using System.Dynamic;
 #endif
-#if DEBUG 
+#if DEBUG
 using System.Diagnostics;
 #endif
 
@@ -54,10 +53,6 @@ namespace Net.Code.ADONet
         /// Entry point for configuring the db with provider-specific stuff.
         /// </summary>
         /// <returns></returns>
-        
-        /// <summary>
-        /// Extension point for custom configuration of the db connection
-        /// </summary>
         IDbConfigurationBuilder Configure();
 
         /// <summary>
@@ -129,7 +124,7 @@ namespace Net.Code.ADONet
     class DbConfigurationBuilder : IDbConfigurationBuilder
     {
         private readonly DbConfig _dbConfig;
- 
+
         internal DbConfigurationBuilder(DbConfig dbConfig)
         {
             _dbConfig = dbConfig;
@@ -143,7 +138,7 @@ namespace Net.Code.ADONet
 
         private DbConfigurationBuilder Default()
         {
-            OnPrepareCommand(a => {});
+            OnPrepareCommand(a => { });
             return this;
         }
 
@@ -180,7 +175,7 @@ namespace Net.Code.ADONet
                 }
                 if (_bindByName.Value != null)
                 {
-                    _bindByName.Value.SetValue(command, true);
+                    _bindByName.Value.SetValue(command, true, null);
                 }
             });
             return this;
@@ -195,7 +190,7 @@ namespace Net.Code.ADONet
                     return Oracle();
                 case "System.Data.SqlClient":
                     return SqlServer();
-                default :
+                default:
                     return Default();
 
             }
@@ -223,9 +218,10 @@ namespace Net.Code.ADONet
 
     public class DbConfig
     {
-        private static readonly Action<IDbCommand> Empty = c => {};
+        private static readonly Action<IDbCommand> Empty = c => { };
 
-        public DbConfig() : this(Empty)
+        public DbConfig()
+            : this(Empty)
         {
         }
 
@@ -242,9 +238,81 @@ namespace Net.Code.ADONet
     /// </summary>
     public class Db : IDb
     {
+#if !DYNAMIC
+    /// <summary>
+    /// Provides support for lazy initialization.
+    /// </summary>
+    /// <typeparam name="T">Specifies the type of object that is being lazily initialized.</typeparam>
+    public sealed class Lazy<T>
+    {
+        private readonly object padlock = new object();
+        private readonly Func<T> createValue;
+        private bool isValueCreated;
+        private T value;
+
+        /// <summary>
+        /// Gets the lazily initialized value of the current Lazy{T} instance.
+        /// </summary>
+        public T Value
+        {
+            get
+            {
+                if (!isValueCreated)
+                {
+                    lock (padlock)
+                    {
+                        if (!isValueCreated)
+                        {
+                            value = createValue();
+                            isValueCreated = true;
+                        }
+                    }
+                }
+                return value;
+            }
+        }
+
+        /// <summary>
+        /// Gets a value that indicates whether a value has been created for this Lazy{T} instance.
+        /// </summary>
+        public bool IsValueCreated
+        {
+            get
+            {
+                lock (padlock)
+                {
+                    return isValueCreated;
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// Initializes a new instance of the Lazy{T} class.
+        /// </summary>
+        /// <param name="createValue">The delegate that produces the value when it is needed.</param>
+        public Lazy(Func<T> createValue)
+        {
+            if (createValue == null) throw new ArgumentNullException("createValue");
+
+            this.createValue = createValue;
+        }
+
+
+        /// <summary>
+        /// Creates and returns a string representation of the Lazy{T}.Value.
+        /// </summary>
+        /// <returns>The string representation of the Lazy{T}.Value property.</returns>
+        public override string ToString()
+        {
+            return Value.ToString();
+        }
+    }
+#endif
+
         private readonly DbConfig _config = new DbConfig();
 
-        public string ProviderName { get { return _providerName; }}
+        public string ProviderName { get { return _providerName; } }
 
         public IDbConfigurationBuilder Configure()
         {
@@ -347,7 +415,7 @@ namespace Net.Code.ADONet
             get
             {
                 var dbConnection = _externalConnection ?? _connection.Value;
-                if (dbConnection.State == ConnectionState.Closed) 
+                if (dbConnection.State == ConnectionState.Closed)
                     dbConnection.Open();
                 return dbConnection;
             }
@@ -410,6 +478,53 @@ namespace Net.Code.ADONet
 
     static class DataReaderExtensions
     {
+        public static T MapTo<T>(this IDataRecord record) where T : new()
+        {
+            var setters = GetSettersForType<T>();
+            var result = new T();
+            for (var i = 0; i < record.FieldCount; i++)
+            {
+                Action<T,object> setter;
+                var columnName = record.GetName(i);
+                if (!setters.TryGetValue(columnName.Replace("_", "").ToUpperInvariant(), out setter))
+                    continue;
+                var val = DBNullHelper.FromDb(record.GetValue(i));
+                setter(result, val);
+            }
+            return result;
+        }
+
+        private static readonly IDictionary<Type, object> Setters = new Dictionary<Type, object>();
+        private static IDictionary<string, Action<T, object>> GetSettersForType<T>() where T : new()
+        {
+            object setters;
+            if (!Setters.TryGetValue(typeof (T), out setters))
+            {
+                setters = (
+                    from p in typeof (T).GetProperties()
+                    let set = CreateSetterDelegate<T>(p.GetSetMethod())
+                    select new {p, set}
+                    ).ToDictionary(x => x.p.Name.ToUpperInvariant().Replace("_", ""), x => x.set);
+                Setters[typeof (T)] = setters;
+            }
+            return (IDictionary<string, Action<T,object>>)setters;
+        }
+
+        static Action<T,object> CreateSetterDelegate<T>(MethodInfo method)
+        {
+            var genericHelper = typeof(DataReaderExtensions).GetMethod("CreateSetterDelegateHelper", BindingFlags.Static | BindingFlags.NonPublic);
+            var constructedHelper = genericHelper.MakeGenericMethod(typeof (T), method.GetParameters()[0].ParameterType);
+            var ret = constructedHelper.Invoke(null, new object[] { method });
+            return (Action<T, object>)ret;
+        }
+
+        static object CreateSetterDelegateHelper<TTarget, TParam>(MethodInfo method) where TTarget : class
+        {
+            var func = (Action<TTarget, TParam>)Delegate.CreateDelegate(typeof(Action<TTarget, TParam>), method);
+            Action<TTarget, object> ret = (target, param) => func(target, ConvertTo<TParam>.From(param));
+            return ret;
+        }
+
         public static IEnumerable<IDataRecord> AsEnumerable(this IDataReader reader)
         {
             using (reader) { while (reader.Read()) yield return reader; }
@@ -459,7 +574,7 @@ namespace Net.Code.ADONet
             get { return _command; }
         }
 
-#if DYNAMIC 
+#if DYNAMIC
         /// <summary>
         /// Executes the query and returns the result as a list of dynamic objects. 
         /// </summary>
@@ -479,6 +594,16 @@ namespace Net.Code.ADONet
         public IEnumerable<T> AsEnumerable<T>(Func<dynamic, T> selector)
         {
             return Select(selector);
+        }
+
+        /// <summary>
+        /// Executes the query and returns the result as a list of [T] using the 'case-insensitive, underscore-agnostic column name to property mapping convention.' 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public IEnumerable<T> AsEnumerable<T>() where T : new()
+        {
+            return AsReader().AsEnumerable().Select(r => r.MapTo<T>());
         }
 
         // enables linq 'select' syntax
@@ -601,7 +726,7 @@ namespace Net.Code.ADONet
 #endif
         private AsyncExecutor ExecuteAsync()
         {
-            return new AsyncExecutor((DbCommand) _command);
+            return new AsyncExecutor((DbCommand)_command);
         }
 #endif // ASYNC
 
@@ -666,7 +791,7 @@ namespace Net.Code.ADONet
             IDataParameter p;
             if (Command.Parameters.Contains(name))
             {
-                p = (IDbDataParameter) Command.Parameters[name];
+                p = (IDbDataParameter)Command.Parameters[name];
                 p.Value = DBNullHelper.ToDb(value);
             }
             else
@@ -862,6 +987,7 @@ namespace Net.Code.ADONet
         }
     }
 
+#if DYNAMIC
     static class Dynamic
     {
         public static dynamic DataRow(DataRow row)
@@ -872,7 +998,11 @@ namespace Net.Code.ADONet
         {
             return From(record, (r, s) => r[s]);
         }
+#if ASYNC
         public static dynamic Dictionary<TValue>(IReadOnlyDictionary<string, TValue> dictionary)
+#else
+        public static dynamic Dictionary<TValue>(IDictionary<string, TValue> dictionary)
+#endif
         {
             return From(dictionary, (d, s) => d[s]);
         }
@@ -911,7 +1041,7 @@ namespace Net.Code.ADONet
             }
         }
     }
-    
+
     public static class DataTableExtensions
     {
         static dynamic ToDynamic(this DataRow dr)
@@ -931,9 +1061,11 @@ namespace Net.Code.ADONet
             return dt.AsEnumerable().Where(predicate);
         }
     }
+#endif
 
     public static class DataRecordExtensions
     {
+#if DYNAMIC
         /// <summary>
         /// Convert a datarecord into a dynamic object, so that properties can be simply accessed
         /// using standard C# syntax.
@@ -942,7 +1074,7 @@ namespace Net.Code.ADONet
         /// <returns>A dynamic object with fields corresponding to the database columns</returns>
         public static dynamic ToExpando(this IDataRecord rdr)
         {
-            var d = new Dictionary<string,object>();
+            var d = new Dictionary<string, object>();
             for (var i = 0; i < rdr.FieldCount; i++)
             {
                 var name = rdr.GetName(i);
@@ -951,7 +1083,7 @@ namespace Net.Code.ADONet
             }
             return Dynamic.Dictionary(d);
         }
-
+#endif
         /// <summary>
         /// Get a value from an IDataRecord by column name. This method supports all types,
         /// as long as the DbType is convertible to the CLR Type passed as a generic argument.

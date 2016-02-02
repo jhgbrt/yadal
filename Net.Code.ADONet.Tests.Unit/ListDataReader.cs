@@ -72,7 +72,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
         public override IEnumerator GetEnumerator()
         {
-            throw new NotImplementedException();
+            return _enumerator;
         }
 
         public override Type GetFieldType(int i)

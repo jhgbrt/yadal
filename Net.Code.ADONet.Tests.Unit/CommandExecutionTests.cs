@@ -34,7 +34,19 @@ namespace Net.Code.ADONet.Tests.Unit
 
             Person.VerifySingleResultSet(result);
         }
+        [Test]
+        public void AsEnumerableGeneric_WhenCalled_ReturnsResults()
+        {
+            var command = PrepareCommand();
 
+            var commandBuilder = new CommandBuilder(command);
+
+            command.SetResultSet(Person.GetSingleResultSet());
+
+            var result = commandBuilder.AsEnumerable<Person>().ToList();
+
+            Person.VerifySingleResultSet(result);
+        }
 
         [Test]
         public void AsScalar_WhenCalled_ReturnsScalarValue()
