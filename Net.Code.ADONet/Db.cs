@@ -426,17 +426,17 @@ namespace Net.Code.ADONet
             return from item in input select Dynamic.DataRecord(item);
         }
 
-        public static IEnumerable<IEnumerable<dynamic>> ToMultiResultSet(this IDataReader reader)
+        public static IEnumerable<List<dynamic>> ToMultiResultSet(this IDataReader reader)
         {
             do
             {
-                yield return GetResultSet(reader);
+                var list = GetResultSet(reader).ToList();
+                yield return list;
             } while (reader.NextResult());
         }
 
         private static IEnumerable<dynamic> GetResultSet(IDataReader reader)
         {
-            // need to materialize the record into an Expando here
             while (reader.Read()) yield return reader.ToExpando();
         }
 #endif
@@ -496,7 +496,8 @@ namespace Net.Code.ADONet
         {
             using (var reader = Execute().Reader())
             {
-                return reader.ToMultiResultSet();
+                foreach (var r in reader.ToMultiResultSet())
+                    yield return r;
             }
         }
 #endif
@@ -596,7 +597,7 @@ namespace Net.Code.ADONet
         {
             using (var reader = await ExecuteAsync().Reader())
             {
-                return reader.ToMultiResultSet();
+                return reader.ToMultiResultSet().ToList();
             }
         }
 #endif
@@ -1042,7 +1043,7 @@ namespace Net.Code.ADONet
 
     static class DBNullHelper
     {
-        public static bool IsNullableType(Type type)
+        public static bool IsNullableType(this Type type)
         {
             return
                 (type.IsGenericType && !type.IsGenericTypeDefinition) &&

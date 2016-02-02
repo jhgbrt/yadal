@@ -1,15 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using static Net.Code.ADONet.Tests.SqlServer.DateTimeBuilder;
+using static Net.Code.ADONet.Tests.SqlServer.FluentDates;
 
 namespace Net.Code.ADONet.Tests.SqlServer
 {
 
-    public static class DateTimeBuilder
+    public static class FluentDates
     {
         public static DateTime FirstDayOfMonth(this DateTime dateTime)
         {
@@ -18,6 +19,19 @@ namespace Net.Code.ADONet.Tests.SqlServer
         public static DateTime LastDayOfMonth(this DateTime dateTime)
         {
             return dateTime.Date.FirstDayOfMonth().AddMonths(1).AddDays(-1);
+        }
+
+        public static DateTime FirstDayOfWeek(this DateTime dateTime, CultureInfo cultureInfo = null)
+        {
+            cultureInfo = cultureInfo ?? CultureInfo.CurrentCulture;
+            var firstDay = cultureInfo.DateTimeFormat.FirstDayOfWeek;
+            var dayOfWeek = cultureInfo.Calendar.GetDayOfWeek(dateTime);
+            return dateTime.Date.AddDays(firstDay - dayOfWeek);
+        }
+
+        public static DateTime NextWeek(this DateTime dateTime)
+        {
+            return dateTime.AddDays(7);
         }
 
         public struct M
