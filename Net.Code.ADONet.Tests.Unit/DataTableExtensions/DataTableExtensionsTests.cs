@@ -86,10 +86,6 @@ namespace Net.Code.ADONet.Tests.Unit.DataTableExtensions
             People.ToDataTable();
             Console.WriteLine(sw.Elapsed);
 
-            sw = Stopwatch.StartNew();
-            for (int i = 0; i < 100; i++)
-                People.ToDataTable();
-            Console.WriteLine(sw.Elapsed);
         }
     }
 }

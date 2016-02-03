@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
@@ -20,30 +21,34 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
             public int? MyNullableInt1 { get; set; }
             public int? MyNullableInt2 { get; set; }
             public int MyInt1 { get; set; }
-            public int MyInt2 { get; set; }
         }
 
         [Test]
         public void MapTo_WhenCalled_EntityIsMapped()
         {
             var record = Substitute.For<IDataRecord>();
-            record.FieldCount.Returns(3);
-            record.GetName(0).Returns("MY_PROPERTY");
-            record.GetValue(0).Returns("SomeValue");
-            record.GetName(1).Returns("MY_NULLABLE_INT1");
-            record.GetValue(1).Returns(DBNull.Value);
-            record.GetName(2).Returns("MY_NULLABLE_INT2");
-            record.GetValue(2).Returns(2);
-            record.GetName(3).Returns("MYINT1");
-            record.GetValue(3).Returns(DBNull.Value);
-            record.GetName(2).Returns("MyInt2");
-            record.GetValue(2).Returns(3);
-            var entity = record.MapTo<MyEntity>();
+
+            var values = new[]
+            {
+                new {Name = "MY_PROPERTY", Value = (object) "SomeValue"},
+                new {Name = "MY_NULLABLE_INT1", Value = (object) DBNull.Value},
+                new {Name = "MY_NULLABLE_INT2", Value = (object) 1},
+                new {Name = "MYINT1", Value = (object) 2}
+            };
+
+            record.FieldCount.Returns(values.Length);
+            for (int i = 0; i < values.Length; i++)
+            {
+                record.GetName(i).Returns(values[i].Name);
+                record.GetValue(i).Returns(values[i].Value);
+            }
+
+            var entity = record.MapTo<MyEntity>(MappingConvention.Loose);
+            
             Assert.AreEqual("SomeValue", entity.MyProperty);
             Assert.IsNull(entity.MyNullableInt1);
-            Assert.AreEqual(2, entity.MyNullableInt2);
-            Assert.IsNull(entity.MyInt1);
-            Assert.AreEqual(3, entity.MyInt2);
+            Assert.AreEqual(1, entity.MyNullableInt2);
+            Assert.AreEqual(2, entity.MyInt1);
         }
 
        

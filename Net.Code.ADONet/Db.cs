@@ -3,6 +3,7 @@
 #define ASYNC   // >= .NET 4.5
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Configuration;
@@ -17,6 +18,7 @@ using System.Threading.Tasks;
 #if DYNAMIC
 using System.Dynamic;
 #endif
+using System.Text;
 #if DEBUG
 using System.Diagnostics;
 #endif
@@ -38,7 +40,7 @@ namespace Net.Code.ADONet
         /// The actual IDbConnection (which will be open)
         /// </summary>
         IDbConnection Connection { get; }
-
+     
         /// <summary>
         /// The ADO.Net connection string
         /// </summary>
@@ -48,27 +50,27 @@ namespace Net.Code.ADONet
         /// The ADO.Net ProviderName for this connection
         /// </summary>
         string ProviderName { get; }
-
+        
         /// <summary>
         /// Entry point for configuring the db with provider-specific stuff.
         /// </summary>
         /// <returns></returns>
         IDbConfigurationBuilder Configure();
-
+        
         /// <summary>
         /// Create a SQL query command builder
         /// </summary>
         /// <param name="sqlQuery"></param>
         /// <returns>a CommandBuilder instance</returns>
         CommandBuilder Sql(string sqlQuery);
-
+     
         /// <summary>
         /// Create a Stored Procedure command
         /// </summary>
         /// <param name="sprocName">name of the stored procedure</param>
         /// <returns>a CommandBuilder instance</returns>
         CommandBuilder StoredProcedure(string sprocName);
-
+        
         /// <summary>
         /// Create a SQL command and execute it immediately (non query)
         /// </summary>
@@ -119,6 +121,58 @@ namespace Net.Code.ADONet
         /// <param name="action"></param>
         /// <returns></returns>
         IDbConfigurationBuilder OnPrepareCommand(Action<IDbCommand> action);
+        /// <summary>
+        /// Set the mapping convention used to map property names and db column names
+        /// </summary>
+        /// <param name="convention"></param>
+        /// <returns></returns>
+        IDbConfigurationBuilder WithMappingConvention(MappingConvention convention);
+    }
+
+    public class MappingConvention
+    {
+        private readonly Func<IDataRecord, int, string> _getColumnName;
+        private readonly Func<PropertyInfo, string> _getPropertyName;
+
+        public MappingConvention(Func<IDataRecord, int, string> getColumnName, Func<PropertyInfo, string> getPropertyName)
+        {
+            _getColumnName = getColumnName;
+            _getPropertyName = getPropertyName;
+        }
+        /// <summary>
+        /// Maps column names to property names based on exact, case sensitive match
+        /// </summary>
+        public static readonly MappingConvention Strict = new MappingConvention((record, i) => record.GetName(i), p => p.Name);
+        /// <summary>
+        /// Maps column names to property names based on case insensitive match, ignoring underscores
+        /// </summary>
+        public static readonly MappingConvention Loose = new MappingConvention(
+            (record, i) => ToUpperRemoveUnderscores(record.GetName(i)), 
+            p => ToUpperRemoveUnderscores(p.Name)
+            );
+
+        private static string ToUpperRemoveUnderscores(string name)
+        {
+            var sb = new StringBuilder(name);
+            for (var j = 0; j < sb.Length; j++)
+            {
+                var c = sb[j];
+                if (char.IsLower(c))
+                {
+                    sb[j] = char.ToUpperInvariant(c);
+                }
+                if (c == '_')
+                {
+                    sb.Remove(j, 1);
+                    j--;
+                }
+            }
+            return sb.ToString();
+        }
+
+        public string GetName(IDataRecord record, int i) { return _getColumnName(record, i); }
+
+        public string GetName(PropertyInfo property) { return _getPropertyName(property); }
     }
 
     class DbConfigurationBuilder : IDbConfigurationBuilder
@@ -133,6 +187,12 @@ namespace Net.Code.ADONet
         public IDbConfigurationBuilder OnPrepareCommand(Action<IDbCommand> action)
         {
             _dbConfig.PrepareCommand = action;
+            return this;
+        }
+
+        public IDbConfigurationBuilder WithMappingConvention(MappingConvention convention)
+        {
+            _dbConfig.MappingConvention = convention;
             return this;
         }
 
@@ -158,7 +218,7 @@ namespace Net.Code.ADONet
                 HasValue = true;
             }
         }
-        private static Option<PropertyInfo> _bindByName = new Option<PropertyInfo>();
+        private static readonly Option<PropertyInfo> BindByName = new Option<PropertyInfo>();
         private DbConfigurationBuilder Oracle()
         {
             // By default, the Oracle driver does not support binding parameters by name;
@@ -169,14 +229,11 @@ namespace Net.Code.ADONet
             // a runtime exception
             OnPrepareCommand(command =>
             {
-                if (!_bindByName.HasValue)
+                if (!BindByName.HasValue)
                 {
-                    _bindByName.SetValue(command.GetType().GetProperty("BindByName"));
+                    BindByName.SetValue(command.GetType().GetProperty("BindByName"));
                 }
-                if (_bindByName.Value != null)
-                {
-                    _bindByName.Value.SetValue(command, true, null);
-                }
+                if (BindByName.Value != null) BindByName.Value.SetValue(command, true, null);
             });
             return this;
         }
@@ -220,17 +277,21 @@ namespace Net.Code.ADONet
     {
         private static readonly Action<IDbCommand> Empty = c => { };
 
+        private static readonly MappingConvention Default = MappingConvention.Strict;
+
         public DbConfig()
-            : this(Empty)
+            : this(Empty, Default)
         {
         }
 
-        public DbConfig(Action<IDbCommand> prepareCommand)
+        public DbConfig(Action<IDbCommand> prepareCommand, MappingConvention convention)
         {
             PrepareCommand = prepareCommand;
+            MappingConvention = convention;
         }
 
         public Action<IDbCommand> PrepareCommand { get; internal set; }
+        public MappingConvention MappingConvention { get; internal set; }
     }
 
     /// <summary>
@@ -463,7 +524,7 @@ namespace Net.Code.ADONet
         {
             var cmd = Connection.CreateCommand();
             _config.PrepareCommand(cmd);
-            return new CommandBuilder(cmd).OfType(commandType).WithCommandText(command);
+            return new CommandBuilder(cmd, _config.MappingConvention).OfType(commandType).WithCommandText(command);
         }
 
         /// <summary>
@@ -478,15 +539,15 @@ namespace Net.Code.ADONet
 
     static class DataReaderExtensions
     {
-        public static T MapTo<T>(this IDataRecord record) where T : new()
+        public static T MapTo<T>(this IDataRecord record, MappingConvention convention) where T : new()
         {
-            var setters = GetSettersForType<T>();
+            var setters = GetSettersForType<T>(convention);
             var result = new T();
             for (var i = 0; i < record.FieldCount; i++)
             {
                 Action<T,object> setter;
-                var columnName = record.GetName(i);
-                if (!setters.TryGetValue(columnName.Replace("_", "").ToUpperInvariant(), out setter))
+                var columnName = convention.GetName(record, i);
+                if (!setters.TryGetValue(columnName, out setter))
                     continue;
                 var val = DBNullHelper.FromDb(record.GetValue(i));
                 setter(result, val);
@@ -494,34 +555,29 @@ namespace Net.Code.ADONet
             return result;
         }
 
-        private static readonly IDictionary<Type, object> Setters = new Dictionary<Type, object>();
-        private static IDictionary<string, Action<T, object>> GetSettersForType<T>() where T : new()
+        private static readonly ConcurrentDictionary<Type, object> Setters = new ConcurrentDictionary<Type, object>();
+        private static IDictionary<string, Action<T, object>> GetSettersForType<T>(MappingConvention convention) where T : new()
         {
-            object setters;
-            if (!Setters.TryGetValue(typeof (T), out setters))
-            {
-                setters = (
-                    from p in typeof (T).GetProperties()
-                    let set = CreateSetterDelegate<T>(p.GetSetMethod())
-                    select new {p, set}
-                    ).ToDictionary(x => x.p.Name.ToUpperInvariant().Replace("_", ""), x => x.set);
-                Setters[typeof (T)] = setters;
-            }
+            var setters = Setters.GetOrAdd(
+                typeof (T),
+                t => t.GetProperties().ToDictionary(convention.GetName, p => p.GetSetDelegate<T>())
+                );
             return (IDictionary<string, Action<T,object>>)setters;
         }
 
-        static Action<T,object> CreateSetterDelegate<T>(MethodInfo method)
+        static Action<T,object> GetSetDelegate<T>(this PropertyInfo p)
         {
+            var method = p.GetSetMethod();
             var genericHelper = typeof(DataReaderExtensions).GetMethod("CreateSetterDelegateHelper", BindingFlags.Static | BindingFlags.NonPublic);
             var constructedHelper = genericHelper.MakeGenericMethod(typeof (T), method.GetParameters()[0].ParameterType);
-            var ret = constructedHelper.Invoke(null, new object[] { method });
-            return (Action<T, object>)ret;
+            return (Action<T, object>)constructedHelper.Invoke(null, new object[] { method });
         }
-
+        // ReSharper disable once UnusedMethodReturnValue.Local
+        // ReSharper disable once UnusedMember.Local
         static object CreateSetterDelegateHelper<TTarget, TParam>(MethodInfo method) where TTarget : class
         {
-            var func = (Action<TTarget, TParam>)Delegate.CreateDelegate(typeof(Action<TTarget, TParam>), method);
-            Action<TTarget, object> ret = (target, param) => func(target, ConvertTo<TParam>.From(param));
+            var action = (Action<TTarget, TParam>)Delegate.CreateDelegate(typeof(Action<TTarget, TParam>), method);
+            Action<TTarget, object> ret = (target, param) => action(target, ConvertTo<TParam>.From(param));
             return ret;
         }
 
@@ -545,7 +601,7 @@ namespace Net.Code.ADONet
         {
             do
             {
-                yield return GetResultSet(reader);
+                yield return GetResultSet(reader).ToList();
             } while (reader.NextResult());
         }
 
@@ -559,10 +615,12 @@ namespace Net.Code.ADONet
     public class CommandBuilder
     {
         private readonly IDbCommand _command;
+        private readonly MappingConvention _convention;
 
-        public CommandBuilder(IDbCommand command)
+        public CommandBuilder(IDbCommand command, MappingConvention convention = null)
         {
             _command = command;
+            _convention = convention ?? MappingConvention.Strict;
         }
 
 
@@ -603,7 +661,7 @@ namespace Net.Code.ADONet
         /// <returns></returns>
         public IEnumerable<T> AsEnumerable<T>() where T : new()
         {
-            return AsReader().AsEnumerable().Select(r => r.MapTo<T>());
+            return AsReader().AsEnumerable().Select(r => r.MapTo<T>(_convention));
         }
 
         // enables linq 'select' syntax
@@ -620,7 +678,7 @@ namespace Net.Code.ADONet
         {
             using (var reader = Execute().Reader())
             {
-                return reader.ToMultiResultSet();
+                foreach (var item in reader.ToMultiResultSet()) yield return item;
             }
         }
 #endif
@@ -720,7 +778,7 @@ namespace Net.Code.ADONet
         {
             using (var reader = await ExecuteAsync().Reader())
             {
-                return reader.ToMultiResultSet();
+                return reader.ToMultiResultSet().ToList(); ;
             }
         }
 #endif
@@ -729,7 +787,7 @@ namespace Net.Code.ADONet
             return new AsyncExecutor((DbCommand)_command);
         }
 #endif // ASYNC
-
+ 
         /// <summary>
         /// Sets the command text
         /// </summary>
@@ -962,16 +1020,16 @@ namespace Net.Code.ADONet
         public static DataTable ToDataTable<T>(this IEnumerable<T> items)
         {
             var table = new DataTable(typeof(T).Name);
-
+        
             var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
             foreach (var prop in props)
             {
                 var propType = prop.PropertyType;
-
-                if (DBNullHelper.IsNullableType(propType))
+                
+                if (propType.IsNullableType())
                     propType = new NullableConverter(propType).UnderlyingType;
-
+                
                 table.Columns.Add(prop.Name, propType);
             }
 
@@ -980,7 +1038,7 @@ namespace Net.Code.ADONet
                 var values = new object[props.Length];
                 for (var i = 0; i < props.Length; i++)
                     values[i] = props[i].GetValue(item, null);
-
+                
                 table.Rows.Add(values);
             }
             return table;
@@ -998,6 +1056,7 @@ namespace Net.Code.ADONet
         {
             return From(record, (r, s) => r[s]);
         }
+
 #if ASYNC
         public static dynamic Dictionary<TValue>(IReadOnlyDictionary<string, TValue> dictionary)
 #else
@@ -1173,11 +1232,11 @@ namespace Net.Code.ADONet
 
     static class DBNullHelper
     {
-        public static bool IsNullableType(Type type)
+        public static bool IsNullableType(this Type type)
         {
-            return
+            return 
                 (type.IsGenericType && !type.IsGenericTypeDefinition) &&
-                (typeof(Nullable<>) == type.GetGenericTypeDefinition());
+                (typeof(Nullable<>) == type.GetGenericTypeDefinition()); 
         }
 
         public static bool IsNull(object o)

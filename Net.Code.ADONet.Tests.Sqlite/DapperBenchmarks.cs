@@ -32,6 +32,22 @@ namespace SqlMapper
             Run(2, PerformanceTests.SelectAllRecordsTests);
         }
 
+        [TestMethod]
+        public void MapperPerformance()
+        {
+            using (var db = Db.FromConfig("sqlite"))
+            {
+                db.Configure().WithMappingConvention(MappingConvention.Strict);
+                var list = db.Sql("select * from Posts")
+                    .AsEnumerable<Post>().ToList();
+                list = db.Sql("select * from Posts")
+                    .AsEnumerable<Post>().ToList();
+                list = db.Sql("select * from Posts")
+                    .AsEnumerable<Post>().ToList();
+                Console.WriteLine(list.Count);
+            }
+        }
+
         private static void Ensure(int nofRecords)
         {
             using (var db = Db.FromConfig("sqlite"))
@@ -241,7 +257,7 @@ namespace SqlMapper
                         var post = new Post
                         {
                             Id = reader.GetInt32(0),
-                            Text = reader.GetNullableString(1),
+                            Text = ConvertTo<string>.From(reader.GetValue(1)),
                             CreationDate = reader.GetDateTime(2),
                             LastChangeDate = reader.GetDateTime(3),
                             Counter1 = reader.GetNullableValue<int>(4),

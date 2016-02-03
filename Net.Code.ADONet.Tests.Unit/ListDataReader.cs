@@ -55,9 +55,6 @@ namespace Net.Code.ADONet.Tests.Unit
         public ListDataReader(IEnumerable<IEnumerable<T>> listOfLists)
         {
             _lists = listOfLists;
-            _listEnumerator = _lists.GetEnumerator();
-            _listEnumerator.MoveNext();
-            _enumerator = _listEnumerator.Current.GetEnumerator();
         }
 
         public override string GetName(int i)
@@ -87,7 +84,12 @@ namespace Net.Code.ADONet.Tests.Unit
 
         public override int GetValues(object[] values)
         {
-            throw new NotSupportedException();
+            var length = Math.Min(values.Length, Properties.Length);
+            for (int i = 0; i < length; i++)
+            {
+                values[i] = GetValue(i);
+            }
+            return length;
         }
 
         public override int GetOrdinal(string name)
@@ -97,7 +99,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
         public override bool GetBoolean(int i)
         {
-            throw new NotSupportedException();
+            return (bool) GetValue(i);
         }
 
         public override byte GetByte(int i)
@@ -178,7 +180,11 @@ namespace Net.Code.ADONet.Tests.Unit
 
         public override bool HasRows
         {
-            get { throw new NotImplementedException(); }
+            get
+            {
+                var firstOrDefault = _lists.FirstOrDefault();
+                return firstOrDefault != null ? firstOrDefault.Any() : false;
+            }
         }
 
         public override object this[int i]
@@ -192,21 +198,32 @@ namespace Net.Code.ADONet.Tests.Unit
         }
 
 
-        public DataTable GetSchemaTable()
+        public override DataTable GetSchemaTable()
         {
-            throw new NotSupportedException();
+            var q = from p in Properties
+                let nullable = p.PropertyType.IsNullableType()
+                let colType = nullable ? p.PropertyType.GetGenericArguments()[0] : p.PropertyType
+                select new DataColumn(p.Name, colType) { AllowDBNull = nullable };
+            var dt = new DataTable();
+            dt.Columns.AddRange(q.ToArray());
+            dt.Columns.Add(new DataColumn("ColumnOrdinal", typeof (int)));
+            return dt;
         }
 
         public override bool NextResult()
         {
+            if (_listEnumerator == null) _listEnumerator = _lists.GetEnumerator();
             if (!_listEnumerator.MoveNext()) return false;
-            _enumerator.Dispose();
+            if (_enumerator != null)
+                _enumerator.Dispose();
             _enumerator = _listEnumerator.Current.GetEnumerator();
-            return true; // only one list
+            return true; 
         }
 
         public override bool Read()
         {
+            if (_disposed) throw new ObjectDisposedException("");
+            if (_enumerator == null) NextResult();
             return _enumerator.MoveNext();
         }
 
@@ -226,6 +243,11 @@ namespace Net.Code.ADONet.Tests.Unit
             { 
                 return 0; // nothing deleted, updated or inserted
             }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            _disposed = true;
         }
     }
 

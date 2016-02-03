@@ -107,10 +107,41 @@ namespace Net.Code.ADONet.Tests.Integration
         protected virtual void When() { }
     }
 
+    [TestClass]
+    public class when_querying_multiresultset_synchronously :
+        given_an_initialized_database_with_one_table_and_two_records
+    {
+        protected static List<List<Tuple<int, string>>> result;
 
+        protected override void Given()
+        {
+            base.Given();
+        }
+
+ //       [TestMethod]
+        public void ShouldNotThrow()
+        {
+            var multiResults = SelectMultiResults();
+
+            foreach (var list in multiResults)
+            {
+                foreach (var item in list)
+                    Console.WriteLine(item.Id + "  " + item.Attribute);
+            }
+
+        }
+
+        protected static IEnumerable<IEnumerable<dynamic>> SelectMultiResults()
+        {
+            return db.Sql("SELECT Id, StringNotNull as Attribute FROM MyTable; " +
+                          "SELECT Id, StringNull as Attribute FROM MyTable;")
+                          .AsMultiResultSet();
+        }
+    }
 
     [TestClass]
-    public class when_querying_as_dynamic : given_an_initialized_database_with_one_table_and_two_records
+    public class when_querying_as_dynamic 
+        : given_an_initialized_database_with_one_table_and_two_records
     {
         protected static IList<MyTable> result;
 
@@ -143,7 +174,7 @@ namespace Net.Code.ADONet.Tests.Integration
             Assert.AreEqual(2, result.Count());
         }
 
-        protected async static Task<IList<MyTable>> SelectAllAsync()
+        protected static async Task<IList<MyTable>> SelectAllAsync()
         {
             var objects = await db.Sql("SELECT * FROM MyTable").AsEnumerableAsync(x => new MyTable
             {
@@ -160,18 +191,19 @@ namespace Net.Code.ADONet.Tests.Integration
         protected static IList<MyTable> LinqSelect()
         {
             var query = from x in db.Sql("SELECT * FROM MyTable")
-                select new MyTable
-                       {
-                           GuidNull = x.GuidNull,
-                           Id = x.Id,
-                           IntNotNull = x.IntNotNull,
-                           IntNull = x.IntNull,
-                           StringNotNull = x.StringNotNull,
-                           StringNull = x.StringNull
-                       };
+                        select new MyTable
+                        {
+                            GuidNull = x.GuidNull,
+                            Id = x.Id,
+                            IntNotNull = x.IntNotNull,
+                            IntNull = x.IntNull,
+                            StringNotNull = x.StringNotNull,
+                            StringNull = x.StringNull
+                        };
 
             return query.ToList();
         }
+
 
     }
 

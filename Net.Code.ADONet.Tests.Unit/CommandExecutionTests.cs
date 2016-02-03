@@ -7,6 +7,21 @@ namespace Net.Code.ADONet.Tests.Unit
     [TestFixture]
     public class CommandExecutionTests
     {
+        // can not get the ListDataReader to work for this case
+        // [Test] 
+        public void AsDatatable_WhenCalled_ReturnsResults()
+        {
+            var command = PrepareCommand();
+
+            var commandBuilder = new CommandBuilder(command);
+
+            command.SetResultSet(Person.GetSingleResultSet());
+
+            var result = commandBuilder.AsDataTable();
+
+            Person.VerifyDataTable(result);
+        }
+
         [Test]
         public void AsEnumerable_WhenCalled_ReturnsResults()
         {

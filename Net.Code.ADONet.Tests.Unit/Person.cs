@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using NUnit.Framework;
 
@@ -36,6 +37,10 @@ namespace Net.Code.ADONet.Tests.Unit
         public static void VerifySingleResultSet(IEnumerable<dynamic> result)
         {
             Assert.AreEqual("FirstName", result.Single().FirstName);
+        }
+        public static void VerifyDataTable(DataTable result)
+        {
+            Assert.AreEqual("FirstName", result.Rows[0]["FirstName"]);
         }
 
         public static void VerifyMultiResultSet(List<List<dynamic>> result)
