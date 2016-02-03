@@ -1,8 +1,4 @@
-﻿// to support older C#/.Net versions, undefine some of these 
-#define DYNAMIC // >= .NET 4
-#define ASYNC   // >= .NET 4.5
-
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -12,12 +8,8 @@ using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Reflection;
-#if ASYNC
 using System.Threading.Tasks;
-#endif
-#if DYNAMIC
 using System.Dynamic;
-#endif
 using System.Text;
 #if DEBUG
 using System.Diagnostics;
@@ -54,7 +46,6 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Entry point for configuring the db with provider-specific stuff.
         /// </summary>
-        /// <returns></returns>
         IDbConfigurationBuilder Configure();
         
         /// <summary>
@@ -95,7 +86,7 @@ namespace Net.Code.ADONet
             Log(command.CommandText);
             foreach (IDbDataParameter p in command.Parameters)
             {
-                Log(string.Format("{0} = {1}", p.ParameterName, p.Value));
+                Log($"{p.ParameterName} = {p.Value}");
             }
         }
     }
@@ -119,13 +110,11 @@ namespace Net.Code.ADONet
         /// for this situation you don't need to do anything, it's handled by default).
         /// </summary>
         /// <param name="action"></param>
-        /// <returns></returns>
         IDbConfigurationBuilder OnPrepareCommand(Action<IDbCommand> action);
         /// <summary>
         /// Set the mapping convention used to map property names and db column names
         /// </summary>
         /// <param name="convention"></param>
-        /// <returns></returns>
         IDbConfigurationBuilder WithMappingConvention(MappingConvention convention);
     }
 
@@ -134,7 +123,9 @@ namespace Net.Code.ADONet
         private readonly Func<IDataRecord, int, string> _getColumnName;
         private readonly Func<PropertyInfo, string> _getPropertyName;
 
-        public MappingConvention(Func<IDataRecord, int, string> getColumnName, Func<PropertyInfo, string> getPropertyName)
+        public MappingConvention(
+            Func<IDataRecord, int, string> getColumnName, 
+            Func<PropertyInfo, string> getPropertyName)
         {
             _getColumnName = getColumnName;
             _getPropertyName = getPropertyName;
@@ -170,9 +161,9 @@ namespace Net.Code.ADONet
             return sb.ToString();
         }
 
-        public string GetName(IDataRecord record, int i) { return _getColumnName(record, i); }
+        public string GetName(IDataRecord record, int i) => _getColumnName(record, i);
 
-        public string GetName(PropertyInfo property) { return _getPropertyName(property); }
+        public string GetName(PropertyInfo property) => _getPropertyName(property);
     }
 
     class DbConfigurationBuilder : IDbConfigurationBuilder
@@ -230,10 +221,8 @@ namespace Net.Code.ADONet
             OnPrepareCommand(command =>
             {
                 if (!BindByName.HasValue)
-                {
                     BindByName.SetValue(command.GetType().GetProperty("BindByName"));
-                }
-                if (BindByName.Value != null) BindByName.Value.SetValue(command, true, null);
+                BindByName.Value?.SetValue(command, true, null);
             });
             return this;
         }
@@ -270,7 +259,6 @@ namespace Net.Code.ADONet
             connection.ConnectionString = connectionString;
             return connection;
         }
-
     }
 
     public class DbConfig
@@ -299,91 +287,13 @@ namespace Net.Code.ADONet
     /// </summary>
     public class Db : IDb
     {
-#if !DYNAMIC
-    /// <summary>
-    /// Provides support for lazy initialization.
-    /// </summary>
-    /// <typeparam name="T">Specifies the type of object that is being lazily initialized.</typeparam>
-    public sealed class Lazy<T>
-    {
-        private readonly object padlock = new object();
-        private readonly Func<T> createValue;
-        private bool isValueCreated;
-        private T value;
-
-        /// <summary>
-        /// Gets the lazily initialized value of the current Lazy{T} instance.
-        /// </summary>
-        public T Value
-        {
-            get
-            {
-                if (!isValueCreated)
-                {
-                    lock (padlock)
-                    {
-                        if (!isValueCreated)
-                        {
-                            value = createValue();
-                            isValueCreated = true;
-                        }
-                    }
-                }
-                return value;
-            }
-        }
-
-        /// <summary>
-        /// Gets a value that indicates whether a value has been created for this Lazy{T} instance.
-        /// </summary>
-        public bool IsValueCreated
-        {
-            get
-            {
-                lock (padlock)
-                {
-                    return isValueCreated;
-                }
-            }
-        }
-
-
-        /// <summary>
-        /// Initializes a new instance of the Lazy{T} class.
-        /// </summary>
-        /// <param name="createValue">The delegate that produces the value when it is needed.</param>
-        public Lazy(Func<T> createValue)
-        {
-            if (createValue == null) throw new ArgumentNullException("createValue");
-
-            this.createValue = createValue;
-        }
-
-
-        /// <summary>
-        /// Creates and returns a string representation of the Lazy{T}.Value.
-        /// </summary>
-        /// <returns>The string representation of the Lazy{T}.Value property.</returns>
-        public override string ToString()
-        {
-            return Value.ToString();
-        }
-    }
-#endif
-
         private readonly DbConfig _config = new DbConfig();
 
-        public string ProviderName { get { return _providerName; } }
+        public string ProviderName => _providerName;
 
-        public IDbConfigurationBuilder Configure()
-        {
-            return ConfigurePriv();
-        }
+        public IDbConfigurationBuilder Configure() => ConfigurePriv();
 
-        private DbConfigurationBuilder ConfigurePriv()
-        {
-            return new DbConfigurationBuilder(_config);
-        }
+        private DbConfigurationBuilder ConfigurePriv() => new DbConfigurationBuilder(_config);
 
         /// <summary>
         /// The default DbProvider name is "System.Data.SqlClient" (for sql server).
@@ -397,10 +307,12 @@ namespace Net.Code.ADONet
         private readonly string _providerName;
 
         /// <summary>
-        /// Instantiate Db with existing connection. The connection is only used for creating commands; it should be disposed by the caller when done.
+        /// Instantiate Db with existing connection. The connection is only used for creating commands; 
+        /// it should be disposed by the caller when done.
         /// </summary>
         /// <param name="connection">The existing connection</param>
-        /// <param name="providerName">The ADO .Net Provider name. When not specified, the default value is used (see DefaultProviderName)</param>
+        /// <param name="providerName">The ADO .Net Provider name. When not specified, the default 
+        /// value is used (see DefaultProviderName)</param>
         public Db(IDbConnection connection, string providerName = null)
         {
             _externalConnection = connection;
@@ -411,7 +323,8 @@ namespace Net.Code.ADONet
         /// Instantiate Db with connectionString and DbProviderName
         /// </summary>
         /// <param name="connectionString">The connection string</param>
-        /// <param name="providerName">The ADO .Net Provider name. When not specified, the default value is used (see DefaultProviderName)</param>
+        /// <param name="providerName">The ADO .Net Provider name. When not specified, 
+        /// the default value is used (see DefaultProviderName)</param>
         public Db(string connectionString, string providerName = null)
             : this(connectionString, new AdoNetProviderFactory(providerName ?? DefaultProviderName), providerName ?? DefaultProviderName)
         {
@@ -434,24 +347,17 @@ namespace Net.Code.ADONet
 
 
         /// <summary>
-        /// Factory method, instantiating the Db class from the first connectionstring in the app.config or web.config file.
+        /// Factory method, instantiating the Db class from the first connectionstring 
+        /// in the app.config or web.config file.
         /// </summary>
         /// <returns>Db</returns>
-        public static Db FromConfig()
-        {
-            var connectionStrings = ConfigurationManager.ConnectionStrings;
-            var connectionStringSettings = connectionStrings[0];
-            return FromConfig(connectionStringSettings);
-        }
+        public static Db FromConfig() => FromConfig(ConfigurationManager.ConnectionStrings[0]);
 
         /// <summary>
-        /// Factory method, instantiating the Db class from a named connectionstring in the app.config or web.config file.
+        /// Factory method, instantiating the Db class from a named connectionstring 
+        /// in the app.config or web.config file.
         /// </summary>
-        public static Db FromConfig(string connectionStringName)
-        {
-            var connectionStrings = ConfigurationManager.ConnectionStrings;
-            return FromConfig(connectionStrings[connectionStringName]);
-        }
+        public static Db FromConfig(string connectionStringName) => FromConfig(ConfigurationManager.ConnectionStrings[connectionStringName]);
 
         private static Db FromConfig(ConnectionStringSettings connectionStringSettings)
         {
@@ -482,16 +388,9 @@ namespace Net.Code.ADONet
             }
         }
 
-        public string ConnectionString
-        {
-            get { return _connectionString; }
-        }
+        public string ConnectionString => _connectionString;
 
-        private IDbConnection CreateConnection()
-        {
-            var connection = _connectionFactory.CreateConnection(_connectionString);
-            return connection;
-        }
+        private IDbConnection CreateConnection() => _connectionFactory.CreateConnection(_connectionString);
 
         public void Dispose()
         {
@@ -505,20 +404,14 @@ namespace Net.Code.ADONet
         /// </summary>
         /// <param name="sqlQuery"></param>
         /// <returns>a CommandBuilder instance</returns>
-        public CommandBuilder Sql(string sqlQuery)
-        {
-            return CreateCommand(CommandType.Text, sqlQuery);
-        }
+        public CommandBuilder Sql(string sqlQuery) => CreateCommand(CommandType.Text, sqlQuery);
 
         /// <summary>
         /// Create a Stored Procedure command
         /// </summary>
         /// <param name="sprocName">name of the sproc</param>
         /// <returns>a CommandBuilder instance</returns>
-        public CommandBuilder StoredProcedure(string sprocName)
-        {
-            return CreateCommand(CommandType.StoredProcedure, sprocName);
-        }
+        public CommandBuilder StoredProcedure(string sprocName) => CreateCommand(CommandType.StoredProcedure, sprocName);
 
         private CommandBuilder CreateCommand(CommandType commandType, string command)
         {
@@ -531,17 +424,14 @@ namespace Net.Code.ADONet
         /// Create a SQL command and execute it immediately (non query)
         /// </summary>
         /// <param name="command"></param>
-        public int Execute(string command)
-        {
-            return Sql(command).AsNonQuery();
-        }
+        public int Execute(string command) => Sql(command).AsNonQuery();
     }
 
     static class DataReaderExtensions
     {
         public static T MapTo<T>(this IDataRecord record, MappingConvention convention) where T : new()
         {
-            var setters = GetSettersForType<T>(convention);
+            var setters = GetSettersForType<T>(p => convention.GetName(p));
             var result = new T();
             for (var i = 0; i < record.FieldCount; i++)
             {
@@ -556,11 +446,11 @@ namespace Net.Code.ADONet
         }
 
         private static readonly ConcurrentDictionary<Type, object> Setters = new ConcurrentDictionary<Type, object>();
-        private static IDictionary<string, Action<T, object>> GetSettersForType<T>(MappingConvention convention) where T : new()
+        private static IDictionary<string, Action<T, object>> GetSettersForType<T>(Func<PropertyInfo, string> getName) where T : new()
         {
             var setters = Setters.GetOrAdd(
                 typeof (T),
-                t => t.GetProperties().ToDictionary(convention.GetName, p => p.GetSetDelegate<T>())
+                t => t.GetProperties().ToDictionary(getName, p => p.GetSetDelegate<T>())
                 );
             return (IDictionary<string, Action<T,object>>)setters;
         }
@@ -586,16 +476,11 @@ namespace Net.Code.ADONet
             using (reader) { while (reader.Read()) yield return reader; }
         }
 
-#if DYNAMIC
-        public static IEnumerable<dynamic> ToExpandoList(this IEnumerable<IDataRecord> input)
-        {
-            return from item in input select item.ToExpando();
-        }
+        public static IEnumerable<dynamic> ToExpandoList(this IEnumerable<IDataRecord> input) 
+            => input.Select(item => item.ToExpando());
 
-        public static IEnumerable<dynamic> ToDynamicDataRecord(this IEnumerable<IDataRecord> input)
-        {
-            return from item in input select Dynamic.DataRecord(item);
-        }
+        public static IEnumerable<dynamic> ToDynamicDataRecord(this IEnumerable<IDataRecord> input) 
+            => input.Select(item => Dynamic.DataRecord(item));
 
         public static IEnumerable<IEnumerable<dynamic>> ToMultiResultSet(this IDataReader reader)
         {
@@ -609,7 +494,6 @@ namespace Net.Code.ADONet
         {
             while (reader.Read()) yield return reader.ToExpando();
         }
-#endif
     }
 
     public class CommandBuilder
@@ -622,25 +506,17 @@ namespace Net.Code.ADONet
             _command = command;
             _convention = convention ?? MappingConvention.Strict;
         }
-
-
+        
         /// <summary>
         /// The raw IDbCommand instance
         /// </summary>
-        public IDbCommand Command
-        {
-            get { return _command; }
-        }
+        public IDbCommand Command => _command;
 
-#if DYNAMIC
         /// <summary>
         /// Executes the query and returns the result as a list of dynamic objects. 
         /// </summary>
-        /// <returns></returns>
-        public IEnumerable<dynamic> AsEnumerable()
-        {
-            return Execute().Reader().AsEnumerable().ToExpandoList();
-        }
+        public IEnumerable<dynamic> AsEnumerable() => Execute.Reader().AsEnumerable().ToExpandoList();
+
         /// <summary>
         /// Executes the query and returns the result as a list of [T]. This method is slightly faster. 
         /// than doing AsEnumerable().Select(selector). The selector is required to map objects as the 
@@ -648,151 +524,100 @@ namespace Net.Code.ADONet
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="selector">mapping function that transforms a datarecord (wrapped as a dynamic object) to an instance of type [T]</param>
-        /// <returns></returns>
-        public IEnumerable<T> AsEnumerable<T>(Func<dynamic, T> selector)
-        {
-            return Select(selector);
-        }
+        public IEnumerable<T> AsEnumerable<T>(Func<dynamic, T> selector) => Select(selector);
 
         /// <summary>
         /// Executes the query and returns the result as a list of [T] using the 'case-insensitive, underscore-agnostic column name to property mapping convention.' 
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
-        public IEnumerable<T> AsEnumerable<T>() where T : new()
-        {
-            return AsReader().AsEnumerable().Select(r => r.MapTo<T>(_convention));
-        }
+        public IEnumerable<T> AsEnumerable<T>() where T : new() 
+            => AsReader().AsEnumerable().Select(r => r.MapTo<T>(_convention));
 
         // enables linq 'select' syntax
-        public IEnumerable<T> Select<T>(Func<dynamic, T> selector)
-        {
-            return Execute().Reader().AsEnumerable().ToDynamicDataRecord().Select(selector);
-        }
+        public IEnumerable<T> Select<T>(Func<dynamic, T> selector) 
+            => Execute.Reader().AsEnumerable().ToDynamicDataRecord().Select(selector);
 
         /// <summary>
         /// Executes the query and returns the result as a list of lists
         /// </summary>
-        /// <returns></returns>
         public IEnumerable<IEnumerable<dynamic>> AsMultiResultSet()
         {
-            using (var reader = Execute().Reader())
+            using (var reader = Execute.Reader())
             {
                 foreach (var item in reader.ToMultiResultSet()) yield return item;
             }
         }
-#endif
         /// <summary>
         /// Executes the command, returning the first column of the first result, converted to the type T
         /// </summary>
         /// <typeparam name="T">return type</typeparam>
-        /// <returns></returns>
-        public T AsScalar<T>()
-        {
-            var result = Execute().Scalar();
-            return ConvertTo<T>.From(result);
-        }
+        public T AsScalar<T>() => ConvertTo<T>.From(Execute.Scalar());
 
-        public object AsScalar()
-        {
-            return Execute().Scalar();
-        }
+        public object AsScalar() => Execute.Scalar();
 
         /// <summary>
         /// Executes the command as a SQL statement, returning the number of rows affected
         /// </summary>
-        public int AsNonQuery()
-        {
-            return Execute().NonQuery();
-        }
+        public int AsNonQuery() => Execute.NonQuery();
 
-        private Executor Execute()
-        {
-            return new Executor(_command);
-        }
+        private Executor Execute => new Executor(_command);
 
-#if ASYNC
         /// <summary>
         /// Executes the command as a statement, returning the number of rows affected asynchronously
-        /// This method is only supported if the underlying provider uses the ADO.Net base classes (i.e., their IDbCommand implementation
-        /// inherits from System.Data.DbCommand). Moreover, this async method only makes sense if the provider
-        /// implements the async behaviour by overriding the appropriate method.
+        /// This method is only supported if the underlying provider propertly implements async behaviour.
         /// </summary>
-        /// <returns></returns>
-        public Task<int> AsNonQueryAsync()
-        {
-            return ExecuteAsync().NonQuery();
-        }
+        public Task<int> AsNonQueryAsync() => ExecuteAsync.NonQuery();
 
         /// <summary>
         /// Executes the command, returning the first column of the first result, converted to the type T asynchronously. 
-        /// This method is only supported if the underlying provider uses the ADO.Net base classes (i.e., their IDbCommand implementation
-        /// inherits from System.Data.DbCommand). Moreover, this async method only makes sense if the provider
-        /// implements the async behaviour by overriding the appropriate method.
+        /// This method is only supported if the underlying provider propertly implements async behaviour.
         /// </summary>
         /// <typeparam name="T">return type</typeparam>
-        /// <returns></returns>
         public async Task<T> AsScalarAsync<T>()
         {
-            var result = await ExecuteAsync().Scalar();
+            var result = await ExecuteAsync.Scalar();
             return ConvertTo<T>.From(result);
         }
 
-#if DYNAMIC
         /// <summary>
         /// Executes the query and returns the result as a list of dynamic objects asynchronously
-        /// This method is only supported if the underlying provider uses the ADO.Net base classes (i.e., their IDbCommand implementation
-        /// inherits from System.Data.DbCommand). Moreover, this async method only makes sense if the provider
-        /// implements the async behaviour by overriding the appropriate method.
+        /// This method is only supported if the underlying provider propertly implements async behaviour.
         /// </summary>
-        /// <returns></returns>
         public async Task<IEnumerable<dynamic>> AsEnumerableAsync()
         {
-            var reader = await ExecuteAsync().Reader();
+            var reader = await ExecuteAsync.Reader();
             return reader.AsEnumerable().ToExpandoList();
         }
 
         /// <summary>
         /// Executes the query and returns the result as a list of [T] asynchronously
-        /// This method is only supported if the underlying provider uses the ADO.Net base classes (i.e., their IDbCommand implementation
-        /// inherits from System.Data.DbCommand). Moreover, this async method only makes sense if the provider
-        /// implements the async behaviour by overriding the appropriate method.
+        /// This method is only supported if the underlying provider propertly implements async behaviour.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="selector">mapping function that transforms a datarecord (wrapped as a dynamic object) to an instance of type [T]</param>
-        /// <returns></returns>
         public async Task<IEnumerable<T>> AsEnumerableAsync<T>(Func<dynamic, T> selector)
         {
-            var reader = await ExecuteAsync().Reader();
+            var reader = await ExecuteAsync.Reader();
             return reader.AsEnumerable().ToDynamicDataRecord().Select(selector);
         }
 
         /// <summary>
         /// Executes the query and returns the result as a list of lists asynchronously
-        /// This method is only supported if the underlying provider uses the ADO.Net base classes (i.e., their IDbCommand implementation
-        /// inherits from System.Data.DbCommand). Moreover, this async method only makes sense if the provider
-        /// implements the async behaviour by overriding the appropriate method.
+        /// This method is only supported if the underlying provider propertly implements async behaviour.
         /// </summary>
-        /// <returns></returns>
         public async Task<IEnumerable<IEnumerable<dynamic>>> AsMultiResultSetAsync()
         {
-            using (var reader = await ExecuteAsync().Reader())
+            using (var reader = await ExecuteAsync.Reader())
             {
-                return reader.ToMultiResultSet().ToList(); ;
+                return reader.ToMultiResultSet().ToList();
             }
         }
-#endif
-        private AsyncExecutor ExecuteAsync()
-        {
-            return new AsyncExecutor((DbCommand)_command);
-        }
-#endif // ASYNC
- 
+        private AsyncExecutor ExecuteAsync => new AsyncExecutor((DbCommand)_command);
+
         /// <summary>
         /// Sets the command text
         /// </summary>
         /// <param name="text"></param>
-        /// <returns></returns>
         public CommandBuilder WithCommandText(string text)
         {
             _command.CommandText = text;
@@ -803,7 +628,6 @@ namespace Net.Code.ADONet
         /// Sets the command type
         /// </summary>
         /// <param name="type"></param>
-        /// <returns></returns>
         public CommandBuilder OfType(CommandType type)
         {
             _command.CommandType = type;
@@ -811,11 +635,10 @@ namespace Net.Code.ADONet
         }
 
         /// <summary>
-        /// Adds a parameter for each property of the given object, with the property name as the name of the parameter 
-        /// and the property value as the corresponding parameter value
+        /// Adds a parameter for each property of the given object, with the property name as the name 
+        /// of the parameter and the property value as the corresponding parameter value
         /// </summary>
         /// <param name="parameters"></param>
-        /// <returns></returns>
         public CommandBuilder WithParameters(object parameters)
         {
             var props = parameters.GetType().GetProperties();
@@ -830,7 +653,6 @@ namespace Net.Code.ADONet
         /// Builder method - sets the command timeout
         /// </summary>
         /// <param name="timeout"></param>
-        /// <returns></returns>
         public CommandBuilder WithTimeout(TimeSpan timeout)
         {
             Command.CommandTimeout = (int)timeout.TotalSeconds;
@@ -869,7 +691,6 @@ namespace Net.Code.ADONet
         /// <param name="name">parameter name</param>
         /// <param name="values">list of values</param>
         /// <param name="udtTypeName">name of the user-defined table type</param>
-        /// <returns></returns>
         public CommandBuilder WithParameter<T>(string name, IEnumerable<T> values, string udtTypeName)
         {
             var dataTable = values.ToDataTable();
@@ -887,16 +708,9 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Executes the command as a datareader. Use this if you need best performance.
         /// </summary>
-        /// <returns></returns>
-        public IDataReader AsReader()
-        {
-            return Execute().Reader();
-        }
+        public IDataReader AsReader() => Execute.Reader();
 
-        public DataTable AsDataTable()
-        {
-            return Execute().DataTable();
-        }
+        public DataTable AsDataTable() => Execute.DataTable();
 
         public CommandBuilder InTransaction(IDbTransaction tx)
         {
@@ -908,7 +722,6 @@ namespace Net.Code.ADONet
     public class Executor
     {
         private readonly IDbCommand _command;
-
         public Executor(IDbCommand command)
         {
             _command = command;
@@ -917,16 +730,11 @@ namespace Net.Code.ADONet
         /// <summary>
         /// executes the query as a datareader
         /// </summary>
-        /// <returns></returns>
-        public IDataReader Reader()
-        {
-            return Prepare().ExecuteReader();
-        }
+        public IDataReader Reader() => Prepare().ExecuteReader();
 
         /// <summary>
         /// Executes the query (using datareader) and fills a datatable
         /// </summary>
-        /// <returns></returns>
         public DataTable DataTable()
         {
             using (var reader = Reader())
@@ -940,20 +748,12 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Executes the command, returning the first column of the first result as a scalar value
         /// </summary>
-        /// <returns></returns>
-        public object Scalar()
-        {
-            var result = Prepare().ExecuteScalar();
-            return result;
-        }
+        public object Scalar() => Prepare().ExecuteScalar();
 
         /// <summary>
         /// Executes the command as a SQL statement, returning the number of rows affected
         /// </summary>
-        public int NonQuery()
-        {
-            return Prepare().ExecuteNonQuery();
-        }
+        public int NonQuery() => Prepare().ExecuteNonQuery();
 
         private IDbCommand Prepare()
         {
@@ -962,10 +762,8 @@ namespace Net.Code.ADONet
                 _command.Connection.Open();
             return _command;
         }
-
     }
 
-#if ASYNC
     public class AsyncExecutor
     {
         private readonly DbCommand _command;
@@ -978,7 +776,6 @@ namespace Net.Code.ADONet
         /// <summary>
         /// executes the query as a datareader
         /// </summary>
-        /// <returns></returns>
         public async Task<IDataReader> Reader()
         {
             var command = await PrepareAsync();
@@ -988,7 +785,6 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Executes the command, returning the first column of the first result as a scalar value
         /// </summary>
-        /// <returns></returns>
         public async Task<object> Scalar()
         {
             var command = await PrepareAsync();
@@ -1013,10 +809,8 @@ namespace Net.Code.ADONet
         }
 
     }
-#endif
     public static class EnumerableToDatatable
     {
-
         public static DataTable ToDataTable<T>(this IEnumerable<T> items)
         {
             var table = new DataTable(typeof(T).Name);
@@ -1045,30 +839,16 @@ namespace Net.Code.ADONet
         }
     }
 
-#if DYNAMIC
     static class Dynamic
     {
-        public static dynamic DataRow(DataRow row)
-        {
-            return From(row, (r, s) => r[s]);
-        }
-        public static dynamic DataRecord(IDataRecord record)
-        {
-            return From(record, (r, s) => r[s]);
-        }
+        public static dynamic DataRow(DataRow row) => From(row, (r, s) => r[s]);
+        public static dynamic DataRecord(IDataRecord record) => From(record, (r, s) => r[s]);
+        public static dynamic Dictionary<TValue>(IReadOnlyDictionary<string, TValue> dictionary) 
+            => From(dictionary, (d, s) => d[s]);
 
-#if ASYNC
-        public static dynamic Dictionary<TValue>(IReadOnlyDictionary<string, TValue> dictionary)
-#else
-        public static dynamic Dictionary<TValue>(IDictionary<string, TValue> dictionary)
-#endif
-        {
-            return From(dictionary, (d, s) => d[s]);
-        }
-        static dynamic From<T>(T item, Func<T, string, object> getter)
-        {
-            return new DynamicIndexer<T>(item, getter);
-        }
+        static dynamic From<T>(T item, Func<T, string, object> getter) 
+            => new DynamicIndexer<T>(item, getter);
+
         class DynamicIndexer<T> : DynamicObject
         {
             private readonly T _item;
@@ -1080,17 +860,11 @@ namespace Net.Code.ADONet
                 _getter = getter;
             }
 
-            public override bool TryGetIndex(GetIndexBinder binder, object[] indexes, out object result)
-            {
-                var memberName = (string)indexes[0];
-                return ByMemberName(out result, memberName);
-            }
+            public override bool TryGetIndex(GetIndexBinder binder, object[] indexes, out object result) 
+                => ByMemberName(out result, (string)indexes[0]);
 
-            public sealed override bool TryGetMember(GetMemberBinder binder, out object result)
-            {
-                var memberName = binder.Name;
-                return ByMemberName(out result, memberName);
-            }
+            public sealed override bool TryGetMember(GetMemberBinder binder, out object result) 
+                => ByMemberName(out result, binder.Name);
 
             private bool ByMemberName(out object result, string memberName)
             {
@@ -1103,28 +877,14 @@ namespace Net.Code.ADONet
 
     public static class DataTableExtensions
     {
-        static dynamic ToDynamic(this DataRow dr)
-        {
-            return Dynamic.DataRow(dr);
-        }
-        public static IEnumerable<dynamic> AsEnumerable(this DataTable dataTable)
-        {
-            return dataTable.Rows.OfType<DataRow>().Select(ToDynamic);
-        }
-        public static IEnumerable<T> Select<T>(this DataTable dt, Func<dynamic, T> selector)
-        {
-            return dt.AsEnumerable().Select(selector);
-        }
-        public static IEnumerable<dynamic> Where(this DataTable dt, Func<dynamic, bool> predicate)
-        {
-            return dt.AsEnumerable().Where(predicate);
-        }
+        static dynamic ToDynamic(this DataRow dr) => Dynamic.DataRow(dr);
+        public static IEnumerable<dynamic> AsEnumerable(this DataTable dataTable) => dataTable.Rows.OfType<DataRow>().Select(ToDynamic);
+        public static IEnumerable<T> Select<T>(this DataTable dt, Func<dynamic, T> selector) => dt.AsEnumerable().Select(selector);
+        public static IEnumerable<dynamic> Where(this DataTable dt, Func<dynamic, bool> predicate) => dt.AsEnumerable().Where(predicate);
     }
-#endif
 
     public static class DataRecordExtensions
     {
-#if DYNAMIC
         /// <summary>
         /// Convert a datarecord into a dynamic object, so that properties can be simply accessed
         /// using standard C# syntax.
@@ -1142,32 +902,26 @@ namespace Net.Code.ADONet
             }
             return Dynamic.Dictionary(d);
         }
-#endif
         /// <summary>
         /// Get a value from an IDataRecord by column name. This method supports all types,
         /// as long as the DbType is convertible to the CLR Type passed as a generic argument.
         /// Also handles conversion from DbNull to null, including nullable types.
         /// </summary>
-        public static TResult Get<TResult>(this IDataRecord reader, string name)
-        {
-            var c = reader.GetOrdinal(name);
-            return reader.Get<TResult>(c);
-        }
+        public static TResult Get<TResult>(this IDataRecord reader, string name) => reader.Get<TResult>(reader.GetOrdinal(name));
 
         /// <summary>
         /// Get a value from an IDataRecord by index. This method supports all types,
         /// as long as the DbType is convertible to the CLR Type passed as a generic argument.
         /// Also handles conversion from DbNull to null, including nullable types.
         /// </summary>
-        public static TResult Get<TResult>(this IDataRecord reader, int c)
-        {
-            return ConvertTo<TResult>.From(reader[c]);
-        }
+        public static TResult Get<TResult>(this IDataRecord reader, int c) => ConvertTo<TResult>.From(reader[c]);
     }
 
-    // refined this after finding somewhere on the interweb but can't find original source anymore
-    // this class is a helper class for the Get<> extension method on IDataRecord
-    // not needed if you use ToDynamic()
+    /// <summary>
+    /// Class for runtime type conversion, including DBNull.Value to/from null. Supports reference types,
+    /// value types and nullable value types
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public static class ConvertTo<T>
     {
         // ReSharper disable once StaticFieldInGenericType
@@ -1192,7 +946,7 @@ namespace Net.Code.ADONet
             {
                 return ConvertRefType;
             }
-            if (DBNullHelper.IsNullableType(type))
+            if (type.IsNullableType())
             {
                 var delegateType = typeof(Func<object, T>);
                 var methodInfo = typeof(ConvertTo<T>).GetMethod("ConvertNullableValueType", BindingFlags.NonPublic | BindingFlags.Static);
@@ -1204,15 +958,11 @@ namespace Net.Code.ADONet
 
         // ReSharper disable once UnusedMember.Local
         // (used via reflection!)
-        private static TElem? ConvertNullableValueType<TElem>(object value) where TElem : struct
-        {
-            return DBNullHelper.IsNull(value) ? (TElem?)null : ConvertPrivate<TElem>(value);
-        }
+        private static TElem? ConvertNullableValueType<TElem>(object value) where TElem : struct 
+            => DBNullHelper.IsNull(value) ? (TElem?)null : ConvertPrivate<TElem>(value);
 
-        private static T ConvertRefType(object value)
-        {
-            return DBNullHelper.IsNull(value) ? default(T) : ConvertPrivate<T>(value);
-        }
+        private static T ConvertRefType(object value) 
+            => DBNullHelper.IsNull(value) ? default(T) : ConvertPrivate<T>(value);
 
         private static T ConvertValueType(object value)
         {
@@ -1223,36 +973,17 @@ namespace Net.Code.ADONet
             return ConvertPrivate<T>(value);
         }
 
-        private static TElem ConvertPrivate<TElem>(object value)
-        {
-            return (TElem)(Convert.ChangeType(value, typeof(TElem)));
-        }
-
+        private static TElem ConvertPrivate<TElem>(object value) 
+            => (TElem)(Convert.ChangeType(value, typeof(TElem)));
     }
 
     static class DBNullHelper
     {
-        public static bool IsNullableType(this Type type)
-        {
-            return 
-                (type.IsGenericType && !type.IsGenericTypeDefinition) &&
-                (typeof(Nullable<>) == type.GetGenericTypeDefinition()); 
-        }
-
-        public static bool IsNull(object o)
-        {
-            return o == null || DBNull.Value.Equals(o);
-        }
-
-        public static object FromDb(object o)
-        {
-            return IsNull(o) ? null : o;
-        }
-
-        public static object ToDb(object o)
-        {
-            return IsNull(o) ? DBNull.Value : o;
-        }
-
+        public static bool IsNullableType(this Type type) 
+            => (type.IsGenericType && !type.IsGenericTypeDefinition) &&
+               (typeof(Nullable<>) == type.GetGenericTypeDefinition());
+        public static bool IsNull(object o) => o == null || DBNull.Value.Equals(o);
+        public static object FromDb(object o) => IsNull(o) ? null : o;
+        public static object ToDb(object o) => IsNull(o) ? DBNull.Value : o;
     }
 }
