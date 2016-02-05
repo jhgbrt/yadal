@@ -21,11 +21,11 @@ namespace Net.Code.ADONet.Tests.Unit.ConvertToTests
             Assert.AreEqual("", result);
         }
 
-        [Test, ExpectedException(typeof(InvalidCastException))]
+        [Test]
         public void FromIncompatibleType_ShouldThrow()
         {
             object o = new object();
-            Convert(o);
+            Assert.Throws<InvalidCastException>(() => Convert(o));
         }
 
         [Test]

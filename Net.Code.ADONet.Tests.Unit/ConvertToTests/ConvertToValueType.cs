@@ -6,37 +6,37 @@ namespace Net.Code.ADONet.Tests.Unit.ConvertToTests
     [TestFixture]
     public class ConvertToValueType
     {
-        [Test, ExpectedException(typeof(NullReferenceException))]
+        [Test]
         public void FromNull_ShouldThrow()
         {
-            Convert(null);
+            Assert.Throws<NullReferenceException>(() => Convert(null));
         }
 
-        [Test, ExpectedException(typeof(NullReferenceException))]
+        [Test]
         public void FromDbNull_ShouldThrow()
         {
-            Convert(DBNull.Value);
+            Assert.Throws<NullReferenceException>(() => Convert(DBNull.Value));
         }
 
-        [Test, ExpectedException(typeof(FormatException))]
+        [Test]
         public void FromString_ShouldThrow()
         {
             object o = "";
-            Convert(o);
+            Assert.Throws<FormatException>(() => Convert(o));
         }
 
-        [Test, ExpectedException(typeof(InvalidCastException))]
+        [Test]
         public void FromIncompatibleRefType_ShouldThrow()
         {
             object o = new object();
-            Convert(o);
+            Assert.Throws<InvalidCastException>(() => Convert(o));
         }
 
-        [Test, ExpectedException(typeof(InvalidCastException))]
+        [Test]
         public void FromIncompatibleValueType_ShouldThrow()
         {
             object o = new object();
-            Convert(o);
+            Assert.Throws<InvalidCastException>(() => Convert(o));
         }
 
         [Test]

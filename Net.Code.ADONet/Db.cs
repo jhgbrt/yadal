@@ -417,7 +417,7 @@ namespace Net.Code.ADONet
         {
             var cmd = Connection.CreateCommand();
             _config.PrepareCommand(cmd);
-            return new CommandBuilder(cmd, _config.MappingConvention).OfType(commandType).WithCommandText(command);
+            return new CommandBuilder(cmd, _config.MappingConvention, _providerName).OfType(commandType).WithCommandText(command);
         }
 
         /// <summary>
@@ -429,9 +429,9 @@ namespace Net.Code.ADONet
 
     static class DataReaderExtensions
     {
-        public static T MapTo<T>(this IDataRecord record, MappingConvention convention) where T : new()
+        public static T MapTo<T>(this IDataRecord record, MappingConvention convention, string provider) where T : new()
         {
-            var setters = GetSettersForType<T>(p => convention.GetName(p));
+            var setters = GetSettersForType<T>(p => convention.GetName(p), provider);
             var result = new T();
             for (var i = 0; i < record.FieldCount; i++)
             {
@@ -445,12 +445,12 @@ namespace Net.Code.ADONet
             return result;
         }
 
-        private static readonly ConcurrentDictionary<Type, object> Setters = new ConcurrentDictionary<Type, object>();
-        private static IDictionary<string, Action<T, object>> GetSettersForType<T>(Func<PropertyInfo, string> getName) where T : new()
+        private static readonly ConcurrentDictionary<dynamic, object> Setters = new ConcurrentDictionary<dynamic, object>();
+        private static IDictionary<string, Action<T, object>> GetSettersForType<T>(Func<PropertyInfo, string> getName, string provider) where T : new()
         {
             var setters = Setters.GetOrAdd(
-                typeof (T),
-                t => t.GetProperties().ToDictionary(getName, p => p.GetSetDelegate<T>())
+                new {Type =  typeof (T), Provider = provider},
+                d =>((Type)d.Type).GetProperties().ToDictionary(getName, p => p.GetSetDelegate<T>())
                 );
             return (IDictionary<string, Action<T,object>>)setters;
         }
@@ -482,17 +482,30 @@ namespace Net.Code.ADONet
         public static IEnumerable<dynamic> ToDynamicDataRecord(this IEnumerable<IDataRecord> input) 
             => input.Select(item => Dynamic.DataRecord(item));
 
-        public static IEnumerable<IEnumerable<dynamic>> ToMultiResultSet(this IDataReader reader)
+        public static IEnumerable<List<dynamic>> ToMultiResultSet(this IDataReader reader)
         {
             do
             {
-                yield return GetResultSet(reader).ToList();
+                var list = new List<dynamic>();
+                while (reader.Read()) list.Add(reader.ToExpando());
+                yield return list;
             } while (reader.NextResult());
         }
-
-        private static IEnumerable<dynamic> GetResultSet(IDataReader reader)
+        public static IEnumerable<List<T>> ToMultiResultSet<T>(this IDataReader reader, MappingConvention convention, string provider) where T : new()
         {
-            while (reader.Read()) yield return reader.ToExpando();
+            bool moreResults;
+            do
+            {
+                yield return GetResultSet<T>(reader, convention, provider, out moreResults);
+            } while (moreResults);
+        }
+
+        public static List<T> GetResultSet<T>(this IDataReader reader, MappingConvention convention, string provider, out bool moreResults) where T : new()
+        {
+            var list = new List<T>();
+            while (reader.Read()) list.Add(reader.MapTo<T>(convention, provider));
+            moreResults = reader.NextResult();
+            return list;
         }
     }
 
@@ -500,11 +513,13 @@ namespace Net.Code.ADONet
     {
         private readonly IDbCommand _command;
         private readonly MappingConvention _convention;
+        private string _provider;
 
-        public CommandBuilder(IDbCommand command, MappingConvention convention = null)
+        public CommandBuilder(IDbCommand command, MappingConvention convention = null, string provider = null)
         {
             _command = command;
             _convention = convention ?? MappingConvention.Strict;
+            _provider = provider ?? Db.DefaultProviderName;
         }
         
         /// <summary>
@@ -531,7 +546,7 @@ namespace Net.Code.ADONet
         /// </summary>
         /// <typeparam name="T"></typeparam>
         public IEnumerable<T> AsEnumerable<T>() where T : new() 
-            => AsReader().AsEnumerable().Select(r => r.MapTo<T>(_convention));
+            => AsReader().AsEnumerable().Select(r => r.MapTo<T>(_convention, _provider));
 
         // enables linq 'select' syntax
         public IEnumerable<T> Select<T>(Func<dynamic, T> selector) 
@@ -540,11 +555,43 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Executes the query and returns the result as a list of lists
         /// </summary>
-        public IEnumerable<IEnumerable<dynamic>> AsMultiResultSet()
+        public IEnumerable<List<dynamic>> AsMultiResultSet()
         {
             using (var reader = Execute.Reader())
             {
                 foreach (var item in reader.ToMultiResultSet()) yield return item;
+            }
+        }
+        /// <summary>
+        /// Executes the query and returns the result as a tuple of lists
+        /// </summary>
+        public Tuple<List<T1>, List<T2>> AsMultiResultSet<T1, T2>() where T1 : new() where T2 : new()
+        {
+            using (var reader = Execute.Reader())
+            {
+                bool more;
+                var result1 = reader.GetResultSet<T1>(_convention, _provider, out more);
+                var result2 = reader.GetResultSet<T2>(_convention, _provider, out more);
+                return Tuple.Create(
+                    result1,
+                    result2
+                    );
+            }
+        }
+        /// <summary>
+        /// Executes the query and returns the result as a tuple of lists
+        /// </summary>
+        public Tuple<List<T1>, List<T2>, List<T3>> AsMultiResultSet<T1, T2, T3>() where T1 : new() where T2 : new() where T3 : new()
+        {
+            using (var reader = Execute.Reader())
+            {
+                bool more;
+                var result1 = reader.GetResultSet<T1>(_convention, _provider, out more);
+                var result2 = reader.GetResultSet<T2>(_convention, _provider, out more);
+                var result3 = reader.GetResultSet<T3>(_convention, _provider, out more);
+                return Tuple.Create(
+                    result1, result2, result3
+                    );
             }
         }
         /// <summary>
@@ -681,6 +728,12 @@ namespace Net.Code.ADONet
                 p.Value = DBNullHelper.ToDb(value);
                 Command.Parameters.Add(p);
             }
+            return this;
+        }
+
+        public CommandBuilder WithParameter<T>(T p) where T : DbParameter
+        {
+            Command.Parameters.Add(p);
             return this;
         }
 

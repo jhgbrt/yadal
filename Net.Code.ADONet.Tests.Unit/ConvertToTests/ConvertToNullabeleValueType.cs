@@ -20,25 +20,25 @@ namespace Net.Code.ADONet.Tests.Unit.ConvertToTests
             Assert.IsNull(result);
         }
 
-        [Test, ExpectedException(typeof(FormatException))]
+        [Test]
         public void FromString_ShouldThrow()
         {
             object o = "";
-            Convert(o);
+            Assert.Throws<FormatException>(() => Convert(o));
         }
 
-        [Test, ExpectedException(typeof(InvalidCastException))]
+        [Test]
         public void FromIncompatibleRefType_ShouldThrow()
         {
             object o = new object();
-            Convert(o);
+            Assert.Throws<InvalidCastException>(() => Convert(o));
         }
 
-        [Test, ExpectedException(typeof(InvalidCastException))]
+        [Test]
         public void FromIncompatibleValueType_ShouldThrow()
         {
             object o = new object();
-            Convert(o);
+            Assert.Throws<InvalidCastException>(() => Convert(o));
         }
 
         [Test]

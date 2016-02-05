@@ -1,11 +1,5 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Data;
-using System.Data.Common;
-using System.Linq;
-using System.Reflection;
 using NSubstitute;
 using NUnit.Framework;
 
@@ -43,7 +37,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
                 record.GetValue(i).Returns(values[i].Value);
             }
 
-            var entity = record.MapTo<MyEntity>(MappingConvention.Loose);
+            var entity = record.MapTo<MyEntity>(MappingConvention.Loose, null);
             
             Assert.AreEqual("SomeValue", entity.MyProperty);
             Assert.IsNull(entity.MyNullableInt1);
