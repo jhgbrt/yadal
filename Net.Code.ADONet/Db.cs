@@ -5,7 +5,6 @@ using System.ComponentModel;
 using System.Configuration;
 using System.Data;
 using System.Data.Common;
-using System.Data.SqlClient;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -224,6 +223,10 @@ namespace Net.Code.ADONet
                     BindByName.SetValue(command.GetType().GetProperty("BindByName"));
                 BindByName.Value?.SetValue(command, true, null);
             });
+
+            // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
+            WithMappingConvention(MappingConvention.Loose);
+
             return this;
         }
 
@@ -429,10 +432,10 @@ namespace Net.Code.ADONet
 
     static class DataReaderExtensions
     {
-        public static T MapTo<T>(this IDataRecord record, MappingConvention convention, string provider) where T : new()
+        public static T MapTo<T>(this IDataRecord record, MappingConvention convention, string provider) 
         {
             var setters = GetSettersForType<T>(p => convention.GetName(p), provider);
-            var result = new T();
+            var result = Activator.CreateInstance<T>();
             for (var i = 0; i < record.FieldCount; i++)
             {
                 Action<T,object> setter;
@@ -446,7 +449,7 @@ namespace Net.Code.ADONet
         }
 
         private static readonly ConcurrentDictionary<dynamic, object> Setters = new ConcurrentDictionary<dynamic, object>();
-        private static IDictionary<string, Action<T, object>> GetSettersForType<T>(Func<PropertyInfo, string> getName, string provider) where T : new()
+        private static IDictionary<string, Action<T, object>> GetSettersForType<T>(Func<PropertyInfo, string> getName, string provider) 
         {
             var setters = Setters.GetOrAdd(
                 new {Type =  typeof (T), Provider = provider},
@@ -513,7 +516,7 @@ namespace Net.Code.ADONet
     {
         private readonly IDbCommand _command;
         private readonly MappingConvention _convention;
-        private string _provider;
+        private readonly string _provider;
 
         public CommandBuilder(IDbCommand command, MappingConvention convention = null, string provider = null)
         {
@@ -545,7 +548,7 @@ namespace Net.Code.ADONet
         /// Executes the query and returns the result as a list of [T] using the 'case-insensitive, underscore-agnostic column name to property mapping convention.' 
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        public IEnumerable<T> AsEnumerable<T>() where T : new() 
+        public IEnumerable<T> AsEnumerable<T>() 
             => AsReader().AsEnumerable().Select(r => r.MapTo<T>(_convention, _provider));
 
         // enables linq 'select' syntax
@@ -598,7 +601,7 @@ namespace Net.Code.ADONet
         /// Executes the command, returning the first column of the first result, converted to the type T
         /// </summary>
         /// <typeparam name="T">return type</typeparam>
-        public T AsScalar<T>() => ConvertTo<T>.From(Execute.Scalar());
+        public T AsScalar<T>() => ConvertTo<T>.From(AsScalar());
 
         public object AsScalar() => Execute.Scalar();
 
@@ -737,26 +740,6 @@ namespace Net.Code.ADONet
             return this;
         }
 
-        /// <summary>
-        /// Builder method - adds a table-valued parameter. Only supported on SQL Server (System.Data.SqlClient)
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="name">parameter name</param>
-        /// <param name="values">list of values</param>
-        /// <param name="udtTypeName">name of the user-defined table type</param>
-        public CommandBuilder WithParameter<T>(string name, IEnumerable<T> values, string udtTypeName)
-        {
-            var dataTable = values.ToDataTable();
-
-            var p = new SqlParameter(name, SqlDbType.Structured)
-            {
-                TypeName = udtTypeName,
-                Value = dataTable
-            };
-
-            Command.Parameters.Add(p);
-            return this;
-        }
 
         /// <summary>
         /// Executes the command as a datareader. Use this if you need best performance.
@@ -769,6 +752,11 @@ namespace Net.Code.ADONet
         {
             Command.Transaction = tx;
             return this;
+        }
+
+        public T Single<T>()
+        {
+            return AsEnumerable<T>().Single();
         }
     }
 
@@ -896,11 +884,9 @@ namespace Net.Code.ADONet
     {
         public static dynamic DataRow(DataRow row) => From(row, (r, s) => r[s]);
         public static dynamic DataRecord(IDataRecord record) => From(record, (r, s) => r[s]);
-        public static dynamic Dictionary<TValue>(IReadOnlyDictionary<string, TValue> dictionary) 
-            => From(dictionary, (d, s) => d[s]);
+        public static dynamic Dictionary<TValue>(IReadOnlyDictionary<string, TValue> dictionary) => From(dictionary, (d, s) => d[s]);
 
-        static dynamic From<T>(T item, Func<T, string, object> getter) 
-            => new DynamicIndexer<T>(item, getter);
+        static dynamic From<T>(T item, Func<T, string, object> getter) => new DynamicIndexer<T>(item, getter);
 
         class DynamicIndexer<T> : DynamicObject
         {
@@ -913,12 +899,8 @@ namespace Net.Code.ADONet
                 _getter = getter;
             }
 
-            public override bool TryGetIndex(GetIndexBinder binder, object[] indexes, out object result) 
-                => ByMemberName(out result, (string)indexes[0]);
-
-            public sealed override bool TryGetMember(GetMemberBinder binder, out object result) 
-                => ByMemberName(out result, binder.Name);
-
+            public override bool TryGetIndex(GetIndexBinder b, object[] i, out object r) => ByMemberName(out r, (string)i[0]);
+            public sealed override bool TryGetMember(GetMemberBinder b, out object r) => ByMemberName(out r, b.Name);
             private bool ByMemberName(out object result, string memberName)
             {
                 var value = _getter(_item, memberName);
@@ -1014,8 +996,7 @@ namespace Net.Code.ADONet
         private static TElem? ConvertNullableValueType<TElem>(object value) where TElem : struct 
             => DBNullHelper.IsNull(value) ? (TElem?)null : ConvertPrivate<TElem>(value);
 
-        private static T ConvertRefType(object value) 
-            => DBNullHelper.IsNull(value) ? default(T) : ConvertPrivate<T>(value);
+        private static T ConvertRefType(object value) => DBNullHelper.IsNull(value) ? default(T) : ConvertPrivate<T>(value);
 
         private static T ConvertValueType(object value)
         {
@@ -1026,8 +1007,7 @@ namespace Net.Code.ADONet
             return ConvertPrivate<T>(value);
         }
 
-        private static TElem ConvertPrivate<TElem>(object value) 
-            => (TElem)(Convert.ChangeType(value, typeof(TElem)));
+        private static TElem ConvertPrivate<TElem>(object value) => (TElem)(Convert.ChangeType(value, typeof(TElem)));
     }
 
     static class DBNullHelper

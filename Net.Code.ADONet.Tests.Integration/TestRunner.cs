@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -12,59 +13,89 @@ namespace Net.Code.ADONet.Tests.Integration
         [TestMethod]
         public void RunTestOnSqlCe()
         {
-            RunTest(On.SqlServerCe());
+            RunTest(new SqlServerCe());
         }
         [TestMethod]
         public void RunTestOnSqlServer()
         {
-            RunTest(On.SqlServer());
+            RunTest(new SqlServer());
         }
         [TestMethod]
         public void RunTestOnOracle()
         {
-            RunTest(On.Oracle());
+            RunTest(new Oracle());
         }
         [TestMethod]
         public void RunTestOnSqLite()
         {
-            RunTest(On.SqLite());
+            RunTest(new SqLite());
         }
 
-        private void RunTest(On target)
+        private void RunTest(IDatabaseImpl target)
         {
             var test = new DbTest(target);
-            var people = MyFaker.People.List(100);
-            RunTest(() => test.DropRecreate(), "Drop/Recreate database");
-            RunTest(() => test.CreateTable(), "Create Table");
-            RunTest(() => test.Insert(people), "Insert items");
-            RunTest(() => test.AsEnumerableOf(), result => CollectionAssert.AreEqual(people, result), "Enumerable mapped to Person");
-            if (target.SupportsMultiResultSet)
-                RunTest(() => test.AsMultiResultSet(), result => CollectionAssert.AreEqual(people.Concat(result[0]).ToArray(), result[0].Concat(result[1]).ToArray()), "Multi result set");
-            RunTest(() => test.DropTable(), "Drop Table");
+            var people = FakeData.People.List(10);
+
+            test.DropRecreate();
+
+            test.CreateTable();
+
+            test.Insert(people.Take(5));
+            test.InsertAsync(people.Skip(5)).Wait();
+            {
+                var count = test.GetCountOfPeople();
+                Assert.AreEqual(10, count);
+            }
+            {
+                var count = test.GetCountOfPeopleAsync().Result;
+                Assert.AreEqual(10, count);
+            }
+            {
+                var result = test.GetAllPeopleGeneric();
+                CollectionAssert.AreEqual(people, result);
+            }
+            {
+                var result = test.GetAllPeopleAsDynamic();
+                CollectionAssert.AreEqual(people, result);
+            }
+            {
+                var result = test.GetAllPeopleAsDynamicAsync().Result;
+                CollectionAssert.AreEqual(people, result);
+            }
+            {
+                var result = test.AsDataTable();
+                CollectionAssert.AreEqual(people.Select(p => p.Id).ToArray(), result.Rows.OfType<DataRow>().Select(dr => (int)dr["Id"]).ToArray());
+            }
+            if (target.SupportsMultipleResultSets)
+            {
+                var result = test.AsMultiResultSet();
+                CollectionAssert.AreEqual(people.Concat(result[0]).ToArray(), result[0].Concat(result[1]).ToArray());
+            }
+            {
+                var person = FakeData.People.One();
+                test.Insert(new[] {person});
+                var result = test.Get(person.Id);
+                Assert.AreEqual(person, result);
+            }
+
+            if (target.SupportsTableValuedParameters)
+            {
+                var ids = test.GetSomeIds(3);
+                var result = test.GetPeopleById(ids);
+                CollectionAssert.AreEqual(ids, result.Select(p => p.Id).ToList());
+            }
+
+            test.DropTable();
         }
 
-        private void RunTest(Action action, string scenario)
+        private void RunTest(Action action)
         {
-            try
-            {
-                action();
-            }
-            catch (Exception e)
-            {
-                Assert.Fail($"{scenario} failed: {e.GetType().Name} {e.Message}");
-            }
+            action();
         }
         private void RunTest<T>(Func<T> action, Action<T> verify, string scenario)
         {
-            try
-            {
-                var result = action();
-                verify(result);
-            }
-            catch (Exception e)
-            {
-                Assert.Fail($"{scenario} failed: {e.Message}");
-            }
+            var result = action();
+            verify(result);
         }
     }
 }

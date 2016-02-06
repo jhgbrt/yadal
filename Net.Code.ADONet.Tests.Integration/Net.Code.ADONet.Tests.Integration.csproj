@@ -49,6 +49,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data.SQLite, Version=1.0.99.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Data.SQLite.Core.1.0.99.0\lib\net46\System.Data.SQLite.dll</HintPath>
@@ -64,11 +65,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DatabaseImplementations\IDatabaseImpl.cs" />
+    <Compile Include="DatabaseImplementations\Oracle.cs" />
+    <Compile Include="DatabaseImplementations\SqLite.cs" />
+    <Compile Include="DatabaseImplementations\SqlServer.cs" />
+    <Compile Include="DatabaseImplementations\SqlServerCe.cs" />
     <Compile Include="DbTest.cs" />
-    <Compile Include="MyFaker.cs" />
+    <Compile Include="FakeData.cs" />
     <Compile Include="TestRunner.cs" />
     <Compile Include="Person.cs" />
-    <Compile Include="On.cs" />
+    <Compile Include="DatabaseImplementations\BaseDb.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

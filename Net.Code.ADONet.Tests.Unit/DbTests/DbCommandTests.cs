@@ -4,6 +4,7 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using NUnit.Framework;
+using Net.Code.ADONet.Extensions.SqlClient;
 
 namespace Net.Code.ADONet.Tests.Unit.DbTests
 {

@@ -2,26 +2,24 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Threading.Tasks;
 using Oracle.ManagedDataAccess.Client;
+using Net.Code.ADONet.Extensions.SqlClient;
 
 namespace Net.Code.ADONet.Tests.Integration
 {
     public class DbTest
     {
-        private readonly On _target;
+        private readonly IDatabaseImpl _target;
 
-        public DbTest(On target)
+        public DbTest(IDatabaseImpl target)
         {
             _target = target;
         }
 
         public void DropRecreate()
         {
-            using (var db = MasterDb())
-            {
-                db.Sql(_target.DropRecreate).AsNonQuery();
-            }
-
+            _target.DropAndRecreate();
         }
 
         public void CreateTable()
@@ -43,17 +41,7 @@ namespace Net.Code.ADONet.Tests.Integration
             }
         }
 
-        public bool TableExists()
-        {
-            using (var db = CreateDb())
-            {
-                return
-                    db.Sql($"SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = {nameof(Person)}")
-                        .AsScalar<bool>();
-            }
-        }
-
-        public void Insert(Person[] items)
+        public void Insert(IEnumerable<Person> items)
         {
             using (var db = CreateDb())
             {
@@ -63,8 +51,18 @@ namespace Net.Code.ADONet.Tests.Integration
                 }
             }
         }
+        public async Task InsertAsync(IEnumerable<Person> items)
+        {
+            using (var db = CreateDb())
+            {
+                foreach (var item in items)
+                {
+                    await db.Sql(_target.InsertPerson).WithParameters(item).AsNonQueryAsync();
+                }
+            }
+        }
 
-        public List<Person> AsEnumerableOf()
+        public List<Person> GetAllPeopleGeneric()
         {
             using (var db = CreateDb())
             {
@@ -74,6 +72,40 @@ namespace Net.Code.ADONet.Tests.Integration
                     .ToList();
             }
         }
+        public List<Person> GetAllPeopleAsDynamic()
+        {
+            using (var db = CreateDb())
+            {
+                return db
+                    .Sql($"SELECT * FROM {nameof(Person)}")
+                    .AsEnumerable()
+                    .Select(d => (Person)_target.Project(d))
+                    .ToList();
+            }
+        }
+        public async Task<List<Person>> GetAllPeopleAsDynamicAsync()
+        {
+            using (var db = CreateDb())
+            {
+                var people = await db
+                    .Sql($"SELECT * FROM {nameof(Person)}")
+                    .AsEnumerableAsync();
+                return people
+                    .Select(d => (Person)_target.Project(d))
+                    .ToList();
+            }
+        }
+
+        public DataTable AsDataTable()
+        {
+            using (var db = CreateDb())
+            {
+                return db
+                    .Sql($"SELECT * FROM {nameof(Person)}")
+                    .AsDataTable();
+            }
+        }
+
         public List<List<Person>> AsMultiResultSet()
         {
             using (var db = CreateDb())
@@ -109,15 +141,54 @@ namespace Net.Code.ADONet.Tests.Integration
 
         private IDb CreateDb()
         {
-            var db = new Db(_target.ConnectionString, _target.ProviderName);
-            db.Configure().WithMappingConvention(_target.MappingConvention);
-            return db;
+            return _target.CreateDb();
         }
 
-        private IDb MasterDb()
+        public Person Get(int id)
         {
-            return new Db(_target.MasterConnectionString, _target.ProviderName);
+            using (var db = CreateDb())
+            {
+                return db
+                    .Sql($"SELECT * FROM {nameof(Person)} WHERE Id = {_target.EscapeChar}Id")
+                    .WithParameters(new {Id = id})
+                    .Single<Person>();
+            }
         }
 
+        public Person[] GetPeopleById(IEnumerable<int> ids)
+        {
+            using (var db = CreateDb())
+            {
+                return db
+                    .Sql("SELECT * FROM Person JOIN @IDs IdSet ON Person.Id = IdSet.Id")
+                    .WithParameter("@IDs", ids.Select(id => new {Id = id}), "IdSet")
+                    .AsEnumerable<Person>()
+                    .ToArray();
+            }
+        }
+
+        public List<int> GetSomeIds(int n)
+        {
+            using (var db = CreateDb())
+            {
+                return db.Sql($"SELECT TOP {n} Id FROM {nameof(Person)}").Select(d => (int) d.Id).ToList();
+            }
+        }
+
+        public int GetCountOfPeople()
+        {
+            using (var db = CreateDb())
+            {
+                return db.Sql($"SELECT count(*) Id FROM {nameof(Person)}").AsScalar<int>();
+            }
+        }
+        public async Task<int> GetCountOfPeopleAsync()
+        {
+            using (var db = CreateDb())
+            {
+                var result = await db.Sql($"SELECT count(*) Id FROM {nameof(Person)}").AsScalarAsync<int>();
+                return result;
+            }
+        }
     }
 }

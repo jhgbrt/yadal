@@ -9,7 +9,6 @@ namespace Net.Code.ADONet.Tests.Integration
         public string Name { get; set; }
         public int RequiredNumber { get; set; }
         public int? OptionalNumber { get; set; }
-        public Guid? UniqueId { get; set; }
 
         public override bool Equals(object obj)
         {
@@ -21,7 +20,11 @@ namespace Net.Code.ADONet.Tests.Integration
 
         protected bool Equals(Person other)
         {
-            return Id == other.Id && string.Equals(Email, other.Email) && string.Equals(Name, other.Name) && RequiredNumber == other.RequiredNumber && OptionalNumber == other.OptionalNumber && UniqueId.Equals(other.UniqueId);
+            return Id == other.Id 
+                && string.Equals(Email, other.Email) 
+                && string.Equals(Name, other.Name) 
+                && RequiredNumber == other.RequiredNumber 
+                && OptionalNumber == other.OptionalNumber;
         }
 
         public override int GetHashCode()
@@ -33,7 +36,6 @@ namespace Net.Code.ADONet.Tests.Integration
                 hashCode = (hashCode*397) ^ (Name != null ? Name.GetHashCode() : 0);
                 hashCode = (hashCode*397) ^ RequiredNumber;
                 hashCode = (hashCode*397) ^ OptionalNumber.GetHashCode();
-                hashCode = (hashCode*397) ^ UniqueId.GetHashCode();
                 return hashCode;
             }
         }
