@@ -66,6 +66,20 @@ namespace Net.Code.ADONet.Tests.Integration
         {
             using (var db = CreateDb())
             {
+                var dt = db
+                    .Sql($"SELECT * FROM {nameof(Person)}")
+                    .AsReader()
+                    .GetSchemaTable();
+
+                foreach (DataColumn dc in dt.Columns)
+                {
+                    Console.WriteLine($"{dc.ColumnName} ({dc.DataType})");
+                }
+
+            }
+
+            using (var db = CreateDb())
+            {
                 return db
                     .Sql($"SELECT * FROM {nameof(Person)}")
                     .AsEnumerable<Person>()

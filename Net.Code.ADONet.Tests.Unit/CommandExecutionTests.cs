@@ -8,7 +8,7 @@ namespace Net.Code.ADONet.Tests.Unit
     public class CommandExecutionTests
     {
         // can not get the ListDataReader to work for this case
-        // [Test] 
+        [Test] 
         public void AsDatatable_WhenCalled_ReturnsResults()
         {
             var command = PrepareCommand();
@@ -34,6 +34,19 @@ namespace Net.Code.ADONet.Tests.Unit
             var result = commandBuilder.AsEnumerable().ToList();
 
             Person.VerifySingleResultSet(result);
+        }
+        [Test]
+        public void Single_WhenCalled_ReturnsSingleItem()
+        {
+            var command = PrepareCommand();
+
+            var commandBuilder = new CommandBuilder(command);
+
+            command.SetResultSet(Person.GetSingleResultSet());
+
+            var result = commandBuilder.Single<Person>();
+
+            Person.VerifyResult(result);
         }
 
         [Test]

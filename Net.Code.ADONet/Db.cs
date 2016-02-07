@@ -9,7 +9,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Dynamic;
-using System.Text;
+using System.Text.RegularExpressions;
 #if DEBUG
 using System.Diagnostics;
 #endif
@@ -20,6 +20,7 @@ using System.Diagnostics;
 //   using (var db = new Db(connectionString)) {}; 
 //   using (var db = new Db(connectionString, providerName)) {}; 
 //   using (var db = Db.FromConfig());
+//   using (var db = Db.FromConfig(connectionStringName));
 // from there it should be discoverable.
 // inline SQL FTW!
 namespace Net.Code.ADONet
@@ -117,6 +118,12 @@ namespace Net.Code.ADONet
         IDbConfigurationBuilder WithMappingConvention(MappingConvention convention);
     }
 
+    public static class StringExtensions
+    {
+        public static string ToUpperRemoveSpecialChars(this string str) 
+            => string.IsNullOrEmpty(str) ? str : Regex.Replace(str, @"([^\w]|_)", "").ToUpperInvariant();
+    }
+
     public class MappingConvention
     {
         private readonly Func<IDataRecord, int, string> _getColumnName;
@@ -137,28 +144,9 @@ namespace Net.Code.ADONet
         /// Maps column names to property names based on case insensitive match, ignoring underscores
         /// </summary>
         public static readonly MappingConvention Loose = new MappingConvention(
-            (record, i) => ToUpperRemoveUnderscores(record.GetName(i)), 
-            p => ToUpperRemoveUnderscores(p.Name)
+            (record, i) => record.GetName(i).ToUpperRemoveSpecialChars(), 
+            p => p.Name.ToUpperRemoveSpecialChars()
             );
-
-        private static string ToUpperRemoveUnderscores(string name)
-        {
-            var sb = new StringBuilder(name);
-            for (var j = 0; j < sb.Length; j++)
-            {
-                var c = sb[j];
-                if (char.IsLower(c))
-                {
-                    sb[j] = char.ToUpperInvariant(c);
-                }
-                if (c == '_')
-                {
-                    sb.Remove(j, 1);
-                    j--;
-                }
-            }
-            return sb.ToString();
-        }
 
         public string GetName(IDataRecord record, int i) => _getColumnName(record, i);
 
@@ -772,7 +760,7 @@ namespace Net.Code.ADONet
         /// executes the query as a datareader
         /// </summary>
         public IDataReader Reader() => Prepare().ExecuteReader();
-
+ 
         /// <summary>
         /// Executes the query (using datareader) and fills a datatable
         /// </summary>

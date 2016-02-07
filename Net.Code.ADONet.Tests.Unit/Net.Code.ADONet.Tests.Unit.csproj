@@ -76,6 +76,7 @@
     <Compile Include="ListDataReader.cs" />
     <Compile Include="Person.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StringExtensionsTests\StringExtensionTests.cs" />
     <Compile Include="ToDatatableTests\EnumerableToDatatableTests.cs" />
     <Compile Include="TypeExtensionsTests\DataRecordExtensionsTests.cs" />
     <Compile Include="TypeExtensionsTests\ExtensionsForGettingRidOfDBNullTests.cs" />
