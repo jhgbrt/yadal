@@ -482,14 +482,6 @@ namespace Net.Code.ADONet
                 yield return list;
             } while (reader.NextResult());
         }
-        public static IEnumerable<List<T>> ToMultiResultSet<T>(this IDataReader reader, MappingConvention convention, string provider) where T : new()
-        {
-            bool moreResults;
-            do
-            {
-                yield return GetResultSet<T>(reader, convention, provider, out moreResults);
-            } while (moreResults);
-        }
 
         public static List<T> GetResultSet<T>(this IDataReader reader, MappingConvention convention, string provider, out bool moreResults) where T : new()
         {

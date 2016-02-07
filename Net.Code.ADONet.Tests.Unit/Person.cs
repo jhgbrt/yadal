@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -24,6 +25,11 @@ namespace Net.Code.ADONet.Tests.Unit
                            {
                                new Person {Id = 2, FirstName = "FirstPersonOfSecondList", LastName = "Janssens"},
                                new Person {Id = 3, FirstName = "SecondPersonOfSecondList", LastName = "Peeters"}
+                           },
+                           new[]
+                           {
+                               new Person {Id = 4, FirstName = "FirstPersonOfThirdList", LastName = "Janssens"},
+                               new Person {Id = 5, FirstName = "SecondPersonOfThirdList", LastName = "Peeters"}
                            }
                        };
             return data;
@@ -38,23 +44,62 @@ namespace Net.Code.ADONet.Tests.Unit
 
         public static void VerifySingleResultSet(IEnumerable<dynamic> result)
         {
-            Assert.AreEqual("FirstName", result.Single().FirstName);
+            Assert.AreEqual(1, result.Single().Id);
         }
         public static void VerifyDataTable(DataTable result)
         {
-            Assert.AreEqual("FirstName", result.Rows[0]["FirstName"]);
+            Assert.AreEqual(1, result.Rows[0]["Id"]);
         }
 
         public static void VerifyMultiResultSet(List<List<dynamic>> result)
         {
-            Assert.AreEqual("FirstPersonOfFirstList", result[0][0].FirstName);
-            Assert.AreEqual("FirstPersonOfSecondList", result[1][0].FirstName);
-            Assert.AreEqual("SecondPersonOfSecondList", result[1][1].FirstName);
+            var all = from list in result
+                from item in list
+                select (int) item.Id;
+            VerifyIds(all);
+        }
+
+        private static void VerifyIds(IEnumerable<int> all)
+        {
+            var expected = 1;
+            foreach (var id in all)
+            {
+                Assert.AreEqual(expected, id);
+                expected++;
+            }
         }
 
         public static void VerifyResult(Person result)
         {
-            Assert.AreEqual("FirstName", result.FirstName);
+            VerifyIds(new[] {result.Id});
+        }
+
+        public static void VerifyMultiResultSet(Tuple<List<Person>, List<Person>> result)
+        {
+            var lists = new[]
+            {
+                result.Item1,
+                result.Item2
+            };
+            
+            VerifyIds(from list in lists from item in list select item.Id);
+        }
+
+        public static void VerifyMultiResultSet(Tuple<List<Person>, List<Person>, List<Person>> result)
+        {
+            var lists = new[]
+            {
+                result.Item1,
+                result.Item2,
+                result.Item3
+            };
+            VerifyIds(from list in lists from item in list select item.Id);
+        }
+
+        public static Person From(object o)
+        {
+            dynamic d = o;
+            return new Person {Id = d.Id, FirstName = d.FirstName, LastName = d.LastName};
         }
     }
 }

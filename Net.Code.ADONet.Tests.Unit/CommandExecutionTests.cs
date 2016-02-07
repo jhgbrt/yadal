@@ -58,7 +58,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
             command.SetResultSet(Person.GetSingleResultSet());
 
-            var result = commandBuilder.AsEnumerable(d => new Person {FirstName = d.FirstName}).ToList();
+            var result = commandBuilder.AsEnumerable(d => (Person)Person.From(d)).ToList();
 
             Person.VerifySingleResultSet(result);
         }
@@ -117,6 +117,35 @@ namespace Net.Code.ADONet.Tests.Unit
         }
 
         [Test]
+        public void AsMultiResultSetGeneric_WhenCalled_ReturnsMultipleResultSets()
+        {
+            var command = PrepareCommand();
+
+            var data = Person.GetMultiResultSet();
+
+            command.SetMultiResultSet(data);
+            var commandBuilder = new CommandBuilder(command);
+
+            var result = commandBuilder.AsMultiResultSet<Person, Person>();
+
+            Person.VerifyMultiResultSet(result);
+        }
+        [Test]
+        public void AsMultiResultSetGeneric3_WhenCalled_ReturnsMultipleResultSets()
+        {
+            var command = PrepareCommand();
+
+            var data = Person.GetMultiResultSet();
+
+            command.SetMultiResultSet(data);
+            var commandBuilder = new CommandBuilder(command);
+
+            var result = commandBuilder.AsMultiResultSet<Person, Person, Person>();
+
+            Person.VerifyMultiResultSet(result);
+        }
+
+        [Test]
         public async Task AsEnumerableAsync_WhenCalledAndAwaited_ReturnsResultSet()
         {
             var command = PrepareCommand();
@@ -135,7 +164,7 @@ namespace Net.Code.ADONet.Tests.Unit
             var commandBuilder = new CommandBuilder(command);
             command.SetResultSet(Person.GetSingleResultSet());
 
-            var result = (await commandBuilder.AsEnumerableAsync(d => new Person{FirstName = d.FirstName})).ToList();
+            var result = (await commandBuilder.AsEnumerableAsync(d => (Person)Person.From(d))).ToList();
 
             Person.VerifySingleResultSet(result);
         }
