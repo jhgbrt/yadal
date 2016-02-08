@@ -867,7 +867,7 @@ namespace Net.Code.ADONet
         static Action<T,object> GetSetDelegate<T>(this PropertyInfo p)
         {
             var method = p.GetSetMethod();
-            var genericHelper = typeof(DataReaderExtensions).GetMethod("CreateSetterDelegateHelper", BindingFlags.Static | BindingFlags.NonPublic);
+            var genericHelper = typeof(DataRecordExtensions).GetMethod(nameof(CreateSetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
             var constructedHelper = genericHelper.MakeGenericMethod(typeof (T), method.GetParameters()[0].ParameterType);
             return (Action<T, object>)constructedHelper.Invoke(null, new object[] { method });
         }
