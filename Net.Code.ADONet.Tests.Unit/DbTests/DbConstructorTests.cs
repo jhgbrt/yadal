@@ -1,15 +1,15 @@
 ﻿using System.Configuration;
 using System.Data;
 using NSubstitute;
-using NUnit.Framework;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Net.Code.ADONet.Tests.Unit.DbTests
 {
-    [TestFixture]
+    [TestClass]
     public class DbConstructorTests
     {
 
-        [Test]
+        [TestMethod]
         public void GivenDbWithExternalConnection_WhenDisposed_ConnectionIsNotDisposed()
         {
             var fakeConnection = Substitute.For<IDbConnection>();
@@ -21,7 +21,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             fakeConnection.DidNotReceive().Dispose();
         }
 
-        [Test]
+        [TestMethod]
         public void GivenDbWithConnectionString_WhenDisposed_ConnectionIsDisposed()
         {
             var fakeConnection = Substitute.For<IDbConnection>();
@@ -41,13 +41,13 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             fakeConnection.Received().Dispose();
         }
 
-        [Test]
+        [TestMethod]
         public void FromConfig_ReturnsDbWithFirstConfigurationSetting()
         {
             var db = Db.FromConfig();
             Assert.AreEqual(ConfigurationManager.ConnectionStrings["firstConnectionString"].ConnectionString, db.ConnectionString);
         }
-        [Test]
+        [TestMethod]
         public void FromConfig_ReturnsDbWithNamedConfigurationSetting()
         {
             var db = Db.FromConfig("secondConnectionString");

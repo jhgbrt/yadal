@@ -15,7 +15,7 @@ namespace Net.Code.ADONet.Tests.Unit
     class FakeCommand : DbCommand
     {
 
-        private DbParameterCollection _parameterCollection = new FakeParameterCollection();
+        private readonly DbParameterCollection _parameterCollection = new FakeParameterCollection();
         private IDataReader _dataReader;
         private object _scalarValue;
         private int _nonQueryResult;
@@ -35,10 +35,7 @@ namespace Net.Code.ADONet.Tests.Unit
         public override UpdateRowSource UpdatedRowSource { get; set; }
         protected override DbConnection DbConnection { get; set; }
 
-        protected override DbParameterCollection DbParameterCollection
-        {
-            get { return _parameterCollection; }
-        }
+        protected override DbParameterCollection DbParameterCollection => _parameterCollection;
 
         protected override DbTransaction DbTransaction { get; set; }
 
@@ -64,14 +61,9 @@ namespace Net.Code.ADONet.Tests.Unit
             _nonQueryResult = nonQueryResult;
         }
 
-        public override void Cancel()
-        {
-        }
+        public override void Cancel() {}
 
-        protected override DbParameter CreateDbParameter()
-        {
-            return new FakeParameter();
-        }
+        protected override DbParameter CreateDbParameter() => new FakeParameter();
 
         protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
         {

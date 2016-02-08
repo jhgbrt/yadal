@@ -174,17 +174,6 @@ namespace Net.Code.ADONet
             return this;
         }
 
-        private DbConfigurationBuilder Default()
-        {
-            OnPrepareCommand(a => { });
-            return this;
-        }
-
-        private DbConfigurationBuilder SqlServer()
-        {
-            OnPrepareCommand(command => { });
-            return this;
-        }
         class Option<T>
         {
             public bool HasValue { get; private set; }
@@ -225,12 +214,8 @@ namespace Net.Code.ADONet
                 case "Oracle.DataAccess.Client":
                 case "Oracle.ManagedDataAccess.Client":
                     return Oracle();
-                case "System.Data.SqlClient":
-                    return SqlServer();
-                default:
-                    return Default();
-
             }
+            return this;
         }
     }
 
@@ -734,10 +719,7 @@ namespace Net.Code.ADONet
             return this;
         }
 
-        public T Single<T>()
-        {
-            return AsEnumerable<T>().Single();
-        }
+        public T Single<T>() => AsEnumerable<T>().Single();
     }
 
     public class Executor

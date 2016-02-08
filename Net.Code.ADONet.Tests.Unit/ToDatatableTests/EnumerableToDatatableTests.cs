@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using NUnit.Framework;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Net.Code.ADONet.Tests.Unit.ToDatatableTests
 {
-    [TestFixture]
+    [TestClass]
     public class EnumerableToDatatableTests
     {
         private IEnumerable<Product> products = new[]
@@ -16,35 +16,35 @@ namespace Net.Code.ADONet.Tests.Unit.ToDatatableTests
 
         private DataTable _datatable;
 
-        [TestFixtureSetUp]
+        [TestInitialize]
         public void ConvertToDataTable()
         {
             _datatable = products.ToDataTable();
         }
 
-        [Test]
+        [TestMethod]
         public void result_contains_two_rows()
         {
             Assert.AreEqual(2, _datatable.Rows.Count);
         }
-        [Test]
+        [TestMethod]
         public void result_has_3_columns()
         {
             Assert.AreEqual(3, _datatable.Columns.Count);
         }
-        [Test]
+        [TestMethod]
         public void result_has_correct_name()
         {
             Assert.AreEqual("Product", _datatable.TableName);
         }
-        [Test]
+        [TestMethod]
         public void First_row_has_correct_values()
         {
             Assert.AreEqual(1, _datatable.Rows[0]["Id"]);
             Assert.AreEqual("P1", _datatable.Rows[0]["Name"]);
             Assert.AreEqual(10, _datatable.Rows[0]["Quantity"]);
         }
-        [Test]
+        [TestMethod]
         public void Second_row_has_correct_values()
         {
             Assert.AreEqual(2, _datatable.Rows[1]["Id"]);

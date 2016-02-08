@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Data;
 using NSubstitute;
-using NUnit.Framework;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
 {
    
-    [TestFixture]
+    [TestClass]
     public class DataRecordExtension
     {
         public class MyEntity
@@ -17,7 +17,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
             public int MyInt1 { get; set; }
         }
 
-        [Test]
+        [TestMethod]
         public void MapTo_WhenCalled_EntityIsMapped()
         {
             var record = Substitute.For<IDataRecord>();
@@ -46,7 +46,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
         }
 
        
-        [Test]
+        [TestMethod]
         public void GivenDataReaderMock_WhenGetByNameReturnsDbNull_ResultIsNull()
         {
             var reader = Substitute.For<IDataReader>();
@@ -55,7 +55,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
             var result = reader.Get<int?>("Id");
             Assert.IsNull(result);
         }
-        [Test]
+        [TestMethod]
         public void GivenDataReaderMock_WhenGetByIndexReturnsDbNull_ResultIsNull()
         {
             var reader = Substitute.For<IDataReader>();
@@ -63,7 +63,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
             var result = reader.Get<int?>(0);
             Assert.IsNull(result);
         }
-        [Test]
+        [TestMethod]
         public void GivenDataReaderMock_WhenGetByNameReturnsValue_ResultIsValue()
         {
             var reader = Substitute.For<IDataReader>();
@@ -72,7 +72,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
             var result = reader.Get<int?>("Id");
             Assert.AreEqual(1, result);
         }
-        [Test]
+        [TestMethod]
         public void GivenDataReaderMock_WhenGetByIndexReturnsValue_ResultIsValue()
         {
             var reader = Substitute.For<IDataReader>();

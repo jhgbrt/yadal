@@ -7,10 +7,7 @@ namespace Net.Code.ADONet.Tests.Unit
     internal class FakeParameter : DbParameter
     {
         public override void ResetDbType()
-        {
-            throw new NotImplementedException();
-        }
-
+        {}
         public override DbType DbType { get; set; }
         public override ParameterDirection Direction { get; set; }
         public override bool IsNullable { get; set; }

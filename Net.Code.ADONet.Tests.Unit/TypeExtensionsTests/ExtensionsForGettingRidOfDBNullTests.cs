@@ -1,9 +1,9 @@
 ﻿using System;
-using NUnit.Framework;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Net.Code.ADONet.Tests.Unit.TypeExtensionsTests
 {
-    [TestFixture]
+    [TestClass]
     public class ExtensionsForGettingRidOfDBNullTests
     {
     }

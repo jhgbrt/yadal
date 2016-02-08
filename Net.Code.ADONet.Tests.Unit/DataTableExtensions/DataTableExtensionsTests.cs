@@ -3,16 +3,16 @@ using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
-using NUnit.Framework;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Net.Code.ADONet.Tests.Unit.DataTableExtensions
 {
-    [TestFixture]
+    [TestClass]
     public class DataTableExtensionsTests
     {
         private DataTable dt;
 
-        [TestFixtureSetUp]
+        [TestInitialize]
         public void Setup()
         {
             dt = new DataTable();
@@ -21,7 +21,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataTableExtensions
             dt.Rows.Add(1, "Description 1");
         }
 
-        [Test]
+        [TestMethod]
         public void AsEnumerable()
         {
             var item = dt.AsEnumerable().Select(d => new { d.Id, d.Description }).First();
@@ -29,7 +29,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataTableExtensions
             Assert.AreEqual(1, item.Id);
         }
 
-        [Test]
+        [TestMethod]
         public void LinqSelect()
         {
             var query = from d in dt
@@ -39,7 +39,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataTableExtensions
             Assert.AreEqual(1, item.Id);
         }
  
-        [Test]
+        [TestMethod]
         public void LinqWhere()
         {
             var query = from d in dt
@@ -51,7 +51,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataTableExtensions
         }
     }
 
-    [TestFixture]
+    [TestClass]
     public class ToDataTableTests
     {
         public class Person
@@ -75,7 +75,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataTableExtensions
                                                                }); }
         }
 
-        [Test]
+        [TestMethod]
         public void ToDataTable()
         {
             var sw = Stopwatch.StartNew();

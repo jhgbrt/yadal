@@ -5,13 +5,12 @@ namespace Net.Code.ADONet.Tests.Unit
 {
     class FakeTransaction : DbTransaction
     {
-        private FakeConnection _connection;
-        private IsolationLevel _isolationLevel;
+        private readonly FakeConnection _connection;
 
         public FakeTransaction(FakeConnection connection, IsolationLevel isolationLevel)
         {
             _connection = connection;
-            _isolationLevel = isolationLevel;
+            IsolationLevel = isolationLevel;
         }
 
         public override void Commit()
@@ -22,14 +21,8 @@ namespace Net.Code.ADONet.Tests.Unit
         {
         }
 
-        protected override DbConnection DbConnection
-        {
-            get { return _connection; }
-        }
+        protected override DbConnection DbConnection => _connection;
 
-        public override IsolationLevel IsolationLevel
-        {
-            get { return _isolationLevel; }
-        }
+        public override IsolationLevel IsolationLevel { get; }
     }
 }

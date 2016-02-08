@@ -2,24 +2,24 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using NSubstitute;
-using NUnit.Framework;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Net.Code.ADONet.Tests.Unit.DbTests
 {
-    [TestFixture]
+    [TestClass]
     public class DbConfigurationBuilderTests
     {
         private DbConfigurationBuilder _dbConfigurationBuilder;
         private DbConfig _config;
 
-        [SetUp]
+        [TestInitialize]
         public void Setup()
         {
             _config = new DbConfig();
             _dbConfigurationBuilder = new DbConfigurationBuilder(_config);
         }
 
-        [Test]
+        [TestMethod]
         public void Default_PrepareCommand_DoesNothing()
         {
             _dbConfigurationBuilder.FromProviderName("unknown");
@@ -27,7 +27,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             _config.PrepareCommand(command);
         }
 
-        [Test]
+        [TestMethod]
         public void SqlServer_PrepareCommand_DoesNothing()
         {
             _dbConfigurationBuilder.FromProviderName("System.Data.SqlClient");
@@ -35,7 +35,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             _config.PrepareCommand(command);
         }
 
-        [Test]
+        [TestMethod]
         public void Oracle_PrepareCommand_SetsBindByName()
         {
             _dbConfigurationBuilder.FromProviderName("Oracle.DataAccess.Client");
@@ -45,7 +45,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         }
 
 
-        [Test]
+        [TestMethod]
         public void GivenDb_WhenOnPrepareIsConfigured__AndExecuteIsCalled_CommandIsPrepared()
         {
             var fakeConnection = new FakeConnection();

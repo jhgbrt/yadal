@@ -1,19 +1,19 @@
 ﻿using System;
-using NUnit.Framework;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Net.Code.ADONet.Tests.Unit.ConvertToTests
 {
-    [TestFixture]
+    [TestClass]
     public class ConvertToRefType
     {
-        [Test]
+        [TestMethod]
         public void FromNull_ShouldReturnNull()
         {
             string result = Convert(null);
             Assert.IsNull(result);
         }
 
-        [Test]
+        [TestMethod]
         public void FromString_ShouldReturnString()
         {
             object o = "";
@@ -21,14 +21,15 @@ namespace Net.Code.ADONet.Tests.Unit.ConvertToTests
             Assert.AreEqual("", result);
         }
 
-        [Test]
+        [TestMethod]
+        [ExpectedException(typeof(InvalidCastException))]
         public void FromIncompatibleType_ShouldThrow()
         {
             object o = new object();
-            Assert.Throws<InvalidCastException>(() => Convert(o));
+            Convert(o);
         }
 
-        [Test]
+        [TestMethod]
         public void FromValueType_ShouldConvertToString()
         {
             int o = 1;
@@ -36,14 +37,14 @@ namespace Net.Code.ADONet.Tests.Unit.ConvertToTests
             Assert.AreEqual("1", result);
         }
 
-        [Test]
+        [TestMethod]
         public void FromNullableType_DoesNotThrow()
         {
             int? o = 1;
             Assert.AreEqual("1", Convert(o));
         }
 
-        [Test]
+        [TestMethod]
         public void FromDbNull_ShouldReturnNull()
         {
             var result = Convert(DBNull.Value);

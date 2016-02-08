@@ -1,17 +1,17 @@
 ﻿using System.Data.SqlClient;
-using NUnit.Framework;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Net.Code.ADONet.Tests.Unit
 {
-    [TestFixture]
+    [TestClass]
     public class AdoNetProviderFactoryTests
     {
-        [Test]
+        [TestMethod]
         public void CreateConnection_SqlClientProviderFactory_CreatesSqlConnection()
         {
             var f = new AdoNetProviderFactory("System.Data.SqlClient");
             var connection = f.CreateConnection("");
-            Assert.IsInstanceOf(typeof(SqlConnection), connection);
+            Assert.IsInstanceOfType(connection, typeof(SqlConnection));
         }
     }
 }

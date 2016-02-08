@@ -10,10 +10,7 @@ namespace Net.Code.ADONet.Extensions.SqlClient
 {
     public static class EnumerableAsDataReader
     {
-        public static IDataReader AsDataReader<T>(this IEnumerable<T> input)
-        {
-            return new EnumerableDataReaderImpl<T>(input);
-        }
+        public static IDataReader AsDataReader<T>(this IEnumerable<T> input) => new EnumerableDataReaderImpl<T>(input);
 
         /// <summary>
         /// Adapter from IEnumerable[T] to IDataReader

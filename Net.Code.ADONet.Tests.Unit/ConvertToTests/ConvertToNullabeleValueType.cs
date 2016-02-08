@@ -1,47 +1,50 @@
 using System;
-using NUnit.Framework;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Net.Code.ADONet.Tests.Unit.ConvertToTests
 {
-    [TestFixture]
+    [TestClass]
     public class ConvertToNullabeleValueType
     {
-        [Test]
+        [TestMethod]
         public void FromNull_ShouldReturnNull()
         {
             var result = Convert(null);
             Assert.IsNull(result);
         }
 
-        [Test]
+        [TestMethod]
         public void FromDBNull_ShouldReturnNull()
         {
             var result = Convert(DBNull.Value);
             Assert.IsNull(result);
         }
 
-        [Test]
+        [TestMethod]
+        [ExpectedException(typeof(FormatException))]
         public void FromString_ShouldThrow()
         {
             object o = "";
-            Assert.Throws<FormatException>(() => Convert(o));
+            Convert(o);
         }
 
-        [Test]
+        [TestMethod]
+        [ExpectedException(typeof(InvalidCastException))]
         public void FromIncompatibleRefType_ShouldThrow()
         {
             object o = new object();
-            Assert.Throws<InvalidCastException>(() => Convert(o));
+            Convert(o);
         }
 
-        [Test]
+        [TestMethod]
+        [ExpectedException(typeof(InvalidCastException))]
         public void FromIncompatibleValueType_ShouldThrow()
         {
             object o = new object();
-            Assert.Throws<InvalidCastException>(() => Convert(o));
+            Convert(o);
         }
 
-        [Test]
+        [TestMethod]
         public void FromCompatibleValueType_ShouldReturnValue()
         {
             int o = 1;
@@ -49,7 +52,7 @@ namespace Net.Code.ADONet.Tests.Unit.ConvertToTests
             Assert.AreEqual(1, result);
         }
 
-        [Test]
+        [TestMethod]
         public void FromCompatibleNullableType_ShouldReturnValue()
         {
             int? o = 1;

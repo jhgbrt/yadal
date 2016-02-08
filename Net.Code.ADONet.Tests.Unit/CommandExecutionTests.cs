@@ -1,14 +1,14 @@
 using System.Linq;
 using System.Threading.Tasks;
-using NUnit.Framework;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Net.Code.ADONet.Tests.Unit
 {
-    [TestFixture]
+    [TestClass]
     public class CommandExecutionTests
     {
         // can not get the ListDataReader to work for this case
-        [Test] 
+        [TestMethod] 
         public void AsDatatable_WhenCalled_ReturnsResults()
         {
             var command = PrepareCommand();
@@ -22,7 +22,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Person.VerifyDataTable(result);
         }
 
-        [Test]
+        [TestMethod]
         public void AsEnumerable_WhenCalled_ReturnsResults()
         {
             var command = PrepareCommand();
@@ -35,7 +35,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
             Person.VerifySingleResultSet(result);
         }
-        [Test]
+        [TestMethod]
         public void Single_WhenCalled_ReturnsSingleItem()
         {
             var command = PrepareCommand();
@@ -49,7 +49,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Person.VerifyResult(result);
         }
 
-        [Test]
+        [TestMethod]
         public void AsEnumerableWithSelector_WhenCalled_ReturnsResults()
         {
             var command = PrepareCommand();
@@ -62,7 +62,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
             Person.VerifySingleResultSet(result);
         }
-        [Test]
+        [TestMethod]
         public void AsEnumerableGeneric_WhenCalled_ReturnsResults()
         {
             var command = PrepareCommand();
@@ -76,7 +76,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Person.VerifySingleResultSet(result);
         }
 
-        [Test]
+        [TestMethod]
         public void AsScalar_WhenCalled_ReturnsScalarValue()
         {
             var command = PrepareCommand();
@@ -89,7 +89,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Assert.AreEqual(1, result);
         }
 
-        [Test]
+        [TestMethod]
         public void AsNonQuery_WhenCalled_ReturnsNonQueryResult()
         {
             var command = PrepareCommand();
@@ -101,7 +101,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Assert.AreEqual(1, result);
         }
 
-        [Test]
+        [TestMethod]
         public void AsMultiResultSet_WhenCalled_ReturnsMultipleResultSets()
         {
             var command = PrepareCommand();
@@ -116,7 +116,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Person.VerifyMultiResultSet(result);
         }
 
-        [Test]
+        [TestMethod]
         public void AsMultiResultSetGeneric_WhenCalled_ReturnsMultipleResultSets()
         {
             var command = PrepareCommand();
@@ -130,7 +130,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
             Person.VerifyMultiResultSet(result);
         }
-        [Test]
+        [TestMethod]
         public void AsMultiResultSetGeneric3_WhenCalled_ReturnsMultipleResultSets()
         {
             var command = PrepareCommand();
@@ -145,7 +145,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Person.VerifyMultiResultSet(result);
         }
 
-        [Test]
+        [TestMethod]
         public async Task AsEnumerableAsync_WhenCalledAndAwaited_ReturnsResultSet()
         {
             var command = PrepareCommand();
@@ -157,7 +157,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Person.VerifySingleResultSet(result);
         }
 
-        [Test]
+        [TestMethod]
         public async Task AsEnumerableAsyncWithSelector_WhenCalledAndAwaited_ReturnsResultSet()
         {
             var command = PrepareCommand();
@@ -169,7 +169,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Person.VerifySingleResultSet(result);
         }
 
-        [Test]
+        [TestMethod]
         public async Task AsScalarAsync_WhenCalledAndAwaited_ReturnsScalarValue()
         {
             var command = PrepareCommand();
@@ -181,7 +181,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Assert.AreEqual(1, result);
         }
 
-        [Test]
+        [TestMethod]
         public async Task AsNonQueryAsync_WhenCalledAndAwaited_ReturnsNonQueryValue()
         {
             var command = PrepareCommand();
@@ -193,7 +193,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Assert.AreEqual(1, result);
         }
 
-        [Test]
+        [TestMethod]
         public async Task AsMultipleResultSetAsync_WhenCalledAndAwaited_ReturnsMultiResultSet()
         {
             var command = PrepareCommand();

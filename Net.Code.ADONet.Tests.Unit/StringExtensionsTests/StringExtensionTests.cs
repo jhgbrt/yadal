@@ -4,71 +4,71 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using NUnit.Framework;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Net.Code.ADONet.Tests.Unit.StringExtensionsTests
 {
-    [TestFixture]
+    [TestClass]
     public class StringExtensionTests
     {
-        [Test]
+        [TestMethod]
         public void ToUpperRemoveSpecialChars_NullInput_ReturnsNull()
         {
             string s = null;
             Assert.IsNull(s.ToUpperRemoveSpecialChars());
         }
-        [Test]
+        [TestMethod]
         public void ToUpperRemoveSpecialChars_EmptyInput_ReturnsNull()
         {
             string s = string.Empty;
             Assert.AreEqual(string.Empty, s.ToUpperRemoveSpecialChars());
         }
-        [Test]
+        [TestMethod]
         public void ToUpperRemoveSpecialChars_SingleWord_ReturnsWordToUpper()
         {
             string s = "abc";
             Assert.AreEqual("ABC", s.ToUpperRemoveSpecialChars());
         }
 
-        [Test]
+        [TestMethod]
         public void ToUpperRemoveSpecialChars_RemovesNonLetterOrDigits()
         {
             string s = "aBc!@#DeF_012[]";
             Assert.AreEqual("ABCDEF012", s.ToUpperRemoveSpecialChars());
         }
-        [Test]
+        [TestMethod]
         public void ToPascalCase_NullInput_ReturnsNull()
         {
             string s = null;
             Assert.IsNull(s.ToPascalCase());
         }
-        [Test]
+        [TestMethod]
         public void ToPascalCase_EmptyInput_ReturnsNull()
         {
             string s = string.Empty;
             Assert.AreEqual(string.Empty, s.ToPascalCase());
         }
-        [Test]
+        [TestMethod]
         public void ToPascalCase_SingleWord_ReturnsWordToUpper()
         {
             string s = "WORD";
             Assert.AreEqual("Word", s.ToPascalCase());
         }
 
-        [Test]
+        [TestMethod]
         public void ToPascalCase_RemovesNonLetterOrDigits()
         {
             string s = "SOME_WORD";
             Assert.AreEqual("SomeWord", s.ToPascalCase());
         }
 
-        [Test]
+        [TestMethod]
         public void PascalCaseToSentence()
         {
             var pascalCase = "SomeSentenceBlah";
             Assert.AreEqual("Some Sentence Blah", pascalCase.PascalCaseToSentence());
         }
-        [Test]
+        [TestMethod]
         public void PascalCaseToUpperWithUnderscores()
         {
             var pascalCase = "SomeSentenceBlah";

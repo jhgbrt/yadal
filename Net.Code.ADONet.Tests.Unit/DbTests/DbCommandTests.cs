@@ -3,54 +3,54 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
-using NUnit.Framework;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Net.Code.ADONet.Extensions.SqlClient;
 
 namespace Net.Code.ADONet.Tests.Unit.DbTests
 {
 
-    [TestFixture]
+    [TestClass]
     public class DbCommandTests
     {
         private IDb _db;
         private FakeConnection _fakeConnection;
 
-        [TestFixtureSetUp]
+        [TestInitialize]
         public void Setup()
         {
             _fakeConnection = new FakeConnection();
             _db = new Db(_fakeConnection);
         }
 
-        [Test]
+        [TestMethod]
         public void Sql_CommandBuilder_BuildsCommandWithCorrectText()
         {
             var result = _db.Sql("COMMANDTEXT").Command;
             Assert.AreEqual("COMMANDTEXT", result.CommandText);
         }
 
-        [Test]
+        [TestMethod]
         public void Sql_CommandBuilder_BuildsCommandOfCorrectType()
         {
             var result = _db.Sql("").Command;
             Assert.AreEqual(CommandType.Text, result.CommandType);
         }
 
-        [Test]
+        [TestMethod]
         public void StoredProcedure_CommandBuilder_BuildsCommandWithCorrectText()
         {
             var result = _db.StoredProcedure("COMMANDTEXT").Command;
             Assert.AreEqual("COMMANDTEXT", result.CommandText);
         }
 
-        [Test]
+        [TestMethod]
         public void StoredProcedure_CommandBuilder_BuildsCommandOfCorrectType()
         {
             var result = _db.StoredProcedure("").Command;
             Assert.AreEqual(CommandType.StoredProcedure, result.CommandType);
         }
 
-        [Test]
+        [TestMethod]
         public void Execute_ExecutesCommand()
         {
             _db.Execute("COMMANDTEXT");
@@ -60,14 +60,14 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         }
     }
 
-    [TestFixture]
+    [TestClass]
     public class DbCommandBuilderTests
     {
         private SqlCommand _sqlCommand;
         private CommandBuilder _builder;
         private StringBuilder _logging;
 
-        [SetUp]
+        [TestInitialize]
         public void Setup()
         {
             _logging = new StringBuilder();
@@ -76,7 +76,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             _builder = new CommandBuilder(_sqlCommand);
         }
 
-        [Test]
+        [TestMethod]
         public void WithParameter_AddsParameterWithCorrectNameAndValue()
         {
             _builder.WithParameter("myparam", "myvalue");
@@ -85,7 +85,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             Assert.AreEqual("myvalue", _sqlCommand.Parameters[0].Value);
         }
 
-        [Test]
+        [TestMethod]
         public void WithParameters_AnonymousObject_AddsParameterWithCorrectNameAndValue()
         {
             _builder.WithParameters(new
@@ -100,7 +100,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             Assert.AreEqual(999, _sqlCommand.Parameters[1].Value);
         }
 
-        [Test]
+        [TestMethod]
         public void WithTimeout_SetsCommandTimeOut()
         {
             var timeout = TimeSpan.FromMinutes(42);
@@ -108,7 +108,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             Assert.AreEqual(timeout, TimeSpan.FromSeconds(_sqlCommand.CommandTimeout));
         }
 
-        [Test]
+        [TestMethod]
         public void WithParameter_TableValued_SetsParameter()
         {
             var input = new[] {1, 2, 3};
@@ -119,14 +119,14 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             Assert.AreEqual("arrayOfInt", _sqlCommand.Parameters[0].TypeName);
         }
 
-        [Test]
+        [TestMethod]
         public void OfType_SetsCommandType()
         {
             _builder.OfType(CommandType.StoredProcedure);
             Assert.AreEqual(CommandType.StoredProcedure, _sqlCommand.CommandType);
         }
 
-        [Test]
+        [TestMethod]
         public void WithCommandText_SetsCommandText()
         {
             var text = "SELECT 42 FROM DUAL";

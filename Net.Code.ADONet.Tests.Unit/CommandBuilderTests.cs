@@ -3,15 +3,15 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
-using NUnit.Framework;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Net.Code.ADONet.Extensions.SqlClient;
 
 namespace Net.Code.ADONet.Tests.Unit
 {
-    [TestFixture]
+    [TestClass]
     public class CommandBuilderTests
     {
-        [Test]
+        [TestMethod]
         public void Logger_LogsCommand()
         {
             var logAction = Logger.Log;
@@ -31,7 +31,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Assert.IsTrue(loggedText.Contains("value"));
             Logger.Log = logAction;
         }
-        [Test]
+        [TestMethod]
         public void CommandBuilder_WithParameterOfTypeString_Adds_Parameter()
         {
             var command = PrepareCommand();
@@ -44,7 +44,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Assert.AreEqual("value", result.Value);
         }
 
-        [Test]
+        [TestMethod]
         public void CommandBuilder_WithParameterOfTypeString_WhenParameterExists_ChangesValue()
         {
             var command = PrepareCommand();
@@ -59,7 +59,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Assert.AreEqual("value2", result.Value);
         }
 
-        [Test]
+        [TestMethod]
         public void CommandBuilder_WithParameterOfTypeGuid_Adds_Parameter()
         {
             var command = PrepareCommand();
@@ -73,7 +73,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Assert.AreEqual(newGuid, result.Value);
         }
 
-        [Test]
+        [TestMethod]
         public void CommandBuilder_WithParametersAnonymous_Adds_Parameters()
         {
             var command = PrepareCommand();
@@ -102,7 +102,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
         }
 
-        [Test]
+        [TestMethod]
         public void CommandBuilder_WithTimeout_SetsTimeout()
         {
             var command = PrepareCommand();
@@ -111,7 +111,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Assert.AreEqual(123, command.CommandTimeout);
         }
 
-        [Test]
+        [TestMethod]
         public void WithParameter_utd()
         {
             var command = PrepareCommand();

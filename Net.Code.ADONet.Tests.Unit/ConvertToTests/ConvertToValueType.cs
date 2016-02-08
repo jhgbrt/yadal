@@ -1,45 +1,50 @@
 using System;
-using NUnit.Framework;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Net.Code.ADONet.Tests.Unit.ConvertToTests
 {
-    [TestFixture]
+    [TestClass]
     public class ConvertToValueType
     {
-        [Test]
+        [TestMethod]
+        [ExpectedException(typeof(NullReferenceException))]
         public void FromNull_ShouldThrow()
         {
-            Assert.Throws<NullReferenceException>(() => Convert(null));
+            Convert(null);
         }
 
-        [Test]
+        [TestMethod]
+        [ExpectedException(typeof(NullReferenceException))]
         public void FromDbNull_ShouldThrow()
         {
-            Assert.Throws<NullReferenceException>(() => Convert(DBNull.Value));
+            Convert(DBNull.Value);
         }
 
-        [Test]
+        [TestMethod]
+        [ExpectedException(typeof(FormatException))]
         public void FromString_ShouldThrow()
         {
             object o = "";
-            Assert.Throws<FormatException>(() => Convert(o));
+            Convert(o);
         }
 
-        [Test]
+        [TestMethod]
+        [ExpectedException(typeof(InvalidCastException))]
         public void FromIncompatibleRefType_ShouldThrow()
         {
             object o = new object();
-            Assert.Throws<InvalidCastException>(() => Convert(o));
+            Convert(o);
         }
 
-        [Test]
+        [TestMethod]
+        [ExpectedException(typeof(InvalidCastException))]
         public void FromIncompatibleValueType_ShouldThrow()
         {
             object o = new object();
-            Assert.Throws<InvalidCastException>(() => Convert(o));
+            Convert(o);
         }
 
-        [Test]
+        [TestMethod]
         public void FromCompatibleValueType_ShouldReturnValue()
         {
             int o = 1;
@@ -47,7 +52,7 @@ namespace Net.Code.ADONet.Tests.Unit.ConvertToTests
             Assert.AreEqual(1, result);
         }
 
-        [Test]
+        [TestMethod]
         public void FromCompatibleNullableType_ShouldReturnValue()
         {
             int? o = 1;
