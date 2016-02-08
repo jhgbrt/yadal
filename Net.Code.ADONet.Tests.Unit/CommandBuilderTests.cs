@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Data;
+using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Net.Code.ADONet.Extensions.SqlClient;
+using NSubstitute;
 
 namespace Net.Code.ADONet.Tests.Unit
 {
