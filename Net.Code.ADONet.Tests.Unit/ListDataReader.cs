@@ -46,10 +46,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
     public static class ListDataReader
     {
-        public static DbDataReader AsDataReader<T>(this IEnumerable<T> input)
-        {
-            return new ListDataReader<T>(input);
-        }
+   
         public static DbDataReader AsMultiDataReader<T>(this IEnumerable<IEnumerable<T>> input)
         {
             return new ListDataReader<T>(input);
@@ -76,9 +73,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
         static ListDataReader()
         {
-            var propertyInfos = from property in typeof(T).GetProperties(BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public)
-                                where property.PropertyType.IsPrimitive || property.PropertyType == typeof(DateTime) || property.PropertyType == typeof(string)
-                                select property;
+            var propertyInfos = typeof (T).GetProperties();
 
             Properties = propertyInfos.ToArray();
         }

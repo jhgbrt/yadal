@@ -14,7 +14,7 @@
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
     <TargetFrameworkProfile />
-    <NuGetPackageImportStamp>30b9a364</NuGetPackageImportStamp>
+    <NuGetPackageImportStamp>f08f5dd9</NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -53,6 +53,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AdoNetProviderFactoryTests.cs" />
+    <Compile Include="DataReaderDecorator.cs" />
     <Compile Include="DataRecordExtensionTests\DataRecordExtension.cs" />
     <Compile Include="DataTableExtensions\DataTableExtensionsTests.cs" />
     <Compile Include="Fakes\FakeParameterCollection.cs" />

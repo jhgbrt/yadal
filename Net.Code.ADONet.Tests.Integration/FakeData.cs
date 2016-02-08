@@ -34,6 +34,7 @@ namespace Net.Code.ADONet.Tests.Integration
                     OptionalNumber = Faker.RandomNumber.Next(short.MaxValue)
                 };
             }
+
         }
 
     }

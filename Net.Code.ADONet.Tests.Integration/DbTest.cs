@@ -26,9 +26,7 @@ namespace Net.Code.ADONet.Tests.Integration
         {
             using (var db = CreateDb())
             {
-
                 var sqlQuery = _target.CreatePersonTable;
-
                 db.Sql(sqlQuery).AsNonQuery();
             }
         }
@@ -37,7 +35,7 @@ namespace Net.Code.ADONet.Tests.Integration
         {
             using (var db = CreateDb())
             {
-                db.Sql($"DROP TABLE {nameof(Person)}");
+                db.Execute($"DROP TABLE {nameof(Person)}");
             }
         }
 
@@ -66,26 +64,28 @@ namespace Net.Code.ADONet.Tests.Integration
         {
             using (var db = CreateDb())
             {
-                var dt = db
-                    .Sql($"SELECT * FROM {nameof(Person)}")
-                    .AsReader()
-                    .GetSchemaTable();
-
-                foreach (DataColumn dc in dt.Columns)
-                {
-                    Console.WriteLine($"{dc.ColumnName} ({dc.DataType})");
-                }
-
-            }
-
-            using (var db = CreateDb())
-            {
                 return db
                     .Sql($"SELECT * FROM {nameof(Person)}")
                     .AsEnumerable<Person>()
                     .ToList();
             }
         }
+
+        public DataTable GetSchemaTable()
+        {
+            using (var db = CreateDb())
+            {
+                var dataReader = db
+                    .Sql($"SELECT * FROM {nameof(Person)}")
+                    .AsReader();
+                using (dataReader)
+                {
+                    var dt = dataReader.GetSchemaTable();
+                    return dt;
+                }
+            }
+        }
+
         public List<Person> GetAllPeopleAsDynamic()
         {
             using (var db = CreateDb())
@@ -202,6 +202,14 @@ namespace Net.Code.ADONet.Tests.Integration
             {
                 var result = await db.Sql($"SELECT count(*) Id FROM {nameof(Person)}").AsScalarAsync<int>();
                 return result;
+            }
+        }
+
+        public void BulkInsert(Person[] list)
+        {
+            using (var db = CreateDb())
+            {
+                db.BulkInsert(list);
             }
         }
     }

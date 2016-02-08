@@ -848,12 +848,11 @@ namespace Net.Code.ADONet
                 table.Columns.Add(prop.Name, propType);
             }
 
+            var values = new object[props.Length];
             foreach (var item in items)
             {
-                var values = new object[props.Length];
                 for (var i = 0; i < props.Length; i++)
                     values[i] = props[i].GetValue(item, null);
-                
                 table.Rows.Add(values);
             }
             return table;
@@ -990,7 +989,7 @@ namespace Net.Code.ADONet
         private static TElem ConvertPrivate<TElem>(object value) => (TElem)(Convert.ChangeType(value, typeof(TElem)));
     }
 
-    static class DBNullHelper
+    public static class DBNullHelper
     {
         public static bool IsNullableType(this Type type) 
             => (type.IsGenericType && !type.IsGenericTypeDefinition) &&

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using Net.Code.ADONet.Extensions.SqlClient;
 
 namespace Net.Code.ADONet.Tests.Unit
 {
@@ -15,7 +16,7 @@ namespace Net.Code.ADONet.Tests.Unit
     {
 
         private DbParameterCollection _parameterCollection = new FakeParameterCollection();
-        private DbDataReader _dataReader;
+        private IDataReader _dataReader;
         private object _scalarValue;
         private int _nonQueryResult;
 
@@ -75,7 +76,7 @@ namespace Net.Code.ADONet.Tests.Unit
         protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
         {
             Mode = CommandMode.Reader;
-            return _dataReader;
+            return (DbDataReader) _dataReader;
         }
 
         public override int ExecuteNonQuery()
