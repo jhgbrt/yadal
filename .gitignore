@@ -1,0 +1,12 @@
+*.user
+*.suo
+_ReSharper.*
+*.vsp
+*.psess
+bin
+obj
+packages
+!NuGet.exe
+*.nupkg
+*.DotSettings
+*.coverage
