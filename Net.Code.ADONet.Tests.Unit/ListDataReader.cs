@@ -174,30 +174,13 @@ namespace Net.Code.ADONet.Tests.Unit
                     select new
                     {
                         ColumnName = p.Name,
-                        AllowNull = nullable || !p.PropertyType.IsValueType,
+                        AllowDBNull = nullable || !p.PropertyType.IsValueType,
                         ColumnOrdinal = x.i,
                         DataType = dataType,
-                        Size = size
+                        ColumnSize = size
                     };
 
-            var dt = new DataTable();
-            dt.Columns.Add("ColumnName", typeof(string));
-            dt.Columns.Add("ColumnOrdinal", typeof(int));
-            dt.Columns.Add("ColumnSize", typeof(int));
-            dt.Columns.Add("DataType", typeof(Type));
-            dt.Columns.Add("AllowDBNull", typeof(bool));
-
-            foreach (var r in q)
-            {
-                var row = dt.NewRow();
-                row["ColumnName"] = r.ColumnName;
-                row["ColumnOrdinal"] = r.ColumnOrdinal;
-                row["AllowDBNull"] = r.AllowNull;
-                row["DataType"] = r.DataType;
-                row["ColumnSize"] = r.Size;
-                dt.Rows.Add(row);
-                row.AcceptChanges();
-            }
+            var dt = q.ToDataTable();
             return dt;
         }
 
