@@ -31,6 +31,25 @@ namespace Net.Code.ADONet.Tests.Unit
             Assert.IsTrue(loggedText.Contains("value"));
             Logger.Log = logAction;
         }
+
+        [TestMethod]
+        public void Logger_WhenNull_DoesNotThrow()
+        {
+            var logAction = Logger.Log;
+
+            Logger.Log = null;
+
+            var command = PrepareCommand();
+
+            new CommandBuilder(command)
+                .WithCommandText("commandtext")
+                .WithParameter("name", "value");
+
+            Logger.LogCommand(command);
+
+            Logger.Log = logAction;
+        }
+
         [TestMethod]
         public void CommandBuilder_WithParameterOfTypeString_Adds_Parameter()
         {
@@ -71,6 +90,23 @@ namespace Net.Code.ADONet.Tests.Unit
 
             Assert.AreEqual("name", result.ParameterName);
             Assert.AreEqual(newGuid, result.Value);
+        }
+
+        [TestMethod]
+        public void CommandBuilder_WithDbDataParameter_Adds_Parameters()
+        {
+            var command = PrepareCommand();
+            var parameter = Substitute.For<DbParameter>();
+            parameter.ParameterName.Returns("MyParameterName");
+            parameter.Value.Returns("MyParameterValue");
+            var b = new CommandBuilder(command)
+                .WithParameter(parameter);
+
+            var parameters = b.Command.Parameters;
+
+            IDbDataParameter param1 = (IDbDataParameter) parameters[0];
+            Assert.IsNotNull(param1);
+            Assert.AreEqual("MyParameterValue", param1.Value);
         }
 
         [TestMethod]
@@ -126,6 +162,19 @@ namespace Net.Code.ADONet.Tests.Unit
             Assert.AreEqual("dbo.udtname", p.TypeName);
             Assert.AreEqual(SqlDbType.Structured, p.SqlDbType);
         }
+
+        [TestMethod]
+        public void InTransaction_SetsTransactionOnCommand()
+        {
+            var command = PrepareCommand();
+
+            var tx = Substitute.For<DbTransaction>();
+
+            new CommandBuilder(command).InTransaction(tx);
+
+            Assert.AreEqual(tx, command.Transaction);
+        }
+
         private static IDbCommand PrepareCommand()
         {
             var command = new FakeCommand(new FakeConnection());

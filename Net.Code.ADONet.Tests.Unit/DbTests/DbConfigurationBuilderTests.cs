@@ -44,6 +44,23 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             Assert.IsTrue(oracleCommand.BindByName);
         }
 
+        [TestMethod]
+        public void OracleManaged_PrepareCommand_SetsBindByName()
+        {
+            _dbConfigurationBuilder.FromProviderName("Oracle.ManagedDataAccess.Client");
+            var oracleCommand = new FakeOracleDbCommand();
+            _config.PrepareCommand(oracleCommand);
+            Assert.IsTrue(oracleCommand.BindByName);
+        }
+
+        [TestMethod]
+        public void GivenDb_WhenNoSpecificConfigure__AndExecuteIsCalled_UsesDefaultConfig()
+        {
+            var fakeConnection = new FakeConnection();
+            var db = new Db(fakeConnection);
+            db.Configure();
+            db.Execute("");
+        }
 
         [TestMethod]
         public void GivenDb_WhenOnPrepareIsConfigured__AndExecuteIsCalled_CommandIsPrepared()

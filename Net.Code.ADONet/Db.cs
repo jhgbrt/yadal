@@ -358,8 +358,6 @@ namespace Net.Code.ADONet
             get
             {
                 var dbConnection = _externalConnection ?? _connection.Value;
-                if (dbConnection.State == ConnectionState.Closed)
-                    dbConnection.Open();
                 return dbConnection;
             }
         }
@@ -414,7 +412,7 @@ namespace Net.Code.ADONet
             => input.Select(item => item.ToExpando());
 
         public static IEnumerable<dynamic> ToDynamicDataRecord(this IEnumerable<IDataRecord> input) 
-            => input.Select(item => Dynamic.DataRecord(item));
+            => input.Select(item => Dynamic.From(item));
 
         public static IEnumerable<List<dynamic>> ToMultiResultSet(this IDataReader reader)
         {
@@ -657,7 +655,7 @@ namespace Net.Code.ADONet
             return this;
         }
 
-        public CommandBuilder WithParameter<T>(T p) where T : DbParameter
+        public CommandBuilder WithParameter<T>(T p) where T : IDbDataParameter
         {
             Command.Parameters.Add(p);
             return this;
@@ -801,9 +799,9 @@ namespace Net.Code.ADONet
 
     static class Dynamic
     {
-        public static dynamic DataRow(DataRow row) => From(row, (r, s) => r[s]);
-        public static dynamic DataRecord(IDataRecord record) => From(record, (r, s) => r[s]);
-        public static dynamic Dictionary<TValue>(IReadOnlyDictionary<string, TValue> dictionary) => From(dictionary, (d, s) => d[s]);
+        public static dynamic From(DataRow row) => From(row, (r, s) => r[s]);
+        public static dynamic From(IDataRecord record) => From(record, (r, s) => r[s]);
+        public static dynamic From<TValue>(IDictionary<string, TValue> dictionary) => From(dictionary, (d, s) => d[s]);
 
         static dynamic From<T>(T item, Func<T, string, object> getter) => new DynamicIndexer<T>(item, getter);
 
@@ -814,6 +812,7 @@ namespace Net.Code.ADONet
 
             public DynamicIndexer(T item, Func<T, string, object> getter)
             {
+                if (item == null) throw new ArgumentNullException(nameof(item));
                 _item = item;
                 _getter = getter;
             }
@@ -831,7 +830,7 @@ namespace Net.Code.ADONet
 
     public static class DataTableExtensions
     {
-        static dynamic ToDynamic(this DataRow dr) => Dynamic.DataRow(dr);
+        static dynamic ToDynamic(this DataRow dr) => Dynamic.From(dr);
         public static IEnumerable<dynamic> AsEnumerable(this DataTable dataTable) => dataTable.Rows.OfType<DataRow>().Select(ToDynamic);
         public static IEnumerable<T> Select<T>(this DataTable dt, Func<dynamic, T> selector) => dt.AsEnumerable().Select(selector);
         public static IEnumerable<dynamic> Where(this DataTable dt, Func<dynamic, bool> predicate) => dt.AsEnumerable().Where(predicate);
@@ -896,7 +895,7 @@ namespace Net.Code.ADONet
                 var value = rdr[i];
                 d.Add(name, value);
             }
-            return Dynamic.Dictionary(d);
+            return Dynamic.From(d);
         }
         /// <summary>
         /// Get a value from an IDataRecord by column name. This method supports all types,

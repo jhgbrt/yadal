@@ -6,6 +6,19 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Net.Code.ADONet.Tests.Unit.DbTests
 {
     [TestClass]
+    public class DbTests
+    {
+        [TestMethod]
+        public void Connect_WhenCalled_OpensConnection()
+        {
+            var connection = Substitute.For<IDbConnection>();
+            var db = new Db(connection);
+            db.Connect();
+            connection.Received(1).Open();
+        }
+    }
+
+    [TestClass]
     public class DbConstructorTests
     {
 

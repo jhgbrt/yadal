@@ -18,6 +18,31 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
         }
 
         [TestMethod]
+        public void MapTo_WhenCalled_MissingProperty_IsIgnored()
+        {
+            var values = new[]
+            {
+                new {Name = "UNMAPPED_PROPERTY", Value = (object) "SomeValue"},
+            };
+
+            var record = Substitute.For<IDataRecord>();
+            record.FieldCount.Returns(2);
+            for (int i = 0; i < values.Length; i++)
+            {
+                record.GetName(i).Returns(values[i].Name);
+                record.GetValue(i).Returns(values[i].Value);
+            }
+
+            var entity = record.MapTo<MyEntity>(MappingConvention.Loose, null);
+
+            Assert.IsNull(entity.MyProperty);
+            Assert.AreEqual(default(int), entity.MyInt1);
+            Assert.AreEqual(default(int?), entity.MyNullableInt1);
+            Assert.AreEqual(default(int?), entity.MyNullableInt2);
+
+        }
+
+        [TestMethod]
         public void MapTo_WhenCalled_EntityIsMapped()
         {
             var record = Substitute.For<IDataRecord>();
