@@ -1,3 +1,5 @@
+[![Build status](https://ci.appveyor.com/api/projects/status/6koxegsr4pk3n5dv?svg=true)](https://ci.appveyor.com/project/jhgbrt/yadal)
+
 # YaDal - yet another data access layer
 
 In a nutshell, this library is
