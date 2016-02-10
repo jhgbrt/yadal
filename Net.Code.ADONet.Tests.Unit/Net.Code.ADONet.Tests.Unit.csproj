@@ -49,7 +49,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AdoNetProviderFactoryTests.cs" />
     <Compile Include="DataReaderDecorator.cs" />
     <Compile Include="DataRecordExtensionTests\DataRecordExtension.cs" />
     <Compile Include="DataTableExtensions\DataTableExtensionsTests.cs" />
