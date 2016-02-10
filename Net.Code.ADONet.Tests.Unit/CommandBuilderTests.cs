@@ -21,7 +21,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Logger.Log = s => sb.AppendLine(s);
             var command = PrepareCommand();
 
-            new CommandBuilder(command)
+            new CommandBuilder(command, DbConfig.Default)
                 .WithCommandText("commandtext")
                 .WithParameter("name", "value");
             
@@ -43,7 +43,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
             var command = PrepareCommand();
 
-            new CommandBuilder(command)
+            new CommandBuilder(command, DbConfig.Default)
                 .WithCommandText("commandtext")
                 .WithParameter("name", "value");
 
@@ -57,7 +57,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             var command = PrepareCommand();
 
-            var b = new CommandBuilder(command).WithParameter("name", "value");
+            var b = new CommandBuilder(command, DbConfig.Default).WithParameter("name", "value");
 
             var result = (IDbDataParameter)b.Command.Parameters[0];
 
@@ -70,7 +70,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             var command = PrepareCommand();
 
-            var b = new CommandBuilder(command)
+            var b = new CommandBuilder(command, DbConfig.Default)
                 .WithParameter("name", "value1")
                 .WithParameter("name", "value2");
             
@@ -86,7 +86,7 @@ namespace Net.Code.ADONet.Tests.Unit
             var command = PrepareCommand();
 
             var newGuid = Guid.NewGuid();
-            var b = new CommandBuilder(command).WithParameter("name", newGuid);
+            var b = new CommandBuilder(command, DbConfig.Default).WithParameter("name", newGuid);
 
             var result = (IDbDataParameter)b.Command.Parameters[0];
 
@@ -101,7 +101,7 @@ namespace Net.Code.ADONet.Tests.Unit
             var parameter = Substitute.For<DbParameter>();
             parameter.ParameterName.Returns("MyParameterName");
             parameter.Value.Returns("MyParameterValue");
-            var b = new CommandBuilder(command)
+            var b = new CommandBuilder(command, DbConfig.Default)
                 .WithParameter(parameter);
 
             var parameters = b.Command.Parameters;
@@ -116,7 +116,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             var command = PrepareCommand();
 
-            var b = new CommandBuilder(command)
+            var b = new CommandBuilder(command, DbConfig.Default)
                 .WithParameters(new
                                     {
                                         Param1_Int32 = 0,
@@ -144,7 +144,7 @@ namespace Net.Code.ADONet.Tests.Unit
         public void CommandBuilder_WithTimeout_SetsTimeout()
         {
             var command = PrepareCommand();
-            var b = new CommandBuilder(command);
+            var b = new CommandBuilder(command, DbConfig.Default);
             b.WithTimeout(TimeSpan.FromSeconds(123));
             Assert.AreEqual(123, command.CommandTimeout);
         }
@@ -154,7 +154,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             var command = PrepareCommand();
 
-            var b = new CommandBuilder(command)
+            var b = new CommandBuilder(command, DbConfig.Default)
                .WithParameter("ParamName", new[] { new { ID = 123 } }, "dbo.udtname");
 
             var p = (SqlParameter)b.Command.Parameters[0];
@@ -172,7 +172,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
             var tx = Substitute.For<DbTransaction>();
 
-            new CommandBuilder(command).InTransaction(tx);
+            new CommandBuilder(command, DbConfig.Default).InTransaction(tx);
 
             Assert.AreEqual(tx, command.Transaction);
         }

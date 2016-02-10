@@ -13,16 +13,15 @@ namespace Net.Code.ADONet
         // ReSharper disable once StaticFieldInGenericType
         // clearly we *want* a static field for each instantiation of this generic class...
         /// <summary>
-        /// The actual conversion method. Converts an object to any type using standard casting functionality, taking into account null/nullable types
-        /// and avoiding DBNull issues. This method is set as a delegate at runtime (in the static constructor).
+        /// The actual conversion method. Converts an object to any type using standard casting functionality, 
+        /// taking into account null/nullable types and avoiding DBNull issues. This method is set as a delegate 
+        /// at runtime (in the static constructor).
         /// </summary>
         public static readonly Func<object, T> From;
 
-        /// <summary>
-        /// Set the <see cref="From"/> delegate, depending on whether T is a reference type, a nullable value type or a value type.
-        /// </summary>
         static ConvertTo()
         {
+            // Sets the From delegate, depending on whether T is a reference type, a nullable value type or a value type.
             From = CreateConvertFunction(typeof(T));
         }
 

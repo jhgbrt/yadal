@@ -19,7 +19,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         public void Setup()
         {
             _fakeConnection = new FakeConnection();
-            _db = new Db(_fakeConnection);
+            _db = new Db(_fakeConnection, DbConfig.Default);
         }
 
         [TestMethod]
@@ -73,7 +73,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             _logging = new StringBuilder();
             Logger.Log = s => _logging.AppendLine(s);
             _sqlCommand = new SqlCommand();
-            _builder = new CommandBuilder(_sqlCommand);
+            _builder = new CommandBuilder(_sqlCommand, DbConfig.Default);
         }
 
         [TestMethod]

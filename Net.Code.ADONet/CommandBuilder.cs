@@ -10,14 +10,12 @@ namespace Net.Code.ADONet
     public class CommandBuilder
     {
         private readonly IDbCommand _command;
-        private readonly MappingConvention _convention;
-        private readonly string _provider;
+        private readonly DbConfig _config;
 
-        public CommandBuilder(IDbCommand command, MappingConvention convention = null, string provider = null)
+        public CommandBuilder(IDbCommand command, DbConfig config)
         {
             _command = command;
-            _convention = convention ?? MappingConvention.Strict;
-            _provider = provider ?? Db.DefaultProviderName;
+            _config = config;
         }
         
         /// <summary>
@@ -44,7 +42,7 @@ namespace Net.Code.ADONet
         /// </summary>
         /// <typeparam name="T"></typeparam>
         public IEnumerable<T> AsEnumerable<T>() 
-            => AsReader().AsEnumerable().Select(r => DataRecordExtensions.MapTo<T>(r, _convention, _provider));
+            => AsReader().AsEnumerable().Select(r => r.MapTo<T>(_config));
 
         // enables linq 'select' syntax
         public IEnumerable<T> Select<T>(Func<dynamic, T> selector) 
@@ -68,8 +66,8 @@ namespace Net.Code.ADONet
             using (var reader = Execute.Reader())
             {
                 bool more;
-                var result1 = reader.GetResultSet<T1>(_convention, _provider, out more);
-                var result2 = reader.GetResultSet<T2>(_convention, _provider, out more);
+                var result1 = reader.GetResultSet<T1>(_config, out more);
+                var result2 = reader.GetResultSet<T2>(_config, out more);
                 return Tuple.Create(
                     result1,
                     result2
@@ -84,9 +82,9 @@ namespace Net.Code.ADONet
             using (var reader = Execute.Reader())
             {
                 bool more;
-                var result1 = reader.GetResultSet<T1>(_convention, _provider, out more);
-                var result2 = reader.GetResultSet<T2>(_convention, _provider, out more);
-                var result3 = reader.GetResultSet<T3>(_convention, _provider, out more);
+                var result1 = reader.GetResultSet<T1>(_config, out more);
+                var result2 = reader.GetResultSet<T2>(_config, out more);
+                var result3 = reader.GetResultSet<T3>(_config, out more);
                 return Tuple.Create(
                     result1, result2, result3
                     );

@@ -12,7 +12,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         public void Connect_WhenCalled_OpensConnection()
         {
             var connection = Substitute.For<IDbConnection>();
-            var db = new Db(connection);
+            var db = new Db(connection, DbConfig.Default);
             db.Connect();
             connection.Received(1).Open();
         }
@@ -33,7 +33,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         {
             var fakeConnection = Substitute.For<IDbConnection>();
 
-            var db = new Db(fakeConnection);
+            var db = new Db(fakeConnection, DbConfig.Default);
             db.Dispose();
 
             // External connection should not be disposed with the Db
@@ -49,7 +49,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
 
             fakeFactory.CreateConnection("").Returns(fakeConnection);
 
-            using (var db = new Db("", fakeFactory))
+            using (var db = new Db("", DbConfig.Default, fakeFactory))
             {
                 // ensure the connection is actually instantiated
                 // ReSharper disable UnusedVariable

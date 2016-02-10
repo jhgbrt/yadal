@@ -1,9 +1,13 @@
 using System;
+using System.ComponentModel;
 
 namespace Net.Code.ADONet
 {
     public static class DBNullHelper
     {
+        public static Type GetUnderlyingType(this Type type) 
+            => type.IsNullableType() ? new NullableConverter(type).UnderlyingType : type;
+
         public static bool IsNullableType(this Type type) 
             => (type.IsGenericType && !type.IsGenericTypeDefinition) &&
                (typeof(Nullable<>) == type.GetGenericTypeDefinition());

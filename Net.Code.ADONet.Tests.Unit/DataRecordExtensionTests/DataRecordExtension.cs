@@ -33,7 +33,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
                 record.GetValue(i).Returns(values[i].Value);
             }
 
-            var entity = record.MapTo<MyEntity>(MappingConvention.Loose, null);
+            var entity = record.MapTo<MyEntity>(new DbConfig(c => {}, MappingConvention.Loose, string.Empty));
 
             Assert.IsNull(entity.MyProperty);
             Assert.AreEqual(default(int), entity.MyInt1);
@@ -62,7 +62,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
                 record.GetValue(i).Returns(values[i].Value);
             }
 
-            var entity = record.MapTo<MyEntity>(MappingConvention.Loose, null);
+            var entity = record.MapTo<MyEntity>(new DbConfig(c => { }, MappingConvention.Loose, string.Empty));
             
             Assert.AreEqual("SomeValue", entity.MyProperty);
             Assert.IsNull(entity.MyNullableInt1);

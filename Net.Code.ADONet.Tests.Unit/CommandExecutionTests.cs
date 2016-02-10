@@ -12,7 +12,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             var command = PrepareCommand();
 
-            var commandBuilder = new CommandBuilder(command);
+            var commandBuilder = new CommandBuilder(command, DbConfig.Default);
 
             command.SetResultSet(Person.GetSingleResultSet());
 
@@ -26,7 +26,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             var command = PrepareCommand();
 
-            var commandBuilder = new CommandBuilder(command);
+            var commandBuilder = new CommandBuilder(command, DbConfig.Default);
 
             command.SetResultSet(Person.GetSingleResultSet());
 
@@ -39,7 +39,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             var command = PrepareCommand();
 
-            var commandBuilder = new CommandBuilder(command);
+            var commandBuilder = new CommandBuilder(command, DbConfig.Default);
 
             command.SetResultSet(Person.GetSingleResultSet());
 
@@ -53,7 +53,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             var command = PrepareCommand();
 
-            var commandBuilder = new CommandBuilder(command);
+            var commandBuilder = new CommandBuilder(command, DbConfig.Default);
 
             command.SetResultSet(Person.GetSingleResultSet());
 
@@ -66,7 +66,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             var command = PrepareCommand();
 
-            var commandBuilder = new CommandBuilder(command);
+            var commandBuilder = new CommandBuilder(command, DbConfig.Default);
 
             command.SetResultSet(Person.GetSingleResultSet());
 
@@ -81,7 +81,7 @@ namespace Net.Code.ADONet.Tests.Unit
             var command = PrepareCommand();
             command.SetScalarValue(1);
 
-            var commandBuilder = new CommandBuilder(command);
+            var commandBuilder = new CommandBuilder(command, DbConfig.Default);
 
             var result = commandBuilder.AsScalar<int>();
 
@@ -94,7 +94,7 @@ namespace Net.Code.ADONet.Tests.Unit
             var command = PrepareCommand();
             command.SetScalarValue(1);
 
-            var commandBuilder = new CommandBuilder(command);
+            var commandBuilder = new CommandBuilder(command, DbConfig.Default);
 
             var result = commandBuilder.AsScalar<object>();
 
@@ -106,7 +106,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             var command = PrepareCommand();
             command.SetNonQueryResult(1);
-            var commandBuilder = new CommandBuilder(command);
+            var commandBuilder = new CommandBuilder(command, DbConfig.Default);
 
             var result = commandBuilder.AsNonQuery();
             
@@ -121,7 +121,7 @@ namespace Net.Code.ADONet.Tests.Unit
             var data = Person.GetMultiResultSet();
 
             command.SetMultiResultSet(data);
-            var commandBuilder = new CommandBuilder(command);
+            var commandBuilder = new CommandBuilder(command, DbConfig.Default);
             
             var result = commandBuilder.AsMultiResultSet().Select(x => x.ToList()).ToList();
 
@@ -136,7 +136,7 @@ namespace Net.Code.ADONet.Tests.Unit
             var data = Person.GetMultiResultSet();
 
             command.SetMultiResultSet(data);
-            var commandBuilder = new CommandBuilder(command);
+            var commandBuilder = new CommandBuilder(command, DbConfig.Default);
 
             var result = commandBuilder.AsMultiResultSet<Person, Person>();
 
@@ -150,7 +150,7 @@ namespace Net.Code.ADONet.Tests.Unit
             var data = Person.GetMultiResultSet();
 
             command.SetMultiResultSet(data);
-            var commandBuilder = new CommandBuilder(command);
+            var commandBuilder = new CommandBuilder(command, DbConfig.Default);
 
             var result = commandBuilder.AsMultiResultSet<Person, Person, Person>();
 
@@ -161,7 +161,7 @@ namespace Net.Code.ADONet.Tests.Unit
         public async Task AsEnumerableAsync_WhenCalledAndAwaited_ReturnsResultSet()
         {
             var command = PrepareCommand();
-            var commandBuilder = new CommandBuilder(command);
+            var commandBuilder = new CommandBuilder(command, DbConfig.Default);
             command.SetResultSet(Person.GetSingleResultSet());
 
             var result = (await commandBuilder.AsEnumerableAsync()).ToList();
@@ -173,7 +173,7 @@ namespace Net.Code.ADONet.Tests.Unit
         public async Task AsEnumerableAsyncWithSelector_WhenCalledAndAwaited_ReturnsResultSet()
         {
             var command = PrepareCommand();
-            var commandBuilder = new CommandBuilder(command);
+            var commandBuilder = new CommandBuilder(command, DbConfig.Default);
             command.SetResultSet(Person.GetSingleResultSet());
 
             var result = (await commandBuilder.AsEnumerableAsync(d => (Person)Person.From(d))).ToList();
@@ -186,7 +186,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             var command = PrepareCommand();
             command.SetScalarValue(1);
-            var commandBuilder = new CommandBuilder(command);
+            var commandBuilder = new CommandBuilder(command, DbConfig.Default);
 
             var result = await commandBuilder.AsScalarAsync<int>();
 
@@ -198,7 +198,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             var command = PrepareCommand();
             command.SetNonQueryResult(1);
-            var commandBuilder = new CommandBuilder(command);
+            var commandBuilder = new CommandBuilder(command, DbConfig.Default);
             
             var result = await commandBuilder.AsNonQueryAsync();
             
@@ -210,7 +210,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             var command = PrepareCommand();
             command.SetMultiResultSet(Person.GetMultiResultSet());
-            var commandBuilder = new CommandBuilder(command);
+            var commandBuilder = new CommandBuilder(command, DbConfig.Default);
             
             var result = (await commandBuilder.AsMultiResultSetAsync()).Select(x => x.ToList()).ToList();
 

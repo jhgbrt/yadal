@@ -5,6 +5,9 @@ namespace Net.Code.ADONet
 {
     public interface IDb : IDisposable
     {
+        /// <summary>
+        /// Open a connection to the database. Not required.
+        /// </summary>
         void Connect();
         /// <summary>
         /// The actual IDbConnection (which will be open)
@@ -20,11 +23,6 @@ namespace Net.Code.ADONet
         /// The ADO.Net ProviderName for this connection
         /// </summary>
         string ProviderName { get; }
-        
-        /// <summary>
-        /// Entry point for configuring the db with provider-specific stuff.
-        /// </summary>
-        IDbConfigurationBuilder Configure();
         
         /// <summary>
         /// Create a SQL query command builder

@@ -2,7 +2,7 @@ using System.Data;
 
 namespace Net.Code.ADONet
 {
-    public interface IConnectionFactory
+    internal interface IConnectionFactory
     {
         /// <summary>
         /// Create the ADO.Net IDbConnection

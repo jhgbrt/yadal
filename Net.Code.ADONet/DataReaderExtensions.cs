@@ -11,13 +11,13 @@ namespace Net.Code.ADONet
             using (reader) { while (reader.Read()) yield return reader; }
         }
 
-        public static IEnumerable<dynamic> ToExpandoList(this IEnumerable<IDataRecord> input) 
-            => input.Select(item => DataRecordExtensions.ToExpando(item));
+        internal static IEnumerable<dynamic> ToExpandoList(this IEnumerable<IDataRecord> input) 
+            => input.Select(item => item.ToExpando());
 
-        public static IEnumerable<dynamic> ToDynamicDataRecord(this IEnumerable<IDataRecord> input) 
+        internal static IEnumerable<dynamic> ToDynamicDataRecord(this IEnumerable<IDataRecord> input) 
             => input.Select(item => Dynamic.From(item));
 
-        public static IEnumerable<List<dynamic>> ToMultiResultSet(this IDataReader reader)
+        internal static IEnumerable<List<dynamic>> ToMultiResultSet(this IDataReader reader)
         {
             do
             {
@@ -27,10 +27,10 @@ namespace Net.Code.ADONet
             } while (reader.NextResult());
         }
 
-        public static List<T> GetResultSet<T>(this IDataReader reader, MappingConvention convention, string provider, out bool moreResults) where T : new()
+        internal static List<T> GetResultSet<T>(this IDataReader reader, DbConfig config, out bool moreResults) where T : new()
         {
             var list = new List<T>();
-            while (reader.Read()) list.Add(reader.MapTo<T>(convention, provider));
+            while (reader.Read()) list.Add(reader.MapTo<T>(config));
             moreResults = reader.NextResult();
             return list;
         }

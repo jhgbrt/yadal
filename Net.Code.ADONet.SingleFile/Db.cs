@@ -1,15 +1,15 @@
-using System.Data;
-using System.Data.Common;
 using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Data.Common;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Reflection;
 using System.Collections.Concurrent;
 using System.Configuration;
+using System.ComponentModel;
 using System.Dynamic;
 using System.Collections;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Runtime.CompilerServices;
@@ -18,33 +18,14 @@ using System.Data.SqlClient;
 
 namespace Net.Code.ADONet
 {
-    class AdoNetProviderFactory : IConnectionFactory
-    {
-        private readonly string _providerInvariantName;
-        public AdoNetProviderFactory(string providerInvariantName)
-        {
-            _providerInvariantName = providerInvariantName;
-        }
-
-        public IDbConnection CreateConnection(string connectionString)
-        {
-            var connection = DbProviderFactories.GetFactory(_providerInvariantName).CreateConnection();
-            // ReSharper disable once PossibleNullReferenceException
-            connection.ConnectionString = connectionString;
-            return connection;
-        }
-    }
-
     public class CommandBuilder
     {
         private readonly IDbCommand _command;
-        private readonly MappingConvention _convention;
-        private readonly string _provider;
-        public CommandBuilder(IDbCommand command, MappingConvention convention = null, string provider = null)
+        private readonly DbConfig _config;
+        public CommandBuilder(IDbCommand command, DbConfig config)
         {
             _command = command;
-            _convention = convention ?? MappingConvention.Strict;
-            _provider = provider ?? Db.DefaultProviderName;
+            _config = config;
         }
 
         /// <summary>
@@ -67,7 +48,7 @@ namespace Net.Code.ADONet
         /// Executes the query and returns the result as a list of [T] using the 'case-insensitive, underscore-agnostic column name to property mapping convention.' 
         /// </summary>
         /// <typeparam name = "T"></typeparam>
-        public IEnumerable<T> AsEnumerable<T>() => AsReader().AsEnumerable().Select(r => DataRecordExtensions.MapTo<T>(r, _convention, _provider));
+        public IEnumerable<T> AsEnumerable<T>() => AsReader().AsEnumerable().Select(r => r.MapTo<T>(_config));
         // enables linq 'select' syntax
         public IEnumerable<T> Select<T>(Func<dynamic, T> selector) => Execute.Reader().AsEnumerable().ToDynamicDataRecord().Select(selector);
         /// <summary>
@@ -90,8 +71,8 @@ namespace Net.Code.ADONet
             using (var reader = Execute.Reader())
             {
                 bool more;
-                var result1 = reader.GetResultSet<T1>(_convention, _provider, out more);
-                var result2 = reader.GetResultSet<T2>(_convention, _provider, out more);
+                var result1 = reader.GetResultSet<T1>(_config, out more);
+                var result2 = reader.GetResultSet<T2>(_config, out more);
                 return Tuple.Create(result1, result2);
             }
         }
@@ -104,9 +85,9 @@ namespace Net.Code.ADONet
             using (var reader = Execute.Reader())
             {
                 bool more;
-                var result1 = reader.GetResultSet<T1>(_convention, _provider, out more);
-                var result2 = reader.GetResultSet<T2>(_convention, _provider, out more);
-                var result3 = reader.GetResultSet<T3>(_convention, _provider, out more);
+                var result1 = reader.GetResultSet<T1>(_config, out more);
+                var result2 = reader.GetResultSet<T2>(_config, out more);
+                var result3 = reader.GetResultSet<T3>(_config, out more);
                 return Tuple.Create(result1, result2, result3);
             }
         }
@@ -359,15 +340,14 @@ namespace Net.Code.ADONet
         // ReSharper disable once StaticFieldInGenericType
         // clearly we *want* a static field for each instantiation of this generic class...
         /// <summary>
-        /// The actual conversion method. Converts an object to any type using standard casting functionality, taking into account null/nullable types
-        /// and avoiding DBNull issues. This method is set as a delegate at runtime (in the static constructor).
+        /// The actual conversion method. Converts an object to any type using standard casting functionality, 
+        /// taking into account null/nullable types and avoiding DBNull issues. This method is set as a delegate 
+        /// at runtime (in the static constructor).
         /// </summary>
         public static readonly Func<object, T> From;
-        /// <summary>
-        /// Set the <see cref = "From"/> delegate, depending on whether T is a reference type, a nullable value type or a value type.
-        /// </summary>
         static ConvertTo()
         {
+            // Sets the From delegate, depending on whether T is a reference type, a nullable value type or a value type.
             From = CreateConvertFunction(typeof (T));
         }
 
@@ -417,9 +397,9 @@ namespace Net.Code.ADONet
             }
         }
 
-        public static IEnumerable<dynamic> ToExpandoList(this IEnumerable<IDataRecord> input) => input.Select(item => DataRecordExtensions.ToExpando(item));
-        public static IEnumerable<dynamic> ToDynamicDataRecord(this IEnumerable<IDataRecord> input) => input.Select(item => Dynamic.From(item));
-        public static IEnumerable<List<dynamic>> ToMultiResultSet(this IDataReader reader)
+        internal static IEnumerable<dynamic> ToExpandoList(this IEnumerable<IDataRecord> input) => input.Select(item => item.ToExpando());
+        internal static IEnumerable<dynamic> ToDynamicDataRecord(this IEnumerable<IDataRecord> input) => input.Select(item => Dynamic.From(item));
+        internal static IEnumerable<List<dynamic>> ToMultiResultSet(this IDataReader reader)
         {
             do
             {
@@ -431,11 +411,11 @@ namespace Net.Code.ADONet
             while (reader.NextResult());
         }
 
-        public static List<T> GetResultSet<T>(this IDataReader reader, MappingConvention convention, string provider, out bool moreResults)where T : new ()
+        internal static List<T> GetResultSet<T>(this IDataReader reader, DbConfig config, out bool moreResults)where T : new ()
         {
             var list = new List<T>();
             while (reader.Read())
-                list.Add(reader.MapTo<T>(convention, provider));
+                list.Add(reader.MapTo<T>(config));
             moreResults = reader.NextResult();
             return list;
         }
@@ -443,9 +423,10 @@ namespace Net.Code.ADONet
 
     public static class DataRecordExtensions
     {
-        public static T MapTo<T>(this IDataRecord record, MappingConvention convention, string provider)
+        internal static T MapTo<T>(this IDataRecord record, DbConfig config)
         {
-            var setters = GetSettersForType<T>(p => convention.GetName(p), provider);
+            var convention = config.MappingConvention ?? MappingConvention.Strict;
+            var setters = GetSettersForType<T>(p => convention.GetName(p), config.ProviderName);
             var result = Activator.CreateInstance<T>();
             for (var i = 0; i < record.FieldCount; i++)
             {
@@ -468,7 +449,7 @@ namespace Net.Code.ADONet
             Type = typeof (T), Provider = provider
             }
 
-            , d => ((Type)d.Type).GetProperties().ToDictionary(getName, p => GetSetDelegate<T>(p)));
+            , d => ((Type)d.Type).GetProperties().ToDictionary(getName, GetSetDelegate<T>));
             return (IDictionary<string, Action<T, object>>)setters;
         }
 
@@ -495,7 +476,7 @@ namespace Net.Code.ADONet
         /// </summary>
         /// <param name = "rdr">the data record</param>
         /// <returns>A dynamic object with fields corresponding to the database columns</returns>
-        public static dynamic ToExpando(this IDataRecord rdr)
+        internal static dynamic ToExpando(this IDataRecord rdr)
         {
             var d = new Dictionary<string, object>();
             for (var i = 0; i < rdr.FieldCount; i++)
@@ -545,30 +526,26 @@ namespace Net.Code.ADONet
     /// </summary>
     public class Db : IDb
     {
-        private readonly DbConfig _config;
-        public string ProviderName => _providerName;
-        public IDbConfigurationBuilder Configure() => new DbConfigurationBuilder(_config);
-        private DbConfigurationBuilder ConfigurePriv() => new DbConfigurationBuilder();
-        /// <summary>
-        /// The default DbProvider name is "System.Data.SqlClient" (for sql server).
-        /// </summary>
-        public static string DefaultProviderName = "System.Data.SqlClient";
+        internal DbConfig Config
+        {
+            get;
+        }
+
+        public string ProviderName => Config.ProviderName;
         private readonly string _connectionString;
         private Lazy<IDbConnection> _connection;
         private readonly IConnectionFactory _connectionFactory;
         private readonly IDbConnection _externalConnection;
-        private readonly string _providerName;
         /// <summary>
         /// Instantiate Db with existing connection. The connection is only used for creating commands; 
         /// it should be disposed by the caller when done.
         /// </summary>
         /// <param name = "connection">The existing connection</param>
-        /// <param name = "providerName">The ADO .Net Provider name. When not specified, the default 
-        /// value is used (see DefaultProviderName)</param>
-        public Db(IDbConnection connection, string providerName = null)
+        /// <param name = "config"></param>
+        public Db(IDbConnection connection, DbConfig config)
         {
             _externalConnection = connection;
-            _config = ConfigurePriv().FromProviderName(providerName).Config;
+            Config = config ?? DbConfig.Default;
         }
 
         /// <summary>
@@ -577,7 +554,7 @@ namespace Net.Code.ADONet
         /// <param name = "connectionString">The connection string</param>
         /// <param name = "providerName">The ADO .Net Provider name. When not specified, 
         /// the default value is used (see DefaultProviderName)</param>
-        public Db(string connectionString, string providerName = null): this (connectionString, new AdoNetProviderFactory(providerName ?? DefaultProviderName), providerName ?? DefaultProviderName)
+        public Db(string connectionString, string providerName): this (connectionString, DbConfig.FromProviderName(providerName))
         {
         }
 
@@ -585,15 +562,14 @@ namespace Net.Code.ADONet
         /// Instantiate Db with connectionString and a custom IConnectionFactory
         /// </summary>
         /// <param name = "connectionString">the connection string</param>
+        /// <param name = "config"></param>
         /// <param name = "connectionFactory">the connection factory</param>
-        /// <param name = "providerName"></param>
-        public Db(string connectionString, IConnectionFactory connectionFactory, string providerName = null)
+        internal Db(string connectionString, DbConfig config, IConnectionFactory connectionFactory = null)
         {
             _connectionString = connectionString;
-            _connectionFactory = connectionFactory;
+            _connectionFactory = connectionFactory ?? new AdoNetProviderFactory(config.ProviderName);
             _connection = new Lazy<IDbConnection>(CreateConnection);
-            _providerName = providerName ?? DefaultProviderName;
-            _config = ConfigurePriv().FromProviderName(_providerName).Config;
+            Config = config;
         }
 
         /// <summary>
@@ -610,7 +586,7 @@ namespace Net.Code.ADONet
         private static Db FromConfig(ConnectionStringSettings connectionStringSettings)
         {
             var connectionString = connectionStringSettings.ConnectionString;
-            var providerName = !string.IsNullOrEmpty(connectionStringSettings.ProviderName) ? connectionStringSettings.ProviderName : DefaultProviderName;
+            var providerName = connectionStringSettings.ProviderName;
             return new Db(connectionString, providerName);
         }
 
@@ -623,15 +599,7 @@ namespace Net.Code.ADONet
         /// <summary>
         /// The actual IDbConnection (which will be open)
         /// </summary>
-        public IDbConnection Connection
-        {
-            get
-            {
-                var dbConnection = _externalConnection ?? _connection.Value;
-                return dbConnection;
-            }
-        }
-
+        public IDbConnection Connection => _externalConnection ?? _connection.Value;
         public string ConnectionString => _connectionString;
         private IDbConnection CreateConnection() => _connectionFactory.CreateConnection(_connectionString);
         public void Dispose()
@@ -657,8 +625,8 @@ namespace Net.Code.ADONet
         private CommandBuilder CreateCommand(CommandType commandType, string command)
         {
             var cmd = Connection.CreateCommand();
-            _config.PrepareCommand(cmd);
-            return new CommandBuilder(cmd, _config.MappingConvention, _providerName).OfType(commandType).WithCommandText(command);
+            Config.PrepareCommand(cmd);
+            return new CommandBuilder(cmd, Config).OfType(commandType).WithCommandText(command);
         }
 
         /// <summary>
@@ -666,125 +634,82 @@ namespace Net.Code.ADONet
         /// </summary>
         /// <param name = "command"></param>
         public int Execute(string command) => Sql(command).AsNonQuery();
+        class AdoNetProviderFactory : IConnectionFactory
+        {
+            private readonly string _providerInvariantName;
+            public AdoNetProviderFactory(string providerInvariantName)
+            {
+                _providerInvariantName = providerInvariantName;
+            }
+
+            public IDbConnection CreateConnection(string connectionString)
+            {
+                var connection = DbProviderFactories.GetFactory(_providerInvariantName).CreateConnection();
+                // ReSharper disable once PossibleNullReferenceException
+                connection.ConnectionString = connectionString;
+                return connection;
+            }
+        }
     }
 
     public class DbConfig
     {
-        private static readonly Action<IDbCommand> Empty = c =>
-        {
-        }
-
-        ;
-        private static readonly MappingConvention Default = MappingConvention.Strict;
-        public DbConfig(): this (Empty, Default)
-        {
-        }
-
-        public DbConfig(Action<IDbCommand> prepareCommand, MappingConvention convention)
+        public DbConfig(Action<IDbCommand> prepareCommand, MappingConvention convention, string providerName)
         {
             PrepareCommand = prepareCommand;
             MappingConvention = convention;
+            ProviderName = providerName;
         }
 
         public Action<IDbCommand> PrepareCommand
         {
             get;
-            internal set;
         }
 
         public MappingConvention MappingConvention
         {
             get;
-            internal set;
         }
-    }
 
-    class DbConfigurationBuilder : IDbConfigurationBuilder
-    {
-        public DbConfig Config
+        public string ProviderName
         {
             get;
         }
 
-        internal DbConfigurationBuilder(DbConfig config)
+        public static readonly DbConfig Default = Create("System.Data.SqlClient");
+        public static DbConfig FromProviderName(string providerName)
         {
-            Config = config;
+            return !string.IsNullOrEmpty(providerName) && providerName.StartsWith("Oracle") ? Oracle(providerName) : Create(providerName);
         }
 
-        internal DbConfigurationBuilder(): this (new DbConfig())
+        private static DbConfig Oracle(string providerName)
         {
+            //        // By default, the Oracle driver does not support binding parameters by name;
+            //        // one has to set the BindByName property on the OracleDbCommand.
+            //        // Mapping: 
+            //        // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
+            return new DbConfig(SetBindByName, MappingConvention.Loose, providerName);
         }
 
-        public IDbConfigurationBuilder OnPrepareCommand(Action<IDbCommand> action)
+        private static DbConfig Create(string providerName)
         {
-            Config.PrepareCommand = action;
-            return this;
-        }
-
-        public IDbConfigurationBuilder WithMappingConvention(MappingConvention convention)
-        {
-            Config.MappingConvention = convention;
-            return this;
-        }
-
-        class Option<T>
-        {
-            public bool HasValue
+            return new DbConfig(c =>
             {
-                get;
-                private set;
             }
 
-            public T Value
-            {
-                get;
-                private set;
-            }
-
-            public void SetValue(T v)
-            {
-                Value = v;
-                HasValue = true;
-            }
+            , MappingConvention.Strict, providerName);
         }
 
-        private static readonly Option<PropertyInfo> BindByName = new Option<PropertyInfo>();
-        private DbConfigurationBuilder Oracle()
+        private static void SetBindByName(IDbCommand c)
         {
-            // By default, the Oracle driver does not support binding parameters by name;
-            // one has to set the BindByName property on the OracleDbCommand.
-            // Since we don't want to have a hard reference to Oracle.DataAccess here,
-            // we use reflection.
-            // The day Oracle decides to make a breaking change, this will blow up with 
-            // a runtime exception
-            OnPrepareCommand(command =>
-            {
-                if (!BindByName.HasValue)
-                    BindByName.SetValue(command.GetType().GetProperty("BindByName"));
-                BindByName.Value?.SetValue(command, true, null);
-            }
-
-            );
-            // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
-            WithMappingConvention(MappingConvention.Loose);
-            return this;
-        }
-
-        public DbConfigurationBuilder FromProviderName(string providerName)
-        {
-            switch (providerName)
-            {
-                case "Oracle.DataAccess.Client":
-                case "Oracle.ManagedDataAccess.Client":
-                    return Oracle();
-            }
-
-            return this;
+            dynamic d = c;
+            d.BindByName = true;
         }
     }
 
     public static class DBNullHelper
     {
+        public static Type GetUnderlyingType(this Type type) => type.IsNullableType() ? new NullableConverter(type).UnderlyingType : type;
         public static bool IsNullableType(this Type type) => (type.IsGenericType && !type.IsGenericTypeDefinition) && (typeof (Nullable<>) == type.GetGenericTypeDefinition());
         public static bool IsNull(object o) => o == null || DBNull.Value.Equals(o);
         public static object FromDb(object o) => IsNull(o) ? null : o;
@@ -828,9 +753,7 @@ namespace Net.Code.ADONet
             var props = typeof (T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
             foreach (var prop in props)
             {
-                var propType = prop.PropertyType;
-                if (propType.IsNullableType())
-                    propType = new NullableConverter(propType).UnderlyingType;
+                var propType = prop.PropertyType.GetUnderlyingType();
                 table.Columns.Add(prop.Name, propType);
             }
 
@@ -845,11 +768,10 @@ namespace Net.Code.ADONet
             return table;
         }
 
-        public static IDataReader AsDataReader<T>(this IEnumerable<T> input) => new EnumerableDataReaderImpl<T>(input);
         /// <summary>
         /// Adapter from IEnumerable[T] to IDataReader
         /// </summary>
-        /// <typeparam name = "T"></typeparam>
+        public static IDataReader AsDataReader<T>(this IEnumerable<T> input) => new EnumerableDataReaderImpl<T>(input);
         private class EnumerableDataReaderImpl<T> : DbDataReader
         {
             private readonly IEnumerable<T> _list;
@@ -932,8 +854,7 @@ namespace Net.Code.ADONet
                     }
 
                     )let p = x.p
-                    let nullable = p.PropertyType.IsNullableType()let dataType = nullable ? Nullable.GetUnderlyingType(p.PropertyType) : p.PropertyType
-                    select new
+                    let nullable = p.PropertyType.IsNullableType()let dataType = p.PropertyType.GetUnderlyingType()select new
                     {
                     ColumnName = p.Name, ColumnOrdinal = x.i, ColumnSize = int.MaxValue, // must be filled in and large enough for ToDataTable
  AllowDBNull = nullable || !p.PropertyType.IsValueType, // assumes string nullable
@@ -959,7 +880,7 @@ namespace Net.Code.ADONet
         }
     }
 
-    public interface IConnectionFactory
+    internal interface IConnectionFactory
     {
         /// <summary>
         /// Create the ADO.Net IDbConnection
@@ -971,6 +892,9 @@ namespace Net.Code.ADONet
 
     public interface IDb : IDisposable
     {
+        /// <summary>
+        /// Open a connection to the database. Not required.
+        /// </summary>
         void Connect();
         /// <summary>
         /// The actual IDbConnection (which will be open)
@@ -997,10 +921,6 @@ namespace Net.Code.ADONet
         }
 
         /// <summary>
-        /// Entry point for configuring the db with provider-specific stuff.
-        /// </summary>
-        IDbConfigurationBuilder Configure();
-        /// <summary>
         /// Create a SQL query command builder
         /// </summary>
         /// <param name = "sqlQuery"></param>
@@ -1019,30 +939,13 @@ namespace Net.Code.ADONet
         int Execute(string command);
     }
 
-    public interface IDbConfigurationBuilder
-    {
-        /// <summary>
-        /// Provides a hook to configure an ADO.Net DbCommmand just after it is created. 
-        /// For example, the Oracle.DataAccess API requires the BindByName property to be set
-        /// to true for the datareader to enable named access to the result columns (Note that 
-        /// for this situation you don't need to do anything, it's handled by default).
-        /// </summary>
-        /// <param name = "action"></param>
-        IDbConfigurationBuilder OnPrepareCommand(Action<IDbCommand> action);
-        /// <summary>
-        /// Set the mapping convention used to map property names and db column names
-        /// </summary>
-        /// <param name = "convention"></param>
-        IDbConfigurationBuilder WithMappingConvention(MappingConvention convention);
-    }
-
     /// <summary>
     /// To enable logging, set the Log property of the Logger class
     /// </summary>
-    public class Logger
+    class Logger
     {
 #if DEBUG
-        public static Action<string> Log = s => { Debug.WriteLine(s); };
+        internal static Action<string> Log = s => { Debug.WriteLine(s); };
 #else
         public static Action<string> Log;
 #endif

@@ -29,7 +29,6 @@ namespace Net.Code.ADONet
             );
 
         public string GetName(IDataRecord record, int i) => _getColumnName(record, i);
-
         public string GetName(PropertyInfo property) => _getPropertyName(property);
     }
 }

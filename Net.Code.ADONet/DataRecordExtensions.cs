@@ -9,9 +9,10 @@ namespace Net.Code.ADONet
 {
     public static class DataRecordExtensions
     {
-        public static T MapTo<T>(this IDataRecord record, MappingConvention convention, string provider) 
+        internal static T MapTo<T>(this IDataRecord record, DbConfig config)
         {
-            var setters = GetSettersForType<T>(p => convention.GetName(p), provider);
+            var convention = config.MappingConvention ?? MappingConvention.Strict;
+            var setters = GetSettersForType<T>(p => convention.GetName(p), config.ProviderName);
             var result = Activator.CreateInstance<T>();
             for (var i = 0; i < record.FieldCount; i++)
             {
@@ -30,7 +31,7 @@ namespace Net.Code.ADONet
         {
             var setters = Setters.GetOrAdd(
                 new {Type =  typeof (T), Provider = provider},
-                d =>((Type)d.Type).GetProperties().ToDictionary(getName, p => GetSetDelegate<T>(p))
+                d =>((Type)d.Type).GetProperties().ToDictionary(getName, GetSetDelegate<T>)
                 );
             return (IDictionary<string, Action<T,object>>)setters;
         }
@@ -57,7 +58,7 @@ namespace Net.Code.ADONet
         /// </summary>
         /// <param name="rdr">the data record</param>
         /// <returns>A dynamic object with fields corresponding to the database columns</returns>
-        public static dynamic ToExpando(this IDataRecord rdr)
+        internal static dynamic ToExpando(this IDataRecord rdr)
         {
             var d = new Dictionary<string, object>();
             for (var i = 0; i < rdr.FieldCount; i++)

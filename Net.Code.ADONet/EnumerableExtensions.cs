@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
@@ -19,11 +18,7 @@ namespace Net.Code.ADONet
 
             foreach (var prop in props)
             {
-                var propType = prop.PropertyType;
-
-                if (propType.IsNullableType())
-                    propType = new NullableConverter(propType).UnderlyingType;
-
+                var propType = prop.PropertyType.GetUnderlyingType();
                 table.Columns.Add(prop.Name, propType);
             }
 
@@ -37,12 +32,11 @@ namespace Net.Code.ADONet
             return table;
         }
 
-        public static IDataReader AsDataReader<T>(this IEnumerable<T> input) => new EnumerableDataReaderImpl<T>(input);
-
         /// <summary>
         /// Adapter from IEnumerable[T] to IDataReader
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        public static IDataReader AsDataReader<T>(this IEnumerable<T> input) => new EnumerableDataReaderImpl<T>(input);
+
         private class EnumerableDataReaderImpl<T> : DbDataReader
         {
             private readonly IEnumerable<T> _list;
@@ -91,33 +85,20 @@ namespace Net.Code.ADONet
             public override int GetOrdinal(string name) => PropertyIndexesByName[name];
 
             public override bool GetBoolean(int i) => this.Get<bool>(i);
-
             public override byte GetByte(int i) => this.Get<byte>(i);
-
             public override long GetBytes(int i, long dataOffset, byte[] buffer, int bufferoffset, int length) 
                 => Get(i, dataOffset, buffer, bufferoffset, length);
-
             public override char GetChar(int i) => this.Get<char>(i);
-
             public override long GetChars(int i, long dataOffset, char[] buffer, int bufferoffset, int length) 
                 => Get(i, dataOffset, buffer, bufferoffset, length);
-
             public override Guid GetGuid(int i) => this.Get<Guid>(i);
-
             public override short GetInt16(int i) => this.Get<short>(i);
-
             public override int GetInt32(int i) => this.Get<int>(i);
-
             public override long GetInt64(int i) => this.Get<long>(i);
-
             public override float GetFloat(int i) => this.Get<float>(i);
-
             public override double GetDouble(int i) => this.Get<double>(i);
-
             public override string GetString(int i) => this.Get<string>(i);
-
             public override decimal GetDecimal(int i) => this.Get<decimal>(i);
-
             public override DateTime GetDateTime(int i) => this.Get<DateTime>(i);
 
             long Get<TElem>(int i, long dataOffset, TElem[] buffer, int bufferoffset, int length)
@@ -146,7 +127,7 @@ namespace Net.Code.ADONet
                 var q = from x in Properties.Select((p, i) => new {p, i})
                     let p = x.p
                     let nullable = p.PropertyType.IsNullableType()
-                    let dataType = nullable ? Nullable.GetUnderlyingType(p.PropertyType) : p.PropertyType
+                    let dataType = p.PropertyType.GetUnderlyingType()
                     select new
                     {
                         ColumnName = p.Name,
