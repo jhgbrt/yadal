@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Net.Code.ADONet.Tests.Integration
 {
     public interface IDatabaseImpl

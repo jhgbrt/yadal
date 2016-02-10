@@ -4,7 +4,7 @@ using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using Oracle.ManagedDataAccess.Client;
-using Net.Code.ADONet.Extensions.SqlClient;
+using Net.Code.ADONet.SqlClient;
 
 namespace Net.Code.ADONet.Tests.Integration
 {

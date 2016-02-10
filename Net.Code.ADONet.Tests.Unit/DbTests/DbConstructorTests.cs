@@ -16,6 +16,12 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             db.Connect();
             connection.Received(1).Open();
         }
+        [TestMethod]
+        public void ProviderName_WhenCalled_ReturnsProviderName()
+        {
+            var db = new Db(string.Empty, "provider");
+            Assert.AreEqual("provider", db.ProviderName);
+        }
     }
 
     [TestClass]

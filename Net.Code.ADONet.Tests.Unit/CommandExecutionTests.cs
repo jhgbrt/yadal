@@ -7,7 +7,6 @@ namespace Net.Code.ADONet.Tests.Unit
     [TestClass]
     public class CommandExecutionTests
     {
-        // can not get the ListDataReader to work for this case
         [TestMethod] 
         public void AsDatatable_WhenCalled_ReturnsResults()
         {
@@ -85,6 +84,19 @@ namespace Net.Code.ADONet.Tests.Unit
             var commandBuilder = new CommandBuilder(command);
 
             var result = commandBuilder.AsScalar<int>();
+
+            Assert.AreEqual(1, result);
+        }
+
+        [TestMethod]
+        public void AsScalarObject_WhenCalled_ReturnsScalarValue()
+        {
+            var command = PrepareCommand();
+            command.SetScalarValue(1);
+
+            var commandBuilder = new CommandBuilder(command);
+
+            var result = commandBuilder.AsScalar<object>();
 
             Assert.AreEqual(1, result);
         }

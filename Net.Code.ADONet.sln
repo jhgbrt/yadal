@@ -14,6 +14,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{CF1123
 		.nuget\NuGet.Config = .nuget\NuGet.Config
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Net.Code.ADONet.SingleFile", "Net.Code.ADONet.SingleFile\Net.Code.ADONet.SingleFile.csproj", "{7BEA2A9C-6E88-4188-8BC0-E3EB9B6CF46D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +34,10 @@ Global
 		{B912550C-A54D-46A9-BC22-A19AA87F2D3B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B912550C-A54D-46A9-BC22-A19AA87F2D3B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B912550C-A54D-46A9-BC22-A19AA87F2D3B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7BEA2A9C-6E88-4188-8BC0-E3EB9B6CF46D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7BEA2A9C-6E88-4188-8BC0-E3EB9B6CF46D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7BEA2A9C-6E88-4188-8BC0-E3EB9B6CF46D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7BEA2A9C-6E88-4188-8BC0-E3EB9B6CF46D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

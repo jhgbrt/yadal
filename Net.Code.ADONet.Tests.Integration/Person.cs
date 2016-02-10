@@ -1,5 +1,3 @@
-using System;
-
 namespace Net.Code.ADONet.Tests.Integration
 {
     public class Person

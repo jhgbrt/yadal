@@ -2,9 +2,9 @@
 using System.Data;
 using System.Data.SqlClient;
 
-namespace Net.Code.ADONet.Extensions.SqlClient
+namespace Net.Code.ADONet.SqlClient
 {
-    public static class SqlServer
+    public static class Extensions
     {
         /// <summary>
         /// Adds a table-valued parameter. Only supported on SQL Server (System.Data.SqlClient)
@@ -24,8 +24,7 @@ namespace Net.Code.ADONet.Extensions.SqlClient
                 Value = dataTable
             };
 
-            commandBuilder.Command.Parameters.Add(p);
-            return commandBuilder;
+            return commandBuilder.WithParameter(p);
         }
 
         /// <summary>

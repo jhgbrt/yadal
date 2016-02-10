@@ -10,46 +10,44 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
     public class DbConfigurationBuilderTests
     {
         private DbConfigurationBuilder _dbConfigurationBuilder;
-        private DbConfig _config;
 
         [TestInitialize]
         public void Setup()
         {
-            _config = new DbConfig();
-            _dbConfigurationBuilder = new DbConfigurationBuilder(_config);
+            _dbConfigurationBuilder = new DbConfigurationBuilder();
         }
 
         [TestMethod]
         public void Default_PrepareCommand_DoesNothing()
         {
-            _dbConfigurationBuilder.FromProviderName("unknown");
+            var config = _dbConfigurationBuilder.FromProviderName("unknown").Config;
             var command = Substitute.For<IDbCommand>();
-            _config.PrepareCommand(command);
+            config.PrepareCommand(command);
         }
 
         [TestMethod]
         public void SqlServer_PrepareCommand_DoesNothing()
         {
-            _dbConfigurationBuilder.FromProviderName("System.Data.SqlClient");
+            var config = _dbConfigurationBuilder.FromProviderName("System.Data.SqlClient").Config;
             var command = new SqlCommand();
-            _config.PrepareCommand(command);
+            config.PrepareCommand(command);
         }
 
         [TestMethod]
         public void Oracle_PrepareCommand_SetsBindByName()
         {
-            _dbConfigurationBuilder.FromProviderName("Oracle.DataAccess.Client");
+            var config = _dbConfigurationBuilder.FromProviderName("Oracle.DataAccess.Client").Config;
             var oracleCommand = new FakeOracleDbCommand();
-            _config.PrepareCommand(oracleCommand);
+            config.PrepareCommand(oracleCommand);
             Assert.IsTrue(oracleCommand.BindByName);
         }
 
         [TestMethod]
         public void OracleManaged_PrepareCommand_SetsBindByName()
         {
-            _dbConfigurationBuilder.FromProviderName("Oracle.ManagedDataAccess.Client");
+            var config = _dbConfigurationBuilder.FromProviderName("Oracle.ManagedDataAccess.Client").Config;
             var oracleCommand = new FakeOracleDbCommand();
-            _config.PrepareCommand(oracleCommand);
+            config.PrepareCommand(oracleCommand);
             Assert.IsTrue(oracleCommand.BindByName);
         }
 

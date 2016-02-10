@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using Net.Code.ADONet.Extensions.SqlClient;
 
 namespace Net.Code.ADONet.Tests.Unit
 {
@@ -14,8 +13,6 @@ namespace Net.Code.ADONet.Tests.Unit
 
     class FakeCommand : DbCommand
     {
-
-        private readonly DbParameterCollection _parameterCollection = new FakeParameterCollection();
         private IDataReader _dataReader;
         private object _scalarValue;
         private int _nonQueryResult;
@@ -35,31 +32,19 @@ namespace Net.Code.ADONet.Tests.Unit
         public override UpdateRowSource UpdatedRowSource { get; set; }
         protected override DbConnection DbConnection { get; set; }
 
-        protected override DbParameterCollection DbParameterCollection => _parameterCollection;
+        protected override DbParameterCollection DbParameterCollection { get; } = new FakeParameterCollection();
 
         protected override DbTransaction DbTransaction { get; set; }
 
         public override bool DesignTimeVisible { get; set; }
 
-        public void SetResultSet<T>(IEnumerable<T> list)
-        {
-            _dataReader = list.AsDataReader();
-        }
+        public void SetResultSet<T>(IEnumerable<T> list) => _dataReader = list.AsDataReader();
 
-        public void SetMultiResultSet<T>(IEnumerable<IEnumerable<T>> list)
-        {
-            _dataReader = list.AsMultiDataReader();
-        }
+        public void SetMultiResultSet<T>(IEnumerable<IEnumerable<T>> list) => _dataReader = list.AsMultiDataReader();
 
-        public void SetScalarValue<T>(T value)
-        {
-            _scalarValue = value;
-        }
+        public void SetScalarValue<T>(T value) => _scalarValue = value;
 
-        public void SetNonQueryResult(int nonQueryResult)
-        {
-            _nonQueryResult = nonQueryResult;
-        }
+        public void SetNonQueryResult(int nonQueryResult) => _nonQueryResult = nonQueryResult;
 
         public override void Cancel() {}
 

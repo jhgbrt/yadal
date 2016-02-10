@@ -1,15 +1,42 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 
-namespace Net.Code.ADONet.Extensions.SqlClient
+namespace Net.Code.ADONet
 {
-    public static class EnumerableAsDataReader
+    public static class EnumerableExtensions
     {
+        public static DataTable ToDataTable<T>(this IEnumerable<T> items)
+        {
+            var table = new DataTable(typeof(T).Name);
+
+            var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+            foreach (var prop in props)
+            {
+                var propType = prop.PropertyType;
+
+                if (propType.IsNullableType())
+                    propType = new NullableConverter(propType).UnderlyingType;
+
+                table.Columns.Add(prop.Name, propType);
+            }
+
+            var values = new object[props.Length];
+            foreach (var item in items)
+            {
+                for (var i = 0; i < props.Length; i++)
+                    values[i] = props[i].GetValue(item, null);
+                table.Rows.Add(values);
+            }
+            return table;
+        }
+
         public static IDataReader AsDataReader<T>(this IEnumerable<T> input) => new EnumerableDataReaderImpl<T>(input);
 
         /// <summary>

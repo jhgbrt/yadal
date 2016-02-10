@@ -78,7 +78,6 @@
     <Compile Include="StringExtensionsTests\StringExtensionTests.cs" />
     <Compile Include="ToDatatableTests\EnumerableToDatatableTests.cs" />
     <Compile Include="TypeExtensionsTests\DataRecordExtensionsTests.cs" />
-    <Compile Include="TypeExtensionsTests\ExtensionsForGettingRidOfDBNullTests.cs" />
     <Compile Include="TypeExtensionsTests\IsNullableType.cs" />
   </ItemGroup>
   <ItemGroup>

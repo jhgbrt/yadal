@@ -43,10 +43,26 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AdoNetProviderFactory.cs" />
+    <Compile Include="CommandBuilder.cs" />
+    <Compile Include="ConvertTo.cs" />
+    <Compile Include="DataReaderExtensions.cs" />
+    <Compile Include="DataRecordExtensions.cs" />
+    <Compile Include="DataTableExtensions.cs" />
     <Compile Include="Db.cs" />
-    <Compile Include="Db.Extensions.SqlServer.cs" />
-    <Compile Include="EnumerableAsDataReader.cs" />
+    <Compile Include="SqlClient\Extensions.cs" />
+    <Compile Include="DbConfig.cs" />
+    <Compile Include="DbConfigurationBuilder.cs" />
+    <Compile Include="DBNullHelper.cs" />
+    <Compile Include="Dynamic.cs" />
+    <Compile Include="EnumerableExtensions.cs" />
+    <Compile Include="IConnectionFactory.cs" />
+    <Compile Include="IDb.cs" />
+    <Compile Include="IDbConfigurationBuilder.cs" />
+    <Compile Include="Logger.cs" />
+    <Compile Include="MappingConvention.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StringExtensions.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
