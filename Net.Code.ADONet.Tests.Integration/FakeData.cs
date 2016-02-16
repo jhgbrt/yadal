@@ -37,5 +37,24 @@ namespace Net.Code.ADONet.Tests.Integration
 
         }
 
+        public static class Addresses
+        {
+            public static Address[] List(int n)
+            {
+                return Enumerable.Range(1, n).Select(x => One()).ToArray();
+            }
+            public static Address One()
+            {
+                return new Address
+                {
+                    Id = Id.Next(),
+                    Street = Faker.Address.StreetAddress(),
+                    ZipCode = Faker.Address.ZipCode(),
+                    City = Faker.Address.City(),
+                    Country = Faker.Address.Country()
+                };
+            }
+        }
+
     }
 }

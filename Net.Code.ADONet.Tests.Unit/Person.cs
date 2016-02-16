@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -51,7 +50,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Assert.AreEqual(1, result.Rows[0]["Id"]);
         }
 
-        public static void VerifyMultiResultSet(List<List<dynamic>> result)
+        public static void VerifyMultiResultSet(List<IReadOnlyCollection<dynamic>> result)
         {
             var all = from list in result
                 from item in list
@@ -74,24 +73,24 @@ namespace Net.Code.ADONet.Tests.Unit
             VerifyIds(new[] {result.Id});
         }
 
-        public static void VerifyMultiResultSet(Tuple<List<Person>, List<Person>> result)
+        public static void VerifyMultiResultSet(MultiResultSet<Person,Person> result)
         {
             var lists = new[]
             {
-                result.Item1,
-                result.Item2
+                result.Set1,
+                result.Set2
             };
             
             VerifyIds(from list in lists from item in list select item.Id);
         }
 
-        public static void VerifyMultiResultSet(Tuple<List<Person>, List<Person>, List<Person>> result)
+        public static void VerifyMultiResultSet(MultiResultSet<Person, Person, Person> result)
         {
             var lists = new[]
             {
-                result.Item1,
-                result.Item2,
-                result.Item3
+                result.Set1,
+                result.Set2,
+                result.Set3
             };
             VerifyIds(from list in lists from item in list select item.Id);
         }

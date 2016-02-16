@@ -5,6 +5,7 @@ using System.Data.Common;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Reflection;
+using System.Collections.ObjectModel;
 using System.Collections.Concurrent;
 using System.Configuration;
 using System.ComponentModel;
@@ -54,7 +55,7 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Executes the query and returns the result as a list of lists
         /// </summary>
-        public IEnumerable<List<dynamic>> AsMultiResultSet()
+        public IEnumerable<IReadOnlyCollection<dynamic>> AsMultiResultSet()
         {
             using (var reader = Execute.Reader())
             {
@@ -66,29 +67,50 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Executes the query and returns the result as a tuple of lists
         /// </summary>
-        public Tuple<List<T1>, List<T2>> AsMultiResultSet<T1, T2>()where T1 : new ()where T2 : new ()
+        public MultiResultSet<T1, T2> AsMultiResultSet<T1, T2>()where T1 : new ()where T2 : new ()
         {
             using (var reader = Execute.Reader())
             {
                 bool more;
                 var result1 = reader.GetResultSet<T1>(_config, out more);
                 var result2 = reader.GetResultSet<T2>(_config, out more);
-                return Tuple.Create(result1, result2);
+                return MultiResultSet.Create(result1, result2);
             }
         }
 
         /// <summary>
         /// Executes the query and returns the result as a tuple of lists
         /// </summary>
-        public Tuple<List<T1>, List<T2>, List<T3>> AsMultiResultSet<T1, T2, T3>()where T1 : new ()where T2 : new ()where T3 : new ()
+        public MultiResultSet<T1, T2, T3> AsMultiResultSet<T1, T2, T3>()
         {
             using (var reader = Execute.Reader())
             {
                 bool more;
-                var result1 = reader.GetResultSet<T1>(_config, out more);
-                var result2 = reader.GetResultSet<T2>(_config, out more);
-                var result3 = reader.GetResultSet<T3>(_config, out more);
-                return Tuple.Create(result1, result2, result3);
+                return MultiResultSet.Create(reader.GetResultSet<T1>(_config, out more), reader.GetResultSet<T2>(_config, out more), reader.GetResultSet<T3>(_config, out more));
+            }
+        }
+
+        /// <summary>
+        /// Executes the query and returns the result as a tuple of lists
+        /// </summary>
+        public MultiResultSet<T1, T2, T3, T4> AsMultiResultSet<T1, T2, T3, T4>()
+        {
+            using (var reader = Execute.Reader())
+            {
+                bool more;
+                return MultiResultSet.Create(reader.GetResultSet<T1>(_config, out more), reader.GetResultSet<T2>(_config, out more), reader.GetResultSet<T3>(_config, out more), reader.GetResultSet<T4>(_config, out more));
+            }
+        }
+
+        /// <summary>
+        /// Executes the query and returns the result as a tuple of lists
+        /// </summary>
+        public MultiResultSet<T1, T2, T3, T4, T5> AsMultiResultSet<T1, T2, T3, T4, T5>()
+        {
+            using (var reader = Execute.Reader())
+            {
+                bool more;
+                return MultiResultSet.Create(reader.GetResultSet<T1>(_config, out more), reader.GetResultSet<T2>(_config, out more), reader.GetResultSet<T3>(_config, out more), reader.GetResultSet<T4>(_config, out more), reader.GetResultSet<T5>(_config, out more));
             }
         }
 
@@ -145,7 +167,7 @@ namespace Net.Code.ADONet
         /// Executes the query and returns the result as a list of lists asynchronously
         /// This method is only supported if the underlying provider propertly implements async behaviour.
         /// </summary>
-        public async Task<IEnumerable<IEnumerable<dynamic>>> AsMultiResultSetAsync()
+        public async Task<IEnumerable<IReadOnlyCollection<dynamic>>> AsMultiResultSetAsync()
         {
             using (var reader = await ExecuteAsync.Reader())
             {
@@ -399,7 +421,7 @@ namespace Net.Code.ADONet
 
         internal static IEnumerable<dynamic> ToExpandoList(this IEnumerable<IDataRecord> input) => input.Select(item => item.ToExpando());
         internal static IEnumerable<dynamic> ToDynamicDataRecord(this IEnumerable<IDataRecord> input) => input.Select(item => Dynamic.From(item));
-        internal static IEnumerable<List<dynamic>> ToMultiResultSet(this IDataReader reader)
+        internal static IEnumerable<IReadOnlyCollection<dynamic>> ToMultiResultSet(this IDataReader reader)
         {
             do
             {
@@ -411,7 +433,7 @@ namespace Net.Code.ADONet
             while (reader.NextResult());
         }
 
-        internal static List<T> GetResultSet<T>(this IDataReader reader, DbConfig config, out bool moreResults)where T : new ()
+        internal static IReadOnlyCollection<T> GetResultSet<T>(this IDataReader reader, DbConfig config, out bool moreResults)
         {
             var list = new List<T>();
             while (reader.Read())
@@ -981,6 +1003,155 @@ namespace Net.Code.ADONet
         public static readonly MappingConvention Loose = new MappingConvention((record, i) => record.GetName(i).ToUpperRemoveSpecialChars(), p => p.Name.ToUpperRemoveSpecialChars());
         public string GetName(IDataRecord record, int i) => _getColumnName(record, i);
         public string GetName(PropertyInfo property) => _getPropertyName(property);
+    }
+
+    public static class MultiResultSet
+    {
+        public static MultiResultSet<T1, T2> Create<T1, T2>(IReadOnlyCollection<T1> set1, IReadOnlyCollection<T2> set2)
+        {
+            return new MultiResultSet<T1, T2>(set1, set2);
+        }
+
+        public static MultiResultSet<T1, T2, T3> Create<T1, T2, T3>(IReadOnlyCollection<T1> set1, IReadOnlyCollection<T2> set2, IReadOnlyCollection<T3> set3)
+        {
+            return new MultiResultSet<T1, T2, T3>(set1, set2, set3);
+        }
+
+        public static MultiResultSet<T1, T2, T3, T4> Create<T1, T2, T3, T4>(IReadOnlyCollection<T1> set1, IReadOnlyCollection<T2> set2, IReadOnlyCollection<T3> set3, IReadOnlyCollection<T4> set4)
+        {
+            return new MultiResultSet<T1, T2, T3, T4>(set1, set2, set3, set4);
+        }
+
+        public static MultiResultSet<T1, T2, T3, T4, T5> Create<T1, T2, T3, T4, T5>(IReadOnlyCollection<T1> set1, IReadOnlyCollection<T2> set2, IReadOnlyCollection<T3> set3, IReadOnlyCollection<T4> set4, IReadOnlyCollection<T5> set5)
+        {
+            return new MultiResultSet<T1, T2, T3, T4, T5>(set1, set2, set3, set4, set5);
+        }
+    }
+
+    public sealed class MultiResultSet<T1, T2>
+    {
+        public MultiResultSet(IReadOnlyCollection<T1> set1, IReadOnlyCollection<T2> set2)
+        {
+            Set1 = set1;
+            Set2 = set2;
+        }
+
+        public IReadOnlyCollection<T1> Set1
+        {
+            get;
+            private set;
+        }
+
+        public IReadOnlyCollection<T2> Set2
+        {
+            get;
+            private set;
+        }
+    }
+
+    public sealed class MultiResultSet<T1, T2, T3>
+    {
+        public MultiResultSet(IReadOnlyCollection<T1> set1, IReadOnlyCollection<T2> set2, IReadOnlyCollection<T3> set3)
+        {
+            Set1 = set1;
+            Set2 = set2;
+            Set3 = set3;
+        }
+
+        public IReadOnlyCollection<T1> Set1
+        {
+            get;
+            private set;
+        }
+
+        public IReadOnlyCollection<T2> Set2
+        {
+            get;
+            private set;
+        }
+
+        public IReadOnlyCollection<T3> Set3
+        {
+            get;
+            private set;
+        }
+    }
+
+    public sealed class MultiResultSet<T1, T2, T3, T4>
+    {
+        public MultiResultSet(IReadOnlyCollection<T1> set1, IReadOnlyCollection<T2> set2, IReadOnlyCollection<T3> set3, IReadOnlyCollection<T4> set4)
+        {
+            Set1 = set1;
+            Set2 = set2;
+            Set3 = set3;
+            Set4 = set4;
+        }
+
+        public IReadOnlyCollection<T1> Set1
+        {
+            get;
+            private set;
+        }
+
+        public IReadOnlyCollection<T2> Set2
+        {
+            get;
+            private set;
+        }
+
+        public IReadOnlyCollection<T3> Set3
+        {
+            get;
+            private set;
+        }
+
+        public IReadOnlyCollection<T4> Set4
+        {
+            get;
+            private set;
+        }
+    }
+
+    public sealed class MultiResultSet<T1, T2, T3, T4, T5>
+    {
+        public MultiResultSet(IReadOnlyCollection<T1> set1, IReadOnlyCollection<T2> set2, IReadOnlyCollection<T3> set3, IReadOnlyCollection<T4> set4, IReadOnlyCollection<T5> set5)
+        {
+            Set1 = set1;
+            Set2 = set2;
+            Set3 = set3;
+            Set4 = set4;
+            Set5 = set5;
+        }
+
+        public IReadOnlyCollection<T1> Set1
+        {
+            get;
+            private set;
+        }
+
+        public IReadOnlyCollection<T2> Set2
+        {
+            get;
+            private set;
+        }
+
+        public IReadOnlyCollection<T3> Set3
+        {
+            get;
+            private set;
+        }
+
+        public IReadOnlyCollection<T4> Set4
+        {
+            get;
+            private set;
+        }
+
+        public IReadOnlyCollection<T5> Set5
+        {
+            get;
+            private set;
+        }
     }
 
     public static class StringExtensions

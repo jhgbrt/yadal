@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -17,7 +16,7 @@ namespace Net.Code.ADONet.Tests.Integration
             _target = target;
         }
 
-        public void DropRecreate()
+        private void DropRecreate()
         {
             _target.DropAndRecreate();
         }
@@ -26,8 +25,8 @@ namespace Net.Code.ADONet.Tests.Integration
         {
             using (var db = CreateDb())
             {
-                var sqlQuery = _target.CreatePersonTable;
-                db.Sql(sqlQuery).AsNonQuery();
+                db.Sql(_target.CreatePersonTable).AsNonQuery();
+                db.Sql(_target.CreateAddressTable).AsNonQuery();
             }
         }
 
@@ -36,16 +35,21 @@ namespace Net.Code.ADONet.Tests.Integration
             using (var db = CreateDb())
             {
                 db.Execute($"DROP TABLE {nameof(Person)}");
+                db.Execute($"DROP TABLE {nameof(Address)}");
             }
         }
 
-        public void Insert(IEnumerable<Person> items)
+        public void Insert(IEnumerable<Person> items, IEnumerable<Address> addresses)
         {
             using (var db = CreateDb())
             {
                 foreach (var item in items)
                 {
                     db.Sql(_target.InsertPerson).WithParameters(item).AsNonQuery();
+                }
+                foreach (var item in addresses)
+                {
+                    db.Sql(_target.InsertAddress).WithParameters(item).AsNonQuery();
                 }
             }
         }
@@ -120,36 +124,32 @@ namespace Net.Code.ADONet.Tests.Integration
             }
         }
 
-        public List<List<Person>> AsMultiResultSet()
+        public MultiResultSet<Person, Address> AsMultiResultSet()
         {
             using (var db = CreateDb())
             {
-                Tuple<List<Person>, List<Person>> result;
+                MultiResultSet<Person, Address> result;
                 if (_target.ProviderName.Contains("Oracle"))
                 {
                     var sqlQuery = "BEGIN\r\n" +
                                    " OPEN :Cur1 FOR SELECT * FROM PERSON;" +
-                                   " OPEN :Cur2 FOR SELECT * FROM PERSON;" +
+                                   " OPEN :Cur2 FOR SELECT * FROM ADDRESS;" +
                                    "END;";
                     result = db
                         .Sql(sqlQuery)
                         .WithParameter(new OracleParameter("Cur1", OracleDbType.RefCursor, ParameterDirection.Output))
                         .WithParameter(new OracleParameter("Cur2", OracleDbType.RefCursor, ParameterDirection.Output))
-                        .AsMultiResultSet<Person, Person>();
+                        .AsMultiResultSet<Person, Address>();
                 }
                 else
                 {
                     var sqlQuery = $"SELECT * FROM {nameof(Person)};" +
-                                   $"SELECT * FROM {nameof(Person)}";
+                                   $"SELECT * FROM {nameof(Address)}";
                     result = db
                         .Sql(sqlQuery)
-                        .AsMultiResultSet<Person, Person>();
+                        .AsMultiResultSet<Person, Address>();
                 }
-                return new List<List<Person>>
-                {
-                    result.Item1,
-                    result.Item2
-                };
+                return result;
             }
         }
 

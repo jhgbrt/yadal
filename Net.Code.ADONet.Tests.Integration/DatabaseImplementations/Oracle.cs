@@ -13,23 +13,17 @@ namespace Net.Code.ADONet.Tests.Integration
                                                     ",   NAME VARCHAR2(100) NOT NULL" +
                                                     ",   EMAIL VARCHAR2(100) NOT NULL" +
                                                     ")";
+        public override string CreateAddressTable => "CREATE TABLE ADDRESS (" +
+                                                    "    ID NUMBER(8,0) NOT NULL" +
+                                                    ",   STREET VARCHAR2(100) NOT NULL" +
+                                                    ",   ZIP_CODE VARCHAR2(20) NOT NULL" +
+                                                    ",   CITY VARCHAR2(100) NOT NULL" +
+                                                    ",   COUNTRY VARCHAR2(100) NOT NULL" +
+                                                    ")";
 
-        public override string InsertPerson
-        {
-            get
-            {
-                var type = new
-                {
-                    Id = 0,
-                    OptionalNumber = (int?) null,
-                    RequiredNumber = 0,
-                    Name = string.Empty,
-                    Email = string.Empty
-                }.GetType();
-                return
-                    $"INSERT INTO PERSON (ID,OPTIONAL_NUMBER,REQUIRED_NUMBER,NAME,EMAIL) VALUES (:Id,:OptionalNumber,:RequiredNumber,:Name,:Email)";
-            }
-        }
+        public override string InsertPerson => $"INSERT INTO PERSON (ID,OPTIONAL_NUMBER,REQUIRED_NUMBER,NAME,EMAIL) VALUES (:Id,:OptionalNumber,:RequiredNumber,:Name,:Email)";
+
+        public override string InsertAddress => $"INSERT INTO ADDRESS (ID,STREET,ZIP_CODE,CITY,COUNTRY) VALUES (:Id,:Street,:ZipCode,:City,:Country)";
 
         public override void DropAndRecreate()
         {

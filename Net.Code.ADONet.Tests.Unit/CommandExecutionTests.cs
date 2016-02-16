@@ -123,7 +123,7 @@ namespace Net.Code.ADONet.Tests.Unit
             command.SetMultiResultSet(data);
             var commandBuilder = new CommandBuilder(command, DbConfig.Default);
             
-            var result = commandBuilder.AsMultiResultSet().Select(x => x.ToList()).ToList();
+            var result = commandBuilder.AsMultiResultSet().ToList();
 
             Person.VerifyMultiResultSet(result);
         }
@@ -212,7 +212,7 @@ namespace Net.Code.ADONet.Tests.Unit
             command.SetMultiResultSet(Person.GetMultiResultSet());
             var commandBuilder = new CommandBuilder(command, DbConfig.Default);
             
-            var result = (await commandBuilder.AsMultiResultSetAsync()).Select(x => x.ToList()).ToList();
+            var result = (await commandBuilder.AsMultiResultSetAsync()).ToList();
 
             Person.VerifyMultiResultSet(result);
         }

@@ -9,153 +9,13 @@ namespace Net.Code.ADONet
 {
     public class CommandBuilder
     {
-        private readonly IDbCommand _command;
         private readonly DbConfig _config;
 
         public CommandBuilder(IDbCommand command, DbConfig config)
         {
-            _command = command;
+            Command = command;
             _config = config;
         }
-        
-        /// <summary>
-        /// The raw IDbCommand instance
-        /// </summary>
-        public IDbCommand Command => _command;
-
-        /// <summary>
-        /// Executes the query and returns the result as a list of dynamic objects. 
-        /// </summary>
-        public IEnumerable<dynamic> AsEnumerable() => Execute.Reader().AsEnumerable().ToExpandoList();
-
-        /// <summary>
-        /// Executes the query and returns the result as a list of [T]. This method is slightly faster. 
-        /// than doing AsEnumerable().Select(selector). The selector is required to map objects as the 
-        /// underlying datareader is enumerated.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="selector">mapping function that transforms a datarecord (wrapped as a dynamic object) to an instance of type [T]</param>
-        public IEnumerable<T> AsEnumerable<T>(Func<dynamic, T> selector) => Select(selector);
-
-        /// <summary>
-        /// Executes the query and returns the result as a list of [T] using the 'case-insensitive, underscore-agnostic column name to property mapping convention.' 
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        public IEnumerable<T> AsEnumerable<T>() 
-            => AsReader().AsEnumerable().Select(r => r.MapTo<T>(_config));
-
-        // enables linq 'select' syntax
-        public IEnumerable<T> Select<T>(Func<dynamic, T> selector) 
-            => Execute.Reader().AsEnumerable().ToDynamicDataRecord().Select(selector);
-
-        /// <summary>
-        /// Executes the query and returns the result as a list of lists
-        /// </summary>
-        public IEnumerable<List<dynamic>> AsMultiResultSet()
-        {
-            using (var reader = Execute.Reader())
-            {
-                foreach (var item in reader.ToMultiResultSet()) yield return item;
-            }
-        }
-        /// <summary>
-        /// Executes the query and returns the result as a tuple of lists
-        /// </summary>
-        public Tuple<List<T1>, List<T2>> AsMultiResultSet<T1, T2>() where T1 : new() where T2 : new()
-        {
-            using (var reader = Execute.Reader())
-            {
-                bool more;
-                var result1 = reader.GetResultSet<T1>(_config, out more);
-                var result2 = reader.GetResultSet<T2>(_config, out more);
-                return Tuple.Create(
-                    result1,
-                    result2
-                    );
-            }
-        }
-        /// <summary>
-        /// Executes the query and returns the result as a tuple of lists
-        /// </summary>
-        public Tuple<List<T1>, List<T2>, List<T3>> AsMultiResultSet<T1, T2, T3>() where T1 : new() where T2 : new() where T3 : new()
-        {
-            using (var reader = Execute.Reader())
-            {
-                bool more;
-                var result1 = reader.GetResultSet<T1>(_config, out more);
-                var result2 = reader.GetResultSet<T2>(_config, out more);
-                var result3 = reader.GetResultSet<T3>(_config, out more);
-                return Tuple.Create(
-                    result1, result2, result3
-                    );
-            }
-        }
-        /// <summary>
-        /// Executes the command, returning the first column of the first result, converted to the type T
-        /// </summary>
-        /// <typeparam name="T">return type</typeparam>
-        public T AsScalar<T>() => ConvertTo<T>.From(AsScalar());
-
-        public object AsScalar() => Execute.Scalar();
-
-        /// <summary>
-        /// Executes the command as a SQL statement, returning the number of rows affected
-        /// </summary>
-        public int AsNonQuery() => Execute.NonQuery();
-
-        private Executor Execute => new Executor(_command);
-
-        /// <summary>
-        /// Executes the command as a statement, returning the number of rows affected asynchronously
-        /// This method is only supported if the underlying provider propertly implements async behaviour.
-        /// </summary>
-        public Task<int> AsNonQueryAsync() => ExecuteAsync.NonQuery();
-
-        /// <summary>
-        /// Executes the command, returning the first column of the first result, converted to the type T asynchronously. 
-        /// This method is only supported if the underlying provider propertly implements async behaviour.
-        /// </summary>
-        /// <typeparam name="T">return type</typeparam>
-        public async Task<T> AsScalarAsync<T>()
-        {
-            var result = await ExecuteAsync.Scalar();
-            return ConvertTo<T>.From(result);
-        }
-
-        /// <summary>
-        /// Executes the query and returns the result as a list of dynamic objects asynchronously
-        /// This method is only supported if the underlying provider propertly implements async behaviour.
-        /// </summary>
-        public async Task<IEnumerable<dynamic>> AsEnumerableAsync()
-        {
-            var reader = await ExecuteAsync.Reader();
-            return reader.AsEnumerable().ToExpandoList();
-        }
-
-        /// <summary>
-        /// Executes the query and returns the result as a list of [T] asynchronously
-        /// This method is only supported if the underlying provider propertly implements async behaviour.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="selector">mapping function that transforms a datarecord (wrapped as a dynamic object) to an instance of type [T]</param>
-        public async Task<IEnumerable<T>> AsEnumerableAsync<T>(Func<dynamic, T> selector)
-        {
-            var reader = await ExecuteAsync.Reader();
-            return reader.AsEnumerable().ToDynamicDataRecord().Select(selector);
-        }
-
-        /// <summary>
-        /// Executes the query and returns the result as a list of lists asynchronously
-        /// This method is only supported if the underlying provider propertly implements async behaviour.
-        /// </summary>
-        public async Task<IEnumerable<IEnumerable<dynamic>>> AsMultiResultSetAsync()
-        {
-            using (var reader = await ExecuteAsync.Reader())
-            {
-                return reader.ToMultiResultSet().ToList();
-            }
-        }
-        private AsyncExecutor ExecuteAsync => new AsyncExecutor((DbCommand)_command);
 
         /// <summary>
         /// Sets the command text
@@ -163,7 +23,7 @@ namespace Net.Code.ADONet
         /// <param name="text"></param>
         public CommandBuilder WithCommandText(string text)
         {
-            _command.CommandText = text;
+            Command.CommandText = text;
             return this;
         }
 
@@ -173,7 +33,7 @@ namespace Net.Code.ADONet
         /// <param name="type"></param>
         public CommandBuilder OfType(CommandType type)
         {
-            _command.CommandType = type;
+            Command.CommandType = type;
             return this;
         }
 
@@ -233,6 +93,125 @@ namespace Net.Code.ADONet
             return this;
         }
 
+        public CommandBuilder InTransaction(IDbTransaction tx)
+        {
+            Command.Transaction = tx;
+            return this;
+        }
+        
+        /// <summary>
+        /// The raw IDbCommand instance
+        /// </summary>
+        public IDbCommand Command { get; }
+
+        /// <summary>
+        /// Executes the query and returns the result as a list of dynamic objects. 
+        /// </summary>
+        public IEnumerable<dynamic> AsEnumerable() => Execute.Reader().AsEnumerable().ToExpandoList();
+
+        /// <summary>
+        /// Executes the query and returns the result as a list of [T]. This method is slightly faster. 
+        /// than doing AsEnumerable().Select(selector). The selector is required to map objects as the 
+        /// underlying datareader is enumerated.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="selector">mapping function that transforms a datarecord (wrapped as a dynamic object) to an instance of type [T]</param>
+        public IEnumerable<T> AsEnumerable<T>(Func<dynamic, T> selector) => Select(selector);
+
+        /// <summary>
+        /// Executes the query and returns the result as a list of [T] using the 'case-insensitive, underscore-agnostic column name to property mapping convention.' 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        public IEnumerable<T> AsEnumerable<T>() => AsReader().AsEnumerable().Select(r => r.MapTo<T>(_config));
+
+        // enables linq 'select' syntax
+        public IEnumerable<T> Select<T>(Func<dynamic, T> selector) 
+            => Execute.Reader().AsEnumerable().ToDynamicDataRecord().Select(selector);
+
+        /// <summary>
+        /// Executes the query and returns the result as a list of lists
+        /// </summary>
+        public IEnumerable<IReadOnlyCollection<dynamic>> AsMultiResultSet()
+        {
+            using (var reader = Execute.Reader())
+            {
+                foreach (var item in reader.ToMultiResultSet()) yield return item;
+            }
+        }
+        /// <summary>
+        /// Executes the query and returns the result as a tuple of lists
+        /// </summary>
+        public MultiResultSet<T1,T2> AsMultiResultSet<T1, T2>()
+        {
+            using (var reader = Execute.Reader())
+            {
+                bool more;
+                return MultiResultSet.Create(
+                    reader.GetResultSet<T1>(_config, out more),
+                    reader.GetResultSet<T2>(_config, out more)
+                    );
+            }
+        }
+        /// <summary>
+        /// Executes the query and returns the result as a tuple of lists
+        /// </summary>
+        public MultiResultSet<T1,T2,T3> AsMultiResultSet<T1, T2, T3>() 
+        {
+            using (var reader = Execute.Reader())
+            {
+                bool more;
+                return MultiResultSet.Create(
+                    reader.GetResultSet<T1>(_config, out more),
+                    reader.GetResultSet<T2>(_config, out more),
+                    reader.GetResultSet<T3>(_config, out more)
+                    );
+            }
+        }
+        /// <summary>
+        /// Executes the query and returns the result as a tuple of lists
+        /// </summary>
+        public MultiResultSet<T1, T2, T3, T4> AsMultiResultSet<T1, T2, T3, T4>()
+        {
+            using (var reader = Execute.Reader())
+            {
+                bool more;
+                return MultiResultSet.Create(
+                    reader.GetResultSet<T1>(_config, out more),
+                    reader.GetResultSet<T2>(_config, out more),
+                    reader.GetResultSet<T3>(_config, out more),
+                    reader.GetResultSet<T4>(_config, out more)
+                    );
+            }
+        }
+        /// <summary>
+        /// Executes the query and returns the result as a tuple of lists
+        /// </summary>
+        public MultiResultSet<T1, T2, T3, T4, T5> AsMultiResultSet<T1, T2, T3, T4, T5>()
+        {
+            using (var reader = Execute.Reader())
+            {
+                bool more;
+                return MultiResultSet.Create(
+                    reader.GetResultSet<T1>(_config, out more),
+                    reader.GetResultSet<T2>(_config, out more),
+                    reader.GetResultSet<T3>(_config, out more),
+                    reader.GetResultSet<T4>(_config, out more),
+                    reader.GetResultSet<T5>(_config, out more)
+                    );
+            }
+        }
+        /// <summary>
+        /// Executes the command, returning the first column of the first result, converted to the type T
+        /// </summary>
+        /// <typeparam name="T">return type</typeparam>
+        public T AsScalar<T>() => ConvertTo<T>.From(AsScalar());
+
+        public object AsScalar() => Execute.Scalar();
+
+        /// <summary>
+        /// Executes the command as a SQL statement, returning the number of rows affected
+        /// </summary>
+        public int AsNonQuery() => Execute.NonQuery();
 
         /// <summary>
         /// Executes the command as a datareader. Use this if you need best performance.
@@ -241,13 +220,62 @@ namespace Net.Code.ADONet
 
         public DataTable AsDataTable() => Execute.DataTable();
 
-        public CommandBuilder InTransaction(IDbTransaction tx)
-        {
-            Command.Transaction = tx;
-            return this;
-        }
 
         public T Single<T>() => AsEnumerable<T>().Single();
+
+        private Executor Execute => new Executor(Command);
+
+        /// <summary>
+        /// Executes the command as a statement, returning the number of rows affected asynchronously
+        /// This method is only supported if the underlying provider propertly implements async behaviour.
+        /// </summary>
+        public Task<int> AsNonQueryAsync() => ExecuteAsync.NonQuery();
+
+        /// <summary>
+        /// Executes the command, returning the first column of the first result, converted to the type T asynchronously. 
+        /// This method is only supported if the underlying provider propertly implements async behaviour.
+        /// </summary>
+        /// <typeparam name="T">return type</typeparam>
+        public async Task<T> AsScalarAsync<T>()
+        {
+            var result = await ExecuteAsync.Scalar();
+            return ConvertTo<T>.From(result);
+        }
+
+        /// <summary>
+        /// Executes the query and returns the result as a list of dynamic objects asynchronously
+        /// This method is only supported if the underlying provider propertly implements async behaviour.
+        /// </summary>
+        public async Task<IEnumerable<dynamic>> AsEnumerableAsync()
+        {
+            var reader = await ExecuteAsync.Reader();
+            return reader.AsEnumerable().ToExpandoList();
+        }
+
+        /// <summary>
+        /// Executes the query and returns the result as a list of [T] asynchronously
+        /// This method is only supported if the underlying provider propertly implements async behaviour.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="selector">mapping function that transforms a datarecord (wrapped as a dynamic object) to an instance of type [T]</param>
+        public async Task<IEnumerable<T>> AsEnumerableAsync<T>(Func<dynamic, T> selector)
+        {
+            var reader = await ExecuteAsync.Reader();
+            return reader.AsEnumerable().ToDynamicDataRecord().Select(selector);
+        }
+
+        /// <summary>
+        /// Executes the query and returns the result as a list of lists asynchronously
+        /// This method is only supported if the underlying provider propertly implements async behaviour.
+        /// </summary>
+        public async Task<IEnumerable<IReadOnlyCollection<dynamic>>> AsMultiResultSetAsync()
+        {
+            using (var reader = await ExecuteAsync.Reader())
+            {
+                return reader.ToMultiResultSet().ToList();
+            }
+        }
+        private AsyncExecutor ExecuteAsync => new AsyncExecutor((DbCommand)Command);
 
         class Executor
         {
@@ -341,4 +369,5 @@ namespace Net.Code.ADONet
         }
 
     }
+
 }

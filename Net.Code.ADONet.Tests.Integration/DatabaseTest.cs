@@ -14,6 +14,7 @@ namespace Net.Code.ADONet.Tests.Integration
         private readonly BaseDb target;
         private readonly DbTest test;
         private Person[] people;
+        private Address[] addresses;
 
         protected DatabaseTest()
         {
@@ -32,8 +33,9 @@ namespace Net.Code.ADONet.Tests.Integration
         public void Setup()
         {
             people = FakeData.People.List(10);
+            addresses = FakeData.Addresses.List(10);
             test.CreateTable();
-            test.Insert(people.Take(5));
+            test.Insert(people.Take(5), addresses);
             test.InsertAsync(people.Skip(5)).Wait();
         }
 
@@ -74,7 +76,7 @@ namespace Net.Code.ADONet.Tests.Integration
         }
 
         [TestMethod]
-        public async void GetAllPeopleAsDynamicAsync()
+        public async Task GetAllPeopleAsDynamicAsync()
         {
             var result = await test.GetAllPeopleAsDynamicAsync();
             CollectionAssert.AreEqual(people, result);
@@ -95,7 +97,8 @@ namespace Net.Code.ADONet.Tests.Integration
             if (target.SupportsMultipleResultSets)
             {
                 var result = test.AsMultiResultSet();
-                CollectionAssert.AreEqual(people.Concat(result[0]).ToArray(), result[0].Concat(result[1]).ToArray());
+                CollectionAssert.AreEqual(people, result.Set1.ToArray());
+                CollectionAssert.AreEqual(addresses, result.Set2.ToArray());
             }
         }
 
@@ -113,7 +116,7 @@ namespace Net.Code.ADONet.Tests.Integration
         public void InsertAndGet()
         {
             var person = FakeData.People.One();
-            test.Insert(new[] { person });
+            test.Insert(new[] { person }, Enumerable.Empty<Address>());
             var result = test.Get(person.Id);
             Assert.AreEqual(person, result);
         }
