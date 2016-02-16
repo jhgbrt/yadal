@@ -25,10 +25,10 @@ namespace Net.Code.ADONet
 
         private static DbConfig Oracle(string providerName)
         {
-            //        // By default, the Oracle driver does not support binding parameters by name;
-            //        // one has to set the BindByName property on the OracleDbCommand.
-            //        // Mapping: 
-            //        // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
+            // By default, the Oracle driver does not support binding parameters by name;
+            // one has to set the BindByName property on the OracleDbCommand.
+            // Mapping: 
+            // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
             return new DbConfig(SetBindByName, MappingConvention.Loose, providerName);
         }
 
