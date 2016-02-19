@@ -42,12 +42,13 @@ namespace Net.Code.ADONet
         /// of the parameter and the property value as the corresponding parameter value
         /// </summary>
         /// <param name="parameters"></param>
-        public CommandBuilder WithParameters(object parameters)
+        public CommandBuilder WithParameters<T>(T parameters)
         {
+            var getters = FastReflection.Instance.GetGettersForType<T>();
             var props = parameters.GetType().GetProperties();
             foreach (var item in props)
             {
-                WithParameter(item.Name, item.GetValue(parameters, null));
+                WithParameter(item.Name, getters[item.Name](parameters));
             }
             return this;
         }

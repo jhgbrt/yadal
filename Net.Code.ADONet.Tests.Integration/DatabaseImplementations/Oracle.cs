@@ -1,5 +1,6 @@
 using System;
 using System.Configuration;
+using System.Data;
 using Oracle.ManagedDataAccess.Client;
 
 namespace Net.Code.ADONet.Tests.Integration
@@ -24,6 +25,18 @@ namespace Net.Code.ADONet.Tests.Integration
         public override string InsertPerson => $"INSERT INTO PERSON (ID,OPTIONAL_NUMBER,REQUIRED_NUMBER,NAME,EMAIL) VALUES (:Id,:OptionalNumber,:RequiredNumber,:Name,:Email)";
 
         public override string InsertAddress => $"INSERT INTO ADDRESS (ID,STREET,ZIP_CODE,CITY,COUNTRY) VALUES (:Id,:Street,:ZipCode,:City,:Country)";
+
+        public override MultiResultSet<Person, Address> SelectPersonAndAddress(IDb db)
+        {
+            var query = "BEGIN\r\n" +
+            " OPEN :Cur1 FOR SELECT * FROM PERSON;" +
+            " OPEN :Cur2 FOR SELECT * FROM ADDRESS;" +
+            "END;";
+            return db.Sql(query)
+                .WithParameter(new OracleParameter("Cur1", OracleDbType.RefCursor, ParameterDirection.Output))
+                .WithParameter(new OracleParameter("Cur2", OracleDbType.RefCursor, ParameterDirection.Output))
+                .AsMultiResultSet<Person, Address>();
+        }
 
         public override void DropAndRecreate()
         {

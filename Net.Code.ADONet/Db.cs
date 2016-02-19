@@ -91,14 +91,22 @@ namespace Net.Code.ADONet
 
         public void Connect()
         {
-            if (Connection.State != ConnectionState.Open)
-                Connection.Open();
+            var connection = _externalConnection ?? _connection.Value;
+            if (connection.State != ConnectionState.Open)
+                connection.Open();
         }
 
         /// <summary>
         /// The actual IDbConnection (which will be open)
         /// </summary>
-        public IDbConnection Connection => _externalConnection ?? _connection.Value;
+        public IDbConnection Connection
+        {
+            get
+            {
+                Connect();
+                return _externalConnection ?? _connection.Value;
+            }
+        }
 
         public string ConnectionString => _connectionString;
 
@@ -155,6 +163,5 @@ namespace Net.Code.ADONet
                 return connection;
             }
         }
-
     }
 }

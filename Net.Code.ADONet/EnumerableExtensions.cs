@@ -46,14 +46,17 @@ namespace Net.Code.ADONet
             // ReSharper disable StaticFieldInGenericType
             private static readonly PropertyInfo[] Properties;
             private static readonly IDictionary<string, int> PropertyIndexesByName;
+            private static readonly IDictionary<string, Func<T, object>> Getters;
             // ReSharper restore StaticFieldInGenericType
 
             static EnumerableDataReaderImpl()
             {
                 var propertyInfos = typeof (T).GetProperties();
                 Properties = propertyInfos.ToArray();
+                Getters = FastReflection.Instance.GetGettersForType<T>();
                 PropertyIndexesByName = Properties.Select((p, i) => new {p, i}).ToDictionary(x => x.p.Name, x => x.i);
             }
+
 
             public EnumerableDataReaderImpl(IEnumerable<T> list)
             {
@@ -70,7 +73,7 @@ namespace Net.Code.ADONet
             public override Type GetFieldType(int i) => Properties[i].PropertyType;
 
             public override object GetValue(int i)
-                => DBNullHelper.ToDb(Properties[i].GetValue(_enumerator.Current, null));
+                => DBNullHelper.ToDb(Getters[Properties[i].Name](_enumerator.Current));
 
             public override int GetValues(object[] values)
             {

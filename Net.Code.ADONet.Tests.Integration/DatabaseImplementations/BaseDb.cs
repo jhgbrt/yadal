@@ -1,12 +1,14 @@
 using System;
 using System.Configuration;
 using System.Linq;
+using Net.Code.ADONet.Extensions;
+using Net.Code.ADONet.Extensions.Experimental;
 
 namespace Net.Code.ADONet.Tests.Integration
 {
     public abstract class BaseDb : IDatabaseImpl
     {
-
+        
         protected BaseDb()
         {
             Console.WriteLine(ProviderType);
@@ -41,6 +43,17 @@ namespace Net.Code.ADONet.Tests.Integration
         }
 
         public virtual string EscapeChar => "@";
+
+        public virtual MultiResultSet<Person, Address> SelectPersonAndAddress(IDb db)
+        {
+            var query = $"{$"SELECT * FROM {nameof(Person)};\r\n"}{$"SELECT * FROM {nameof(Address)}"}";
+            return db.Sql(query).AsMultiResultSet<Person, Address>();
+        }
+
+        public virtual void BulkInsert(IDb db, Person[] list)
+        {
+            db.Insert(list);
+        }
 
         protected string Name => GetType().Name;
         protected string MasterName => $"{Name}Master";

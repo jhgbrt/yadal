@@ -6,33 +6,119 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Reflection;
 using System.Collections.ObjectModel;
-using System.Collections.Concurrent;
 using System.Configuration;
 using System.ComponentModel;
 using System.Dynamic;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.RegularExpressions;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Data.SqlClient;
 
 namespace Net.Code.ADONet
 {
     public class CommandBuilder
     {
-        private readonly IDbCommand _command;
         private readonly DbConfig _config;
         public CommandBuilder(IDbCommand command, DbConfig config)
         {
-            _command = command;
+            Command = command;
             _config = config;
+        }
+
+        /// <summary>
+        /// Sets the command text
+        /// </summary>
+        /// <param name = "text"></param>
+        public CommandBuilder WithCommandText(string text)
+        {
+            Command.CommandText = text;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the command type
+        /// </summary>
+        /// <param name = "type"></param>
+        public CommandBuilder OfType(CommandType type)
+        {
+            Command.CommandType = type;
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a parameter for each property of the given object, with the property name as the name 
+        /// of the parameter and the property value as the corresponding parameter value
+        /// </summary>
+        /// <param name = "parameters"></param>
+        public CommandBuilder WithParameters<T>(T parameters)
+        {
+            var getters = FastReflection.Instance.GetGettersForType<T>();
+            var props = parameters.GetType().GetProperties();
+            foreach (var item in props)
+            {
+                WithParameter(item.Name, getters[item.Name](parameters));
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Builder method - sets the command timeout
+        /// </summary>
+        /// <param name = "timeout"></param>
+        public CommandBuilder WithTimeout(TimeSpan timeout)
+        {
+            Command.CommandTimeout = (int)timeout.TotalSeconds;
+            return this;
+        }
+
+        /// <summary>
+        /// Builder method - adds a name/value pair as parameter
+        /// </summary>
+        /// <param name = "name">the parameter name</param>
+        /// <param name = "value">the parameter value</param>
+        /// <returns>the same CommandBuilder instance</returns>
+        public CommandBuilder WithParameter(string name, object value)
+        {
+            IDataParameter p;
+            if (Command.Parameters.Contains(name))
+            {
+                p = (IDbDataParameter)Command.Parameters[name];
+                p.Value = DBNullHelper.ToDb(value);
+            }
+            else
+            {
+                p = Command.CreateParameter();
+                p.ParameterName = name;
+                p.Value = DBNullHelper.ToDb(value);
+                Command.Parameters.Add(p);
+            }
+
+            return this;
+        }
+
+        public CommandBuilder WithParameter<T>(T p)where T : IDbDataParameter
+        {
+            Command.Parameters.Add(p);
+            return this;
+        }
+
+        public CommandBuilder InTransaction(IDbTransaction tx)
+        {
+            Command.Transaction = tx;
+            return this;
         }
 
         /// <summary>
         /// The raw IDbCommand instance
         /// </summary>
-        public IDbCommand Command => _command;
+        public IDbCommand Command
+        {
+            get;
+        }
+
         /// <summary>
         /// Executes the query and returns the result as a list of dynamic objects. 
         /// </summary>
@@ -67,14 +153,12 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Executes the query and returns the result as a tuple of lists
         /// </summary>
-        public MultiResultSet<T1, T2> AsMultiResultSet<T1, T2>()where T1 : new ()where T2 : new ()
+        public MultiResultSet<T1, T2> AsMultiResultSet<T1, T2>()
         {
             using (var reader = Execute.Reader())
             {
                 bool more;
-                var result1 = reader.GetResultSet<T1>(_config, out more);
-                var result2 = reader.GetResultSet<T2>(_config, out more);
-                return MultiResultSet.Create(result1, result2);
+                return MultiResultSet.Create(reader.GetResultSet<T1>(_config, out more), reader.GetResultSet<T2>(_config, out more));
             }
         }
 
@@ -124,7 +208,13 @@ namespace Net.Code.ADONet
         /// Executes the command as a SQL statement, returning the number of rows affected
         /// </summary>
         public int AsNonQuery() => Execute.NonQuery();
-        private Executor Execute => new Executor(_command);
+        /// <summary>
+        /// Executes the command as a datareader. Use this if you need best performance.
+        /// </summary>
+        public IDataReader AsReader() => Execute.Reader();
+        public DataTable AsDataTable() => Execute.DataTable();
+        public T Single<T>() => AsEnumerable<T>().Single();
+        private Executor Execute => new Executor(Command);
         /// <summary>
         /// Executes the command as a statement, returning the number of rows affected asynchronously
         /// This method is only supported if the underlying provider propertly implements async behaviour.
@@ -175,96 +265,7 @@ namespace Net.Code.ADONet
             }
         }
 
-        private AsyncExecutor ExecuteAsync => new AsyncExecutor((DbCommand)_command);
-        /// <summary>
-        /// Sets the command text
-        /// </summary>
-        /// <param name = "text"></param>
-        public CommandBuilder WithCommandText(string text)
-        {
-            _command.CommandText = text;
-            return this;
-        }
-
-        /// <summary>
-        /// Sets the command type
-        /// </summary>
-        /// <param name = "type"></param>
-        public CommandBuilder OfType(CommandType type)
-        {
-            _command.CommandType = type;
-            return this;
-        }
-
-        /// <summary>
-        /// Adds a parameter for each property of the given object, with the property name as the name 
-        /// of the parameter and the property value as the corresponding parameter value
-        /// </summary>
-        /// <param name = "parameters"></param>
-        public CommandBuilder WithParameters(object parameters)
-        {
-            var props = parameters.GetType().GetProperties();
-            foreach (var item in props)
-            {
-                WithParameter(item.Name, item.GetValue(parameters, null));
-            }
-
-            return this;
-        }
-
-        /// <summary>
-        /// Builder method - sets the command timeout
-        /// </summary>
-        /// <param name = "timeout"></param>
-        public CommandBuilder WithTimeout(TimeSpan timeout)
-        {
-            Command.CommandTimeout = (int)timeout.TotalSeconds;
-            return this;
-        }
-
-        /// <summary>
-        /// Builder method - adds a name/value pair as parameter
-        /// </summary>
-        /// <param name = "name">the parameter name</param>
-        /// <param name = "value">the parameter value</param>
-        /// <returns>the same CommandBuilder instance</returns>
-        public CommandBuilder WithParameter(string name, object value)
-        {
-            IDataParameter p;
-            if (Command.Parameters.Contains(name))
-            {
-                p = (IDbDataParameter)Command.Parameters[name];
-                p.Value = DBNullHelper.ToDb(value);
-            }
-            else
-            {
-                p = Command.CreateParameter();
-                p.ParameterName = name;
-                p.Value = DBNullHelper.ToDb(value);
-                Command.Parameters.Add(p);
-            }
-
-            return this;
-        }
-
-        public CommandBuilder WithParameter<T>(T p)where T : IDbDataParameter
-        {
-            Command.Parameters.Add(p);
-            return this;
-        }
-
-        /// <summary>
-        /// Executes the command as a datareader. Use this if you need best performance.
-        /// </summary>
-        public IDataReader AsReader() => Execute.Reader();
-        public DataTable AsDataTable() => Execute.DataTable();
-        public CommandBuilder InTransaction(IDbTransaction tx)
-        {
-            Command.Transaction = tx;
-            return this;
-        }
-
-        public T Single<T>() => AsEnumerable<T>().Single();
+        private AsyncExecutor ExecuteAsync => new AsyncExecutor((DbCommand)Command);
         class Executor
         {
             private readonly IDbCommand _command;
@@ -425,7 +426,7 @@ namespace Net.Code.ADONet
         {
             do
             {
-                var list = new List<dynamic>();
+                var list = new Collection<dynamic>();
                 while (reader.Read())
                     list.Add(reader.ToExpando());
                 yield return list;
@@ -447,13 +448,13 @@ namespace Net.Code.ADONet
     {
         internal static T MapTo<T>(this IDataRecord record, DbConfig config)
         {
-            var convention = config.MappingConvention ?? MappingConvention.Strict;
-            var setters = GetSettersForType<T>(p => convention.GetName(p), config.ProviderName);
+            var convention = config.MappingConvention ?? MappingConvention.Default;
+            var setters = FastReflection.Instance.GetSettersForType<T>();
             var result = Activator.CreateInstance<T>();
             for (var i = 0; i < record.FieldCount; i++)
             {
                 Action<T, object> setter;
-                var columnName = convention.GetName(record, i);
+                var columnName = convention.FromDb(record.GetName(i));
                 if (!setters.TryGetValue(columnName, out setter))
                     continue;
                 var val = DBNullHelper.FromDb(record.GetValue(i));
@@ -461,35 +462,6 @@ namespace Net.Code.ADONet
             }
 
             return result;
-        }
-
-        private static readonly ConcurrentDictionary<dynamic, object> Setters = new ConcurrentDictionary<dynamic, object>();
-        private static IDictionary<string, Action<T, object>> GetSettersForType<T>(Func<PropertyInfo, string> getName, string provider)
-        {
-            var setters = Setters.GetOrAdd(new
-            {
-            Type = typeof (T), Provider = provider
-            }
-
-            , d => ((Type)d.Type).GetProperties().ToDictionary(getName, GetSetDelegate<T>));
-            return (IDictionary<string, Action<T, object>>)setters;
-        }
-
-        static Action<T, object> GetSetDelegate<T>(this PropertyInfo p)
-        {
-            var method = p.GetSetMethod();
-            var genericHelper = typeof (DataRecordExtensions).GetMethod(nameof(CreateSetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
-            var constructedHelper = genericHelper.MakeGenericMethod(typeof (T), method.GetParameters()[0].ParameterType);
-            return (Action<T, object>)constructedHelper.Invoke(null, new object[]{method});
-        }
-
-        // ReSharper disable once UnusedMethodReturnValue.Local
-        // ReSharper disable once UnusedMember.Local
-        static object CreateSetterDelegateHelper<TTarget, TParam>(MethodInfo method)where TTarget : class
-        {
-            var action = (Action<TTarget, TParam>)Delegate.CreateDelegate(typeof (Action<TTarget, TParam>), method);
-            Action<TTarget, object> ret = (target, param) => action(target, ConvertTo<TParam>.From(param));
-            return ret;
         }
 
         /// <summary>
@@ -614,14 +586,23 @@ namespace Net.Code.ADONet
 
         public void Connect()
         {
-            if (Connection.State != ConnectionState.Open)
-                Connection.Open();
+            var connection = _externalConnection ?? _connection.Value;
+            if (connection.State != ConnectionState.Open)
+                connection.Open();
         }
 
         /// <summary>
         /// The actual IDbConnection (which will be open)
         /// </summary>
-        public IDbConnection Connection => _externalConnection ?? _connection.Value;
+        public IDbConnection Connection
+        {
+            get
+            {
+                Connect();
+                return _externalConnection ?? _connection.Value;
+            }
+        }
+
         public string ConnectionString => _connectionString;
         private IDbConnection CreateConnection() => _connectionFactory.CreateConnection(_connectionString);
         public void Dispose()
@@ -706,11 +687,11 @@ namespace Net.Code.ADONet
 
         private static DbConfig Oracle(string providerName)
         {
-            //        // By default, the Oracle driver does not support binding parameters by name;
-            //        // one has to set the BindByName property on the OracleDbCommand.
-            //        // Mapping: 
-            //        // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
-            return new DbConfig(SetBindByName, MappingConvention.Loose, providerName);
+            // By default, the Oracle driver does not support binding parameters by name;
+            // one has to set the BindByName property on the OracleDbCommand.
+            // Mapping: 
+            // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
+            return new DbConfig(SetBindByName, MappingConvention.OracleStyle, providerName);
         }
 
         private static DbConfig Create(string providerName)
@@ -719,7 +700,7 @@ namespace Net.Code.ADONet
             {
             }
 
-            , MappingConvention.Strict, providerName);
+            , MappingConvention.Default, providerName);
         }
 
         private static void SetBindByName(IDbCommand c)
@@ -802,11 +783,13 @@ namespace Net.Code.ADONet
             // ReSharper disable StaticFieldInGenericType
             private static readonly PropertyInfo[] Properties;
             private static readonly IDictionary<string, int> PropertyIndexesByName;
+            private static readonly IDictionary<string, Func<T, object>> Getters;
             // ReSharper restore StaticFieldInGenericType
             static EnumerableDataReaderImpl()
             {
                 var propertyInfos = typeof (T).GetProperties();
                 Properties = propertyInfos.ToArray();
+                Getters = FastReflection.Instance.GetGettersForType<T>();
                 PropertyIndexesByName = Properties.Select((p, i) => new
                 {
                 p, i
@@ -825,7 +808,7 @@ namespace Net.Code.ADONet
             public override string GetDataTypeName(int i) => Properties[i].PropertyType.Name;
             public override IEnumerator GetEnumerator() => _enumerator;
             public override Type GetFieldType(int i) => Properties[i].PropertyType;
-            public override object GetValue(int i) => DBNullHelper.ToDb(Properties[i].GetValue(_enumerator.Current, null));
+            public override object GetValue(int i) => DBNullHelper.ToDb(Getters[Properties[i].Name](_enumerator.Current));
             public override int GetValues(object[] values)
             {
                 var length = Math.Min(values.Length, Properties.Length);
@@ -899,6 +882,70 @@ namespace Net.Code.ADONet
             public override bool IsClosed => _disposed;
             public override int RecordsAffected => 0;
             protected override void Dispose(bool disposing) => _disposed = true;
+        }
+    }
+
+    public class FastReflection
+    {
+        private FastReflection()
+        {
+        }
+
+        public static FastReflection Instance = new FastReflection();
+        public IDictionary<string, Action<T, object>> GetSettersForType<T>()
+        {
+            var setters = _setters.GetOrAdd(new
+            {
+            Type = typeof (T)}
+
+            , d => ((Type)d.Type).GetProperties().ToDictionary(p => p.Name, GetSetDelegate<T>));
+            return (IDictionary<string, Action<T, object>>)setters;
+        }
+
+        private readonly ConcurrentDictionary<dynamic, object> _setters = new ConcurrentDictionary<dynamic, object>();
+        static Action<T, object> GetSetDelegate<T>(PropertyInfo p)
+        {
+            var method = p.GetSetMethod();
+            var genericHelper = typeof (FastReflection).GetMethod(nameof(CreateSetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
+            var constructedHelper = genericHelper.MakeGenericMethod(typeof (T), method.GetParameters()[0].ParameterType);
+            return (Action<T, object>)constructedHelper.Invoke(null, new object[]{method});
+        }
+
+        // ReSharper disable once UnusedMethodReturnValue.Local
+        // ReSharper disable once UnusedMember.Local
+        static object CreateSetterDelegateHelper<TTarget, TProperty>(MethodInfo method)where TTarget : class
+        {
+            var action = (Action<TTarget, TProperty>)Delegate.CreateDelegate(typeof (Action<TTarget, TProperty>), method);
+            Action<TTarget, object> ret = (target, param) => action(target, ConvertTo<TProperty>.From(param));
+            return ret;
+        }
+
+        public IDictionary<string, Func<T, object>> GetGettersForType<T>()
+        {
+            var setters = _getters.GetOrAdd(new
+            {
+            Type = typeof (T)}
+
+            , d => ((Type)d.Type).GetProperties().ToDictionary(p => p.Name, GetGetDelegate<T>));
+            return (IDictionary<string, Func<T, object>>)setters;
+        }
+
+        private readonly ConcurrentDictionary<dynamic, object> _getters = new ConcurrentDictionary<dynamic, object>();
+        static Func<T, object> GetGetDelegate<T>(PropertyInfo p)
+        {
+            var method = p.GetGetMethod();
+            var genericHelper = typeof (FastReflection).GetMethod(nameof(CreateGetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
+            var constructedHelper = genericHelper.MakeGenericMethod(typeof (T), method.ReturnType);
+            return (Func<T, object>)constructedHelper.Invoke(null, new object[]{method});
+        }
+
+        // ReSharper disable once UnusedMethodReturnValue.Local
+        // ReSharper disable once UnusedMember.Local
+        static object CreateGetterDelegateHelper<TTarget, TProperty>(MethodInfo method)where TTarget : class
+        {
+            var func = (Func<TTarget, TProperty>)Delegate.CreateDelegate(typeof (Func<TTarget, TProperty>), method);
+            Func<TTarget, object> ret = target => ConvertTo<TProperty>.From(func(target));
+            return ret;
         }
     }
 
@@ -985,24 +1032,28 @@ namespace Net.Code.ADONet
 
     public class MappingConvention
     {
-        private readonly Func<IDataRecord, int, string> _getColumnName;
-        private readonly Func<PropertyInfo, string> _getPropertyName;
-        MappingConvention(Func<IDataRecord, int, string> getColumnName, Func<PropertyInfo, string> getPropertyName)
+        private readonly Func<string, string> _fromDb;
+        private readonly Func<string, string> _toDb;
+        private readonly char _escape;
+        MappingConvention(Func<string, string> todb, Func<string, string> fromdb, char escape)
         {
-            _getColumnName = getColumnName;
-            _getPropertyName = getPropertyName;
+            _toDb = todb;
+            _fromDb = fromdb;
+            _escape = escape;
         }
 
         /// <summary>
         /// Maps column names to property names based on exact, case sensitive match
         /// </summary>
-        public static readonly MappingConvention Strict = new MappingConvention((record, i) => record.GetName(i), p => p.Name);
+        public static readonly MappingConvention Default = new MappingConvention(s => s, s => s, '@');
         /// <summary>
         /// Maps column names to property names based on case insensitive match, ignoring underscores
         /// </summary>
-        public static readonly MappingConvention Loose = new MappingConvention((record, i) => record.GetName(i).ToUpperRemoveSpecialChars(), p => p.Name.ToUpperRemoveSpecialChars());
-        public string GetName(IDataRecord record, int i) => _getColumnName(record, i);
-        public string GetName(PropertyInfo property) => _getPropertyName(property);
+        public static readonly MappingConvention OracleStyle = new MappingConvention(s => s.ToPascalCase(), s => s.ToUpperWithUnderscores(), ':');
+        public string FromDb(string s) => _toDb(s);
+        public string ToDb(string s) => _fromDb(s);
+        public string JoinAsColumnNames(IEnumerable<string> propertyNames) => string.Join(",", propertyNames.Select(ToDb));
+        public string JoinAsVariableNames(IEnumerable<string> propertyNames) => string.Join(",", propertyNames.Select(s => $"{_escape}{s}"));
     }
 
     public static class MultiResultSet
@@ -1039,13 +1090,11 @@ namespace Net.Code.ADONet
         public IReadOnlyCollection<T1> Set1
         {
             get;
-            private set;
         }
 
         public IReadOnlyCollection<T2> Set2
         {
             get;
-            private set;
         }
     }
 
@@ -1061,19 +1110,16 @@ namespace Net.Code.ADONet
         public IReadOnlyCollection<T1> Set1
         {
             get;
-            private set;
         }
 
         public IReadOnlyCollection<T2> Set2
         {
             get;
-            private set;
         }
 
         public IReadOnlyCollection<T3> Set3
         {
             get;
-            private set;
         }
     }
 
@@ -1090,25 +1136,21 @@ namespace Net.Code.ADONet
         public IReadOnlyCollection<T1> Set1
         {
             get;
-            private set;
         }
 
         public IReadOnlyCollection<T2> Set2
         {
             get;
-            private set;
         }
 
         public IReadOnlyCollection<T3> Set3
         {
             get;
-            private set;
         }
 
         public IReadOnlyCollection<T4> Set4
         {
             get;
-            private set;
         }
     }
 
@@ -1126,43 +1168,103 @@ namespace Net.Code.ADONet
         public IReadOnlyCollection<T1> Set1
         {
             get;
-            private set;
         }
 
         public IReadOnlyCollection<T2> Set2
         {
             get;
-            private set;
         }
 
         public IReadOnlyCollection<T3> Set3
         {
             get;
-            private set;
         }
 
         public IReadOnlyCollection<T4> Set4
         {
             get;
-            private set;
         }
 
         public IReadOnlyCollection<T5> Set5
         {
             get;
-            private set;
         }
     }
 
     public static class StringExtensions
     {
         public static string ToUpperRemoveSpecialChars(this string str) => string.IsNullOrEmpty(str) ? str : Regex.Replace(str, @"([^\w]|_)", "").ToUpperInvariant();
+        public static string ToPascalCase(this string str) => string.IsNullOrEmpty(str) ? str : CultureInfo.InvariantCulture.TextInfo.ToTitleCase(str.ToLower()).Replace("_", "");
+        public static string PascalCaseToSentence(this string source) => string.IsNullOrEmpty(source) ? source : string.Join(" ", SplitUpperCase(source));
+        public static string ToUpperWithUnderscores(this string source)
+        {
+            if (string.IsNullOrEmpty(source))
+                return source;
+            return string.Join("_", SplitUpperCase(source).Select(s => s.ToUpperInvariant()));
+        }
+
+        static IEnumerable<string> SplitUpperCase(string source)
+        {
+            var wordStart = 0;
+            var letters = source.ToCharArray();
+            var previous = char.MinValue;
+            for (var i = 1; i < letters.Length; i++)
+            {
+                if (char.IsUpper(letters[i]) && !char.IsWhiteSpace(previous))
+                {
+                    yield return new string (letters, wordStart, i - wordStart);
+                    wordStart = i;
+                }
+
+                previous = letters[i];
+            }
+
+            yield return new string (letters, wordStart, letters.Length - wordStart);
+        }
     }
 }
 
-namespace Net.Code.ADONet.SqlClient
+namespace Net.Code.ADONet.Extensions.Experimental
 {
-    public static class Extensions
+    public static class DbExtensions
+    {
+        [Obsolete("This is an experimental feature, API may change or be removed in future versions", false)]
+        public static void Insert<T>(this IDb db, IEnumerable<T> items)
+        {
+            // TODO we probably don't want this to be static
+            var query = Query<T>.Insert(db.ProviderName);
+            db.Connect();
+            using (var tx = db.Connection.BeginTransaction(IsolationLevel.ReadCommitted))
+            {
+                var commandBuilder = db.Sql(query).InTransaction(tx);
+                foreach (var item in items)
+                {
+                    commandBuilder.WithParameters(item).AsNonQuery();
+                }
+
+                tx.Commit();
+            }
+        }
+    }
+
+    [Obsolete("Experimental")]
+    public static class Query<T>
+    {
+        public static string Insert(string providerName)
+        {
+            var mappingConvention = DbConfig.FromProviderName(providerName).MappingConvention;
+            var propertyNames = typeof (T).GetProperties().Select(p => p.Name).ToArray();
+            var columnNames = mappingConvention.JoinAsColumnNames(propertyNames);
+            var parameterValues = mappingConvention.JoinAsVariableNames(propertyNames);
+            var tableName = mappingConvention.ToDb(typeof (T).Name);
+            return $"INSERT INTO {tableName} ({columnNames}) VALUES ({parameterValues})";
+        }
+    }
+}
+
+namespace Net.Code.ADONet.Extensions.SqlClient
+{
+    public static class DbExtensions
     {
         /// <summary>
         /// Adds a table-valued parameter. Only supported on SQL Server (System.Data.SqlClient)
@@ -1188,7 +1290,7 @@ namespace Net.Code.ADONet.SqlClient
         /// <typeparam name = "T"></typeparam>
         /// <param name = "db"></param>
         /// <param name = "items"></param>
-        public static void BulkInsert<T>(this IDb db, IEnumerable<T> items)
+        public static void BulkCopy<T>(this IDb db, IEnumerable<T> items)
         {
             using (var bcp = new SqlBulkCopy(db.ConnectionString))
             {

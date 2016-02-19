@@ -1,34 +1,43 @@
 using System;
-using System.Data;
-using System.Reflection;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Net.Code.ADONet
 {
     public class MappingConvention
     {
-        private readonly Func<IDataRecord, int, string> _getColumnName;
-        private readonly Func<PropertyInfo, string> _getPropertyName;
+        private readonly Func<string, string> _fromDb;
+        private readonly Func<string, string> _toDb;
+        private readonly char _escape;
 
         MappingConvention(
-            Func<IDataRecord, int, string> getColumnName, 
-            Func<PropertyInfo, string> getPropertyName)
+            Func<string, string> todb,
+            Func<string, string> fromdb,
+            char escape)
         {
-            _getColumnName = getColumnName;
-            _getPropertyName = getPropertyName;
+            _toDb = todb;
+            _fromDb = fromdb;
+            _escape = escape;
         }
         /// <summary>
         /// Maps column names to property names based on exact, case sensitive match
         /// </summary>
-        public static readonly MappingConvention Strict = new MappingConvention((record, i) => record.GetName(i), p => p.Name);
+        public static readonly MappingConvention Default = new MappingConvention(
+            s => s, 
+            s => s, '@');
         /// <summary>
         /// Maps column names to property names based on case insensitive match, ignoring underscores
         /// </summary>
-        public static readonly MappingConvention Loose = new MappingConvention(
-            (record, i) => record.GetName(i).ToUpperRemoveSpecialChars(), 
-            p => p.Name.ToUpperRemoveSpecialChars()
+        public static readonly MappingConvention OracleStyle = new MappingConvention(
+            s => s.ToPascalCase(), 
+            s => s.ToUpperWithUnderscores(), 
+            ':'
             );
 
-        public string GetName(IDataRecord record, int i) => _getColumnName(record, i);
-        public string GetName(PropertyInfo property) => _getPropertyName(property);
+        public string FromDb(string s) => _toDb(s);
+        public string ToDb(string s) => _fromDb(s);
+
+        public string JoinAsColumnNames(IEnumerable<string> propertyNames) => string.Join(",", propertyNames.Select(ToDb));
+        public string JoinAsVariableNames(IEnumerable<string> propertyNames) => string.Join(",", propertyNames.Select(s => $"{_escape}{s}"));
     }
 }

@@ -2,8 +2,9 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
-using Oracle.ManagedDataAccess.Client;
-using Net.Code.ADONet.SqlClient;
+using Net.Code.ADONet.Extensions;
+using Net.Code.ADONet.Extensions.Experimental;
+using Net.Code.ADONet.Extensions.SqlClient;
 
 namespace Net.Code.ADONet.Tests.Integration
 {
@@ -16,12 +17,7 @@ namespace Net.Code.ADONet.Tests.Integration
             _target = target;
         }
 
-        private void DropRecreate()
-        {
-            _target.DropAndRecreate();
-        }
-
-        public void CreateTable()
+        public void CreateTables()
         {
             using (var db = CreateDb())
             {
@@ -30,7 +26,7 @@ namespace Net.Code.ADONet.Tests.Integration
             }
         }
 
-        public void DropTable()
+        public void DropTables()
         {
             using (var db = CreateDb())
             {
@@ -43,10 +39,7 @@ namespace Net.Code.ADONet.Tests.Integration
         {
             using (var db = CreateDb())
             {
-                foreach (var item in items)
-                {
-                    db.Sql(_target.InsertPerson).WithParameters(item).AsNonQuery();
-                }
+                db.Insert(items);
                 foreach (var item in addresses)
                 {
                     db.Sql(_target.InsertAddress).WithParameters(item).AsNonQuery();
@@ -59,7 +52,7 @@ namespace Net.Code.ADONet.Tests.Integration
             {
                 foreach (var item in items)
                 {
-                    await db.Sql(_target.InsertPerson).WithParameters(item).AsNonQueryAsync();
+                        await db.Sql(_target.InsertPerson).WithParameters(item).AsNonQueryAsync();
                 }
             }
         }
@@ -128,27 +121,7 @@ namespace Net.Code.ADONet.Tests.Integration
         {
             using (var db = CreateDb())
             {
-                MultiResultSet<Person, Address> result;
-                if (_target.ProviderName.Contains("Oracle"))
-                {
-                    var sqlQuery = "BEGIN\r\n" +
-                                   " OPEN :Cur1 FOR SELECT * FROM PERSON;" +
-                                   " OPEN :Cur2 FOR SELECT * FROM ADDRESS;" +
-                                   "END;";
-                    result = db
-                        .Sql(sqlQuery)
-                        .WithParameter(new OracleParameter("Cur1", OracleDbType.RefCursor, ParameterDirection.Output))
-                        .WithParameter(new OracleParameter("Cur2", OracleDbType.RefCursor, ParameterDirection.Output))
-                        .AsMultiResultSet<Person, Address>();
-                }
-                else
-                {
-                    var sqlQuery = $"SELECT * FROM {nameof(Person)};" +
-                                   $"SELECT * FROM {nameof(Address)}";
-                    result = db
-                        .Sql(sqlQuery)
-                        .AsMultiResultSet<Person, Address>();
-                }
+                var result = _target.SelectPersonAndAddress(db);
                 return result;
             }
         }
@@ -209,7 +182,7 @@ namespace Net.Code.ADONet.Tests.Integration
         {
             using (var db = CreateDb())
             {
-                db.BulkInsert(list);
+                _target.BulkInsert(db, list);
             }
         }
     }

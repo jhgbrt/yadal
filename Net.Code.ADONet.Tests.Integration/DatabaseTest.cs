@@ -15,6 +15,7 @@ namespace Net.Code.ADONet.Tests.Integration
         private readonly DbTest test;
         private Person[] people;
         private Address[] addresses;
+        private DbConfig config;
 
         protected DatabaseTest()
         {
@@ -26,6 +27,7 @@ namespace Net.Code.ADONet.Tests.Integration
 
             target = (BaseDb) Activator.CreateInstance(targetType);
             test = new DbTest(target);
+            config = DbConfig.FromProviderName(target.ProviderName);
         }
 
        
@@ -34,7 +36,7 @@ namespace Net.Code.ADONet.Tests.Integration
         {
             people = FakeData.People.List(10);
             addresses = FakeData.Addresses.List(10);
-            test.CreateTable();
+            test.CreateTables();
             test.Insert(people.Take(5), addresses);
             test.InsertAsync(people.Skip(5)).Wait();
         }
@@ -42,7 +44,7 @@ namespace Net.Code.ADONet.Tests.Integration
         [TestCleanup]
         public void Cleanup()
         {
-            test.DropTable();
+            test.DropTables();
         }
 
         [TestMethod]
@@ -85,10 +87,10 @@ namespace Net.Code.ADONet.Tests.Integration
         [TestMethod]
         public void AsDataTable()
         {
-            var result = test
-                .AsDataTable();
+            var result = test.AsDataTable();
             CollectionAssert.AreEqual(people.Select(p => p.Id).ToArray(), result.Rows.OfType<DataRow>().Select(dr => (int) dr["Id"]).ToArray());
-
+            var columnName = config.MappingConvention.ToDb("OptionalNumber");
+            CollectionAssert.AreEqual(people.Select(p => p.OptionalNumber).ToArray(), result.Rows.OfType<DataRow>().Select(dr => dr.Field<int?>(columnName)).ToArray());
         }
 
         [TestMethod]
@@ -132,14 +134,15 @@ namespace Net.Code.ADONet.Tests.Integration
             }
         }
 
+        [TestMethod]
+        public void BulkCopy()
+        {
+            test.BulkInsert(FakeData.People.List(100));
+        }
+
         [TestClass]
         public class SqlServer : DatabaseTest
         {
-            [TestMethod]
-            public void BulkCopy()
-            {
-                test.BulkInsert(FakeData.People.List(100));
-            }
         }
         [TestClass]
         public class Oracle : DatabaseTest
@@ -152,6 +155,17 @@ namespace Net.Code.ADONet.Tests.Integration
         }
         [TestClass]
         public class SqLite : DatabaseTest
+        {
+        }
+
+        [TestClass]
+        public class MySql : DatabaseTest
+        {
+        }
+
+        [Ignore]
+        [TestClass]
+        public class PostgreSql : DatabaseTest
         {
         }
     }

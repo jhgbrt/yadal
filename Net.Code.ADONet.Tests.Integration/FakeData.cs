@@ -25,13 +25,14 @@ namespace Net.Code.ADONet.Tests.Integration
             public static Person One()
             {
                 var fullName = Faker.Name.FullName();
+                int? optionalNumber = Faker.RandomNumber.Next(short.MaxValue);
                 return new Person
                 {
                     Id = Id.Next(),
                     Name = fullName,
                     Email = Faker.Internet.Email(fullName),
                     RequiredNumber = Faker.RandomNumber.Next(short.MaxValue),
-                    OptionalNumber = Faker.RandomNumber.Next(short.MaxValue)
+                    OptionalNumber = optionalNumber % 2 == 0 ? optionalNumber : null
                 };
             }
 

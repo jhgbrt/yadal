@@ -33,7 +33,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
                 record.GetValue(i).Returns(values[i].Value);
             }
 
-            var entity = record.MapTo<MyEntity>(new DbConfig(c => {}, MappingConvention.Loose, string.Empty));
+            var entity = record.MapTo<MyEntity>(new DbConfig(c => {}, MappingConvention.OracleStyle, string.Empty));
 
             Assert.IsNull(entity.MyProperty);
             Assert.AreEqual(default(int), entity.MyInt1);
@@ -52,7 +52,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
                 new {Name = "MY_PROPERTY", Value = (object) "SomeValue"},
                 new {Name = "MY_NULLABLE_INT1", Value = (object) DBNull.Value},
                 new {Name = "MY_NULLABLE_INT2", Value = (object) 1},
-                new {Name = "MYINT1", Value = (object) 2}
+                new {Name = "MY_INT1", Value = (object) 2}
             };
 
             record.FieldCount.Returns(values.Length);
@@ -62,7 +62,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
                 record.GetValue(i).Returns(values[i].Value);
             }
 
-            var entity = record.MapTo<MyEntity>(new DbConfig(c => { }, MappingConvention.Loose, string.Empty));
+            var entity = record.MapTo<MyEntity>(new DbConfig(c => { }, MappingConvention.OracleStyle, string.Empty));
             
             Assert.AreEqual("SomeValue", entity.MyProperty);
             Assert.IsNull(entity.MyNullableInt1);

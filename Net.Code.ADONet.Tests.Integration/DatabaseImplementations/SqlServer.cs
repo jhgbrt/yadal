@@ -1,10 +1,12 @@
 using System;
 using System.Configuration;
 using System.Data.SqlClient;
+using Net.Code.ADONet.Extensions.SqlClient;
 
 namespace Net.Code.ADONet.Tests.Integration
 {
-    public class SqlServer : BaseDb {
+    public class SqlServer : BaseDb
+    {
         public override void DropAndRecreate()
         {
             var connectionString = ConfigurationManager.ConnectionStrings[Name].ConnectionString;
@@ -38,5 +40,9 @@ namespace Net.Code.ADONet.Tests.Integration
 
         public override bool SupportsTableValuedParameters => true;
 
+        public override void BulkInsert(IDb db, Person[] list)
+        {
+            db.BulkCopy(list);
+        }
     }
 }

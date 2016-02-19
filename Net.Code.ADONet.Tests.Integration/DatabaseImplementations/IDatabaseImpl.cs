@@ -13,5 +13,7 @@ namespace Net.Code.ADONet.Tests.Integration
         void DropAndRecreate();
         IDb CreateDb();
         Person Project(dynamic d);
+        MultiResultSet<Person, Address> SelectPersonAndAddress(IDb db);
+        void BulkInsert(IDb db, Person[] list);
     }
 }

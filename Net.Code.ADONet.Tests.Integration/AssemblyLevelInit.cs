@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -20,7 +21,14 @@ namespace Net.Code.ADONet.Tests.Integration
             var supportedDbs = q.OfType<BaseDb>().ToArray();
 
             foreach (var db in supportedDbs)
-                db.DropAndRecreate();
+                try
+                {
+                    db.DropAndRecreate();
+                }
+                catch (Exception e)
+                {
+                    Trace.TraceError(e.ToString());
+                }
         }
 
     }

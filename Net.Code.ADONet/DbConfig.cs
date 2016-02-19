@@ -29,12 +29,12 @@ namespace Net.Code.ADONet
             // one has to set the BindByName property on the OracleDbCommand.
             // Mapping: 
             // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
-            return new DbConfig(SetBindByName, MappingConvention.Loose, providerName);
+            return new DbConfig(SetBindByName, MappingConvention.OracleStyle, providerName);
         }
 
         private static DbConfig Create(string providerName)
         {
-            return new DbConfig(c => {}, MappingConvention.Strict, providerName);
+            return new DbConfig(c => {}, MappingConvention.Default, providerName);
         }
 
         private static void SetBindByName(IDbCommand c)

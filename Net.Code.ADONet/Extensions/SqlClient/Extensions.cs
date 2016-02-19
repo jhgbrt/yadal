@@ -2,9 +2,9 @@
 using System.Data;
 using System.Data.SqlClient;
 
-namespace Net.Code.ADONet.SqlClient
+namespace Net.Code.ADONet.Extensions.SqlClient
 {
-    public static class Extensions
+    public static class DbExtensions
     {
         /// <summary>
         /// Adds a table-valued parameter. Only supported on SQL Server (System.Data.SqlClient)
@@ -35,7 +35,7 @@ namespace Net.Code.ADONet.SqlClient
         /// <typeparam name="T"></typeparam>
         /// <param name="db"></param>
         /// <param name="items"></param>
-        public static void BulkInsert<T>(this IDb db, IEnumerable<T> items)
+        public static void BulkCopy<T>(this IDb db, IEnumerable<T> items)
         {
             using (var bcp = new SqlBulkCopy(db.ConnectionString))
             {
