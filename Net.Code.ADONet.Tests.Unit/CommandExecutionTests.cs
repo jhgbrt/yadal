@@ -156,6 +156,34 @@ namespace Net.Code.ADONet.Tests.Unit
 
             Person.VerifyMultiResultSet(result);
         }
+        [TestMethod]
+        public void AsMultiResultSetGeneric4_WhenCalled_ReturnsMultipleResultSets()
+        {
+            var command = PrepareCommand();
+
+            var data = Person.GetMultiResultSet();
+
+            command.SetMultiResultSet(data);
+            var commandBuilder = new CommandBuilder(command, DbConfig.Default);
+
+            var result = commandBuilder.AsMultiResultSet<Person, Person, Person, Person>();
+
+            Person.VerifyMultiResultSet(result);
+        }
+        [TestMethod]
+        public void AsMultiResultSetGeneric5_WhenCalled_ReturnsMultipleResultSets()
+        {
+            var command = PrepareCommand();
+
+            var data = Person.GetMultiResultSet();
+
+            command.SetMultiResultSet(data);
+            var commandBuilder = new CommandBuilder(command, DbConfig.Default);
+
+            var result = commandBuilder.AsMultiResultSet<Person, Person, Person, Person, Person>();
+
+            Person.VerifyMultiResultSet(result);
+        }
 
         [TestMethod]
         public async Task AsEnumerableAsync_WhenCalledAndAwaited_ReturnsResultSet()

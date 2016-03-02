@@ -94,6 +94,29 @@ namespace Net.Code.ADONet.Tests.Unit
             };
             VerifyIds(from list in lists from item in list select item.Id);
         }
+        public static void VerifyMultiResultSet(MultiResultSet<Person, Person, Person, Person> result)
+        {
+            var lists = new[]
+            {
+                result.Set1,
+                result.Set2,
+                result.Set3,
+                result.Set4,
+            };
+            VerifyIds(from list in lists from item in list select item.Id);
+        }
+        public static void VerifyMultiResultSet(MultiResultSet<Person, Person, Person, Person, Person> result)
+        {
+            var lists = new[]
+            {
+                result.Set1,
+                result.Set2,
+                result.Set3,
+                result.Set4,
+                result.Set5
+            };
+            VerifyIds(from list in lists from item in list select item.Id);
+        }
 
         public static Person From(object o)
         {

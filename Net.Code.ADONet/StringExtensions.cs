@@ -22,6 +22,11 @@ namespace Net.Code.ADONet
             if (string.IsNullOrEmpty(source)) return source;
             return string.Join("_", SplitUpperCase(source).Select(s => s.ToUpperInvariant()));
         }
+        public static string ToLowerWithUnderscores(this string source)
+        {
+            if (string.IsNullOrEmpty(source)) return source;
+            return string.Join("_", SplitUpperCase(source).Select(s => s.ToLowerInvariant()));
+        }
 
         static IEnumerable<string> SplitUpperCase(string source)
         {

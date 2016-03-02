@@ -22,15 +22,11 @@ namespace Net.Code.ADONet.Tests.Integration
                                                     ",   COUNTRY VARCHAR2(100) NOT NULL" +
                                                     ")";
 
-        public override string InsertPerson => $"INSERT INTO PERSON (ID,OPTIONAL_NUMBER,REQUIRED_NUMBER,NAME,EMAIL) VALUES (:Id,:OptionalNumber,:RequiredNumber,:Name,:Email)";
-
-        public override string InsertAddress => $"INSERT INTO ADDRESS (ID,STREET,ZIP_CODE,CITY,COUNTRY) VALUES (:Id,:Street,:ZipCode,:City,:Country)";
-
         public override MultiResultSet<Person, Address> SelectPersonAndAddress(IDb db)
         {
             var query = "BEGIN\r\n" +
-            " OPEN :Cur1 FOR SELECT * FROM PERSON;" +
-            " OPEN :Cur2 FOR SELECT * FROM ADDRESS;" +
+            $" OPEN :Cur1 FOR {SelectPeople}" +
+            $" OPEN :Cur2 FOR {SelectAddresses};" +
             "END;";
             return db.Sql(query)
                 .WithParameter(new OracleParameter("Cur1", OracleDbType.RefCursor, ParameterDirection.Output))

@@ -8,7 +8,7 @@ namespace Net.Code.ADONet
     {
         internal static T MapTo<T>(this IDataRecord record, DbConfig config)
         {
-            var convention = config.MappingConvention ?? MappingConvention.Default;
+            var convention = config.MappingConvention;
             var setters = FastReflection.Instance.GetSettersForType<T>();
             var result = Activator.CreateInstance<T>();
             for (var i = 0; i < record.FieldCount; i++)

@@ -34,6 +34,15 @@ namespace Net.Code.ADONet.Tests.Integration
         [TestInitialize]
         public void Setup()
         {
+            try
+            {
+                test.Connect();
+            }
+            catch (Exception e)
+            {
+                Assert.Inconclusive($"{target.GetType().Name} - connnection failed {target.ConnectionString} {e}");
+            }
+
             people = FakeData.People.List(10);
             addresses = FakeData.Addresses.List(10);
             test.CreateTables();
@@ -45,6 +54,17 @@ namespace Net.Code.ADONet.Tests.Integration
         public void Cleanup()
         {
             test.DropTables();
+        }
+
+        [TestMethod]
+        public void UpdateAll()
+        {
+            var people = test.GetAllPeopleGeneric();
+            foreach (var p in people)
+            p.RequiredNumber = 9999;
+            test.Update(people);
+            people = test.GetAllPeopleGeneric();
+            Assert.IsTrue(people.All(p => p.RequiredNumber == 9999));
         }
 
         [TestMethod]
@@ -163,7 +183,6 @@ namespace Net.Code.ADONet.Tests.Integration
         {
         }
 
-        [Ignore]
         [TestClass]
         public class PostgreSql : DatabaseTest
         {

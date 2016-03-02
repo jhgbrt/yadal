@@ -1,9 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using Net.Code.ADONet.Extensions;
-using Net.Code.ADONet.Extensions.Experimental;
 using Net.Code.ADONet.Extensions.SqlClient;
 
 namespace Net.Code.ADONet.Tests.Integration
@@ -40,12 +40,37 @@ namespace Net.Code.ADONet.Tests.Integration
             using (var db = CreateDb())
             {
                 db.Insert(items);
-                foreach (var item in addresses)
-                {
-                    db.Sql(_target.InsertAddress).WithParameters(item).AsNonQuery();
-                }
+                db.Insert(addresses);
             }
         }
+        public void Update(IEnumerable<Person> items)
+        {
+            using (var db = CreateDb())
+            {
+                db.Update(items);
+            }
+        }
+        static Dictionary<Type, Exception> _exceptions = new Dictionary<Type, Exception>();
+        internal void Connect()
+        {
+            if (!_exceptions.ContainsKey(_target.GetType()))
+            {
+                try
+                {
+                    using (var db = CreateDb())
+                    {
+                        db.Connect();
+                    }
+                }
+                catch (Exception e)
+                {
+                    _exceptions[_target.GetType()] = e;
+                }
+            }
+            if (_exceptions.ContainsKey(_target.GetType()))
+                throw _exceptions[_target.GetType()];
+        }
+
         public async Task InsertAsync(IEnumerable<Person> items)
         {
             using (var db = CreateDb())
@@ -62,7 +87,7 @@ namespace Net.Code.ADONet.Tests.Integration
             using (var db = CreateDb())
             {
                 return db
-                    .Sql($"SELECT * FROM {nameof(Person)}")
+                    .Sql(_target.Query<Person>().SelectAll)
                     .AsEnumerable<Person>()
                     .ToList();
             }
@@ -73,7 +98,7 @@ namespace Net.Code.ADONet.Tests.Integration
             using (var db = CreateDb())
             {
                 var dataReader = db
-                    .Sql($"SELECT * FROM {nameof(Person)}")
+                    .Sql(_target.Query<Person>().SelectAll)
                     .AsReader();
                 using (dataReader)
                 {
@@ -88,7 +113,7 @@ namespace Net.Code.ADONet.Tests.Integration
             using (var db = CreateDb())
             {
                 return db
-                    .Sql($"SELECT * FROM {nameof(Person)}")
+                    .Sql(_target.Query<Person>().SelectAll)
                     .AsEnumerable()
                     .Select(d => (Person)_target.Project(d))
                     .ToList();
@@ -99,7 +124,7 @@ namespace Net.Code.ADONet.Tests.Integration
             using (var db = CreateDb())
             {
                 var people = await db
-                    .Sql($"SELECT * FROM {nameof(Person)}")
+                    .Sql(_target.Query<Person>().SelectAll)
                     .AsEnumerableAsync();
                 return people
                     .Select(d => (Person)_target.Project(d))
@@ -112,7 +137,7 @@ namespace Net.Code.ADONet.Tests.Integration
             using (var db = CreateDb())
             {
                 return db
-                    .Sql($"SELECT * FROM {nameof(Person)}")
+                    .Sql(_target.Query<Person>().SelectAll)
                     .AsDataTable();
             }
         }
@@ -136,7 +161,7 @@ namespace Net.Code.ADONet.Tests.Integration
             using (var db = CreateDb())
             {
                 return db
-                    .Sql($"SELECT * FROM {nameof(Person)} WHERE Id = {_target.EscapeChar}Id")
+                    .Sql(_target.Query<Person>().Select)
                     .WithParameters(new {Id = id})
                     .Single<Person>();
             }
@@ -166,14 +191,14 @@ namespace Net.Code.ADONet.Tests.Integration
         {
             using (var db = CreateDb())
             {
-                return db.Sql($"SELECT count(*) Id FROM {nameof(Person)}").AsScalar<int>();
+                return db.Sql($"SELECT count(*) FROM {nameof(Person)}").AsScalar<int>();
             }
         }
         public async Task<int> GetCountOfPeopleAsync()
         {
             using (var db = CreateDb())
             {
-                var result = await db.Sql($"SELECT count(*) Id FROM {nameof(Person)}").AsScalarAsync<int>();
+                var result = await db.Sql($"SELECT count(*) FROM {nameof(Person)}").AsScalarAsync<int>();
                 return result;
             }
         }

@@ -9,13 +9,13 @@ namespace Net.Code.ADONet.Tests.Integration
     {
         public override void DropAndRecreate()
         {
-            var masterConnectionString = ConfigurationManager.ConnectionStrings[MasterName].ConnectionString;
-            var connectionStringBuilder = new SQLiteConnectionStringBuilder
-            {
-                ConnectionString = masterConnectionString
-            };
-            string fileName = connectionStringBuilder.DataSource;
-            if (File.Exists(fileName)) File.Delete(fileName);
+            //var masterConnectionString = ConfigurationManager.ConnectionStrings[MasterName].ConnectionString;
+            //var connectionStringBuilder = new SQLiteConnectionStringBuilder
+            //{
+            //    ConnectionString = masterConnectionString
+            //};
+            //string fileName = connectionStringBuilder.DataSource;
+            //if (File.Exists(fileName)) File.Delete(fileName);
         }
 
         protected override Type ProviderType => typeof (SQLiteFactory);

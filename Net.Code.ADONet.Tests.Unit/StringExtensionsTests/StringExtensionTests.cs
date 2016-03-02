@@ -51,11 +51,23 @@ namespace Net.Code.ADONet.Tests.Unit.StringExtensionsTests
             string s = "WORD";
             Assert.AreEqual("Word", s.ToPascalCase());
         }
+        [TestMethod]
+        public void ToPascalCase_SingleLowerWord_ReturnsWordToUpper()
+        {
+            string s = "word";
+            Assert.AreEqual("Word", s.ToPascalCase());
+        }
 
         [TestMethod]
         public void ToPascalCase_RemovesNonLetterOrDigits()
         {
             string s = "SOME_WORD";
+            Assert.AreEqual("SomeWord", s.ToPascalCase());
+        }
+        [TestMethod]
+        public void ToPascalCase_LowerCase_RemovesNonLetterOrDigits()
+        {
+            string s = "some_word";
             Assert.AreEqual("SomeWord", s.ToPascalCase());
         }
 
@@ -70,6 +82,12 @@ namespace Net.Code.ADONet.Tests.Unit.StringExtensionsTests
         {
             var pascalCase = "SomeSentenceBlah";
             Assert.AreEqual("SOME_SENTENCE_BLAH", pascalCase.ToUpperWithUnderscores());
+        }
+        [TestMethod]
+        public void PascalCaseToLowerWithUnderscores()
+        {
+            var pascalCase = "SomeSentenceBlah";
+            Assert.AreEqual("some_sentence_blah", pascalCase.ToLowerWithUnderscores());
         }
     }
 

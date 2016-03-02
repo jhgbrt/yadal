@@ -1,26 +1,42 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-
-namespace Net.Code.ADONet.Extensions.Experimental
+﻿namespace Net.Code.ADONet.Extensions
 {
     public static class DbExtensions
     {
-        [Obsolete("This is an experimental feature, API may change or be removed in future versions", false)]
-        public static void Insert<T>(this IDb db, IEnumerable<T> items)
+        /// <summary>
+        /// Please note: this is an experimental feature, API may change or be removed in future versions"
+        /// </summary>
+        public static void Insert<T>(this IDb db, params T[] items)
         {
-            // TODO we probably don't want this to be static
-            var query = Query<T>.Insert(db.ProviderName);
-            db.Connect();
-            using (var tx = db.Connection.BeginTransaction(IsolationLevel.ReadCommitted))
+            var query = Query<T>.Create(db.ProviderName).Insert;
+            Do(db, items, query);
+        }
+
+        /// <summary>
+        /// Please note: this is an experimental feature, API may change or be removed in future versions"
+        /// </summary>
+        public static void Update<T>(this IDb db, params T[] items)
+        {
+            var query = Query<T>.Create(db.ProviderName).Update;
+            Do(db, items, query);
+        }
+
+        /// <summary>
+        /// Please note: this is an experimental feature, API may change or be removed in future versions"
+        /// </summary>
+        public static void Delete<T>(this IDb db, params T[] items)
+        {
+            var query = Query<T>.Create(db.ProviderName).Delete;
+            Do(db, items, query);
+        }
+
+        private static void Do<T>(IDb db, T[] items, string query)
+        {
+            var commandBuilder = db.Sql(query);
+            foreach (var item in items)
             {
-                var commandBuilder = db.Sql(query).InTransaction(tx);
-                foreach (var item in items)
-                {
-                    commandBuilder.WithParameters(item).AsNonQuery();
-                }
-                tx.Commit();
+                commandBuilder.WithParameters(item).AsNonQuery();
             }
         }
+
     }
 }

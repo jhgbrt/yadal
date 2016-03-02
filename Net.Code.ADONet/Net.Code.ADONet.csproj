@@ -35,6 +35,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -50,6 +51,7 @@
     <Compile Include="DataTableExtensions.cs" />
     <Compile Include="Db.cs" />
     <Compile Include="Extensions\Experimental\DbExtensions.cs" />
+    <Compile Include="Extensions\Experimental\IQuery.cs" />
     <Compile Include="MultiResultSet.cs" />
     <Compile Include="FastReflection.cs" />
     <Compile Include="Extensions\SqlClient\Extensions.cs" />

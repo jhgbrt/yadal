@@ -34,4 +34,5 @@
 [assembly: AssemblyFileVersion("2.5.0.0")]
 
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Net.Code.ADONet.Tests.Unit")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Net.Code.ADONet.Tests.Integration")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("DynamicProxyGenAssembly2")]

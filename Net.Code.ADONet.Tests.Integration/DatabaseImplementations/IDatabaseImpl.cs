@@ -1,3 +1,5 @@
+using Net.Code.ADONet.Extensions;
+
 namespace Net.Code.ADONet.Tests.Integration
 {
     public interface IDatabaseImpl
@@ -15,5 +17,6 @@ namespace Net.Code.ADONet.Tests.Integration
         Person Project(dynamic d);
         MultiResultSet<Person, Address> SelectPersonAndAddress(IDb db);
         void BulkInsert(IDb db, Person[] list);
+        IQueryGenerator Query<T>();
     }
 }

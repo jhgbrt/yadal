@@ -40,6 +40,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -53,6 +54,7 @@
     <Compile Include="DataRecordExtensionTests\DataRecordExtension.cs" />
     <Compile Include="DataTableExtensions\DataTableExtensionsTests.cs" />
     <Compile Include="DynamicIndexerTests.cs" />
+    <Compile Include="Extensions\Experimental\QueryGeneratorTests.cs" />
     <Compile Include="Fakes\FakeParameterCollection.cs" />
     <Compile Include="CommandBuilderTests.cs" />
     <Compile Include="CommandExecutionTests.cs" />
