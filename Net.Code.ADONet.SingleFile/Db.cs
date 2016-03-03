@@ -14,6 +14,8 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.SqlClient;
 
 namespace Net.Code.ADONet
@@ -448,7 +450,7 @@ namespace Net.Code.ADONet
     {
         internal static T MapTo<T>(this IDataRecord record, DbConfig config)
         {
-            var convention = config.MappingConvention ?? MappingConvention.Default;
+            var convention = config.MappingConvention;
             var setters = FastReflection.Instance.GetSettersForType<T>();
             var result = Activator.CreateInstance<T>();
             for (var i = 0; i < record.FieldCount; i++)
@@ -657,7 +659,7 @@ namespace Net.Code.ADONet
 
     public class DbConfig
     {
-        public DbConfig(Action<IDbCommand> prepareCommand, MappingConvention convention, string providerName)
+        internal DbConfig(Action<IDbCommand> prepareCommand, MappingConvention convention, string providerName)
         {
             PrepareCommand = prepareCommand;
             MappingConvention = convention;
@@ -669,7 +671,7 @@ namespace Net.Code.ADONet
             get;
         }
 
-        public MappingConvention MappingConvention
+        internal MappingConvention MappingConvention
         {
             get;
         }
@@ -685,29 +687,17 @@ namespace Net.Code.ADONet
             return !string.IsNullOrEmpty(providerName) && providerName.StartsWith("Oracle") ? Oracle(providerName) : Create(providerName);
         }
 
-        private static DbConfig Oracle(string providerName)
+        // By default, the Oracle driver does not support binding parameters by name;
+        // one has to set the BindByName property on the OracleDbCommand.
+        // Mapping: 
+        // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
+        private static DbConfig Oracle(string providerName) => new DbConfig(SetBindByName, MappingConvention.OracleStyle, providerName);
+        private static DbConfig Create(string providerName) => new DbConfig(c =>
         {
-            // By default, the Oracle driver does not support binding parameters by name;
-            // one has to set the BindByName property on the OracleDbCommand.
-            // Mapping: 
-            // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
-            return new DbConfig(SetBindByName, MappingConvention.OracleStyle, providerName);
         }
 
-        private static DbConfig Create(string providerName)
-        {
-            return new DbConfig(c =>
-            {
-            }
-
-            , MappingConvention.Default, providerName);
-        }
-
-        private static void SetBindByName(IDbCommand c)
-        {
-            dynamic d = c;
-            d.BindByName = true;
-        }
+        , MappingConvention.Default, providerName);
+        private static void SetBindByName(dynamic c) => c.BindByName = true;
     }
 
     public static class DBNullHelper
@@ -1030,12 +1020,12 @@ namespace Net.Code.ADONet
         }
     }
 
-    public class MappingConvention
+    internal class MappingConvention
     {
         private readonly Func<string, string> _fromDb;
         private readonly Func<string, string> _toDb;
         private readonly char _escape;
-        MappingConvention(Func<string, string> todb, Func<string, string> fromdb, char escape)
+        public MappingConvention(Func<string, string> todb, Func<string, string> fromdb, char escape)
         {
             _toDb = todb;
             _fromDb = fromdb;
@@ -1043,17 +1033,37 @@ namespace Net.Code.ADONet
         }
 
         /// <summary>
-        /// Maps column names to property names based on exact, case sensitive match
+        /// Maps column names to property names based on exact, case sensitive match. Database artefacts are named exactly
+        /// like the .Net objects.
         /// </summary>
         public static readonly MappingConvention Default = new MappingConvention(s => s, s => s, '@');
         /// <summary>
-        /// Maps column names to property names based on case insensitive match, ignoring underscores
+        /// Maps column names to property names based on case insensitive match, ignoring underscores. Database artefacts are named using
+        /// UPPER_CASE_AND_UNDERSCORES
         /// </summary>
         public static readonly MappingConvention OracleStyle = new MappingConvention(s => s.ToPascalCase(), s => s.ToUpperWithUnderscores(), ':');
+        /// <summary>
+        /// Maps column names to property names based on case insensitive match, ignoring underscores. Database artefacts are named using
+        /// lower_case_and_underscores
+        /// </summary>
+        public static readonly MappingConvention UnderScores = new MappingConvention(s => s.ToPascalCase(), s => s.ToLowerWithUnderscores(), '@');
         public string FromDb(string s) => _toDb(s);
         public string ToDb(string s) => _fromDb(s);
-        public string JoinAsColumnNames(IEnumerable<string> propertyNames) => string.Join(",", propertyNames.Select(ToDb));
-        public string JoinAsVariableNames(IEnumerable<string> propertyNames) => string.Join(",", propertyNames.Select(s => $"{_escape}{s}"));
+        public string Parameter(string s) => $"{_escape}{s}";
+        public MappingConvention WithEscapeCharacter(char e)
+        {
+            return new MappingConvention(_toDb, _fromDb, e);
+        }
+
+        public MappingConvention MapPropertyToDbName(Func<string, string> todb)
+        {
+            return new MappingConvention(todb, _fromDb, _escape);
+        }
+
+        public MappingConvention MapDbNameToPropertyName(Func<string, string> fromdb)
+        {
+            return new MappingConvention(_toDb, fromdb, _escape);
+        }
     }
 
     public static class MultiResultSet
@@ -1203,6 +1213,13 @@ namespace Net.Code.ADONet
             return string.Join("_", SplitUpperCase(source).Select(s => s.ToUpperInvariant()));
         }
 
+        public static string ToLowerWithUnderscores(this string source)
+        {
+            if (string.IsNullOrEmpty(source))
+                return source;
+            return string.Join("_", SplitUpperCase(source).Select(s => s.ToLowerInvariant()));
+        }
+
         static IEnumerable<string> SplitUpperCase(string source)
         {
             var wordStart = 0;
@@ -1224,41 +1241,130 @@ namespace Net.Code.ADONet
     }
 }
 
-namespace Net.Code.ADONet.Extensions.Experimental
+namespace Net.Code.ADONet.Extensions
 {
     public static class DbExtensions
     {
-        [Obsolete("This is an experimental feature, API may change or be removed in future versions", false)]
-        public static void Insert<T>(this IDb db, IEnumerable<T> items)
+        /// <summary>
+        /// Please note: this is an experimental feature, API may change or be removed in future versions"
+        /// </summary>
+        public static void Insert<T>(this IDb db, params T[] items)
         {
-            // TODO we probably don't want this to be static
-            var query = Query<T>.Insert(db.ProviderName);
-            db.Connect();
-            using (var tx = db.Connection.BeginTransaction(IsolationLevel.ReadCommitted))
-            {
-                var commandBuilder = db.Sql(query).InTransaction(tx);
-                foreach (var item in items)
-                {
-                    commandBuilder.WithParameters(item).AsNonQuery();
-                }
+            var query = Query<T>.Create(db.ProviderName).Insert;
+            Do(db, items, query);
+        }
 
-                tx.Commit();
+        /// <summary>
+        /// Please note: this is an experimental feature, API may change or be removed in future versions"
+        /// </summary>
+        public static void Update<T>(this IDb db, params T[] items)
+        {
+            var query = Query<T>.Create(db.ProviderName).Update;
+            Do(db, items, query);
+        }
+
+        /// <summary>
+        /// Please note: this is an experimental feature, API may change or be removed in future versions"
+        /// </summary>
+        public static void Delete<T>(this IDb db, params T[] items)
+        {
+            var query = Query<T>.Create(db.ProviderName).Delete;
+            Do(db, items, query);
+        }
+
+        private static void Do<T>(IDb db, T[] items, string query)
+        {
+            var commandBuilder = db.Sql(query);
+            foreach (var item in items)
+            {
+                commandBuilder.WithParameters(item).AsNonQuery();
             }
         }
     }
 
-    [Obsolete("Experimental")]
-    public static class Query<T>
+    public interface IQueryGenerator
     {
-        public static string Insert(string providerName)
+        string Insert
         {
-            var mappingConvention = DbConfig.FromProviderName(providerName).MappingConvention;
-            var propertyNames = typeof (T).GetProperties().Select(p => p.Name).ToArray();
-            var columnNames = mappingConvention.JoinAsColumnNames(propertyNames);
-            var parameterValues = mappingConvention.JoinAsVariableNames(propertyNames);
-            var tableName = mappingConvention.ToDb(typeof (T).Name);
-            return $"INSERT INTO {tableName} ({columnNames}) VALUES ({parameterValues})";
+            get;
         }
+
+        string Delete
+        {
+            get;
+        }
+
+        string Update
+        {
+            get;
+        }
+
+        string Select
+        {
+            get;
+        }
+
+        string SelectAll
+        {
+            get;
+        }
+
+        string Count
+        {
+            get;
+        }
+    }
+
+    public class Query<T> : IQueryGenerator
+    {
+        private string _insert;
+        private string _delete;
+        private string _update;
+        private string _selectAll;
+        private string _select;
+        private string _count;
+        public static IQueryGenerator Create(string providerName) => Create(DbConfig.FromProviderName(providerName).MappingConvention);
+        internal static IQueryGenerator Create(MappingConvention convention) => new Query<T>(convention);
+        Query(MappingConvention convention)
+        {
+            var properties = typeof (T).GetProperties();
+            var keyProperties = properties.Where(p => p.CustomAttributes.Any(a => a.AttributeType == typeof (KeyAttribute))).ToArray();
+            if (!keyProperties.Any())
+                keyProperties = properties.Where(p => p.Name.Equals("Id", StringComparison.OrdinalIgnoreCase)).ToArray();
+            if (!keyProperties.Any())
+                keyProperties = properties.Where(p => p.Name.Equals($"{typeof (T).Name}Id", StringComparison.OrdinalIgnoreCase)).ToArray();
+            var dbGenerated = keyProperties.Where(p => p.HasCustomAttribute<DatabaseGeneratedAttribute>(a => a.DatabaseGeneratedOption != DatabaseGeneratedOption.None));
+            var allPropertyNames = properties.Select(p => convention.ToDb(p.Name)).ToArray();
+            var insertPropertyNames = properties.Except(dbGenerated).Select(p => p.Name).ToArray();
+            var keyPropertyNames = keyProperties.Select(p => p.Name).ToArray();
+            var nonKeyProperties = properties.Except(keyProperties).ToArray();
+            var nonKeyPropertyNames = nonKeyProperties.Select(p => p.Name).ToArray();
+            Func<string, string> assign = s => $"{convention.ToDb(s)} = {convention.Parameter(s)}";
+            var insertColumns = string.Join(", ", insertPropertyNames.Select(convention.ToDb));
+            var insertValues = string.Join(", ", insertPropertyNames.Select(s => $"{convention.Parameter(s)}"));
+            var whereClause = string.Join(" AND ", keyPropertyNames.Select(assign));
+            var updateColumns = string.Join(", ", nonKeyPropertyNames.Select(assign));
+            var allColumns = string.Join(", ", allPropertyNames);
+            var tableName = convention.ToDb(typeof (T).Name);
+            _insert = $"INSERT INTO {tableName} ({insertColumns}) VALUES ({insertValues})";
+            _delete = $"DELETE FROM {tableName} WHERE {whereClause}";
+            _update = $"UPDATE {tableName} SET {updateColumns} WHERE {whereClause}";
+            _select = $"SELECT {allColumns} FROM {tableName} WHERE {whereClause}";
+            _selectAll = $"SELECT {allColumns} FROM {tableName}";
+            _count = $"SELECT COUNT(*) FROM {tableName}";
+        }
+
+        public string Insert => _insert;
+        public string Delete => _delete;
+        public string Update => _update;
+        public string Select => _select;
+        public string SelectAll => _selectAll;
+        public string Count => _count;
+    }
+
+    internal static class TypeExtensions
+    {
+        public static bool HasCustomAttribute<TAttribute>(this MemberInfo t, Func<TAttribute, bool> whereClause) => t.GetCustomAttributes(false).OfType<TAttribute>().Where(whereClause).Any();
     }
 }
 
