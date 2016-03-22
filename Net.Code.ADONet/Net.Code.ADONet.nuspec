@@ -7,7 +7,7 @@
     <authors>Jeroen Haegebaert.</authors>
     <owners>Jeroen Haegebaert</owners>
     <licenseUrl>https://raw.github.com/jhgbrt/Net.Code/master/license.txt</licenseUrl>
-    <projectUrl>http://github.com/jhgbrt/Net.Code</projectUrl>
+    <projectUrl>http://github.com/jhgbrt/yadal</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>This package delivers an ADO.Net library. Provides a fluent interface to throw some SQL or DDL at your database. Compatible with all ADO.Net providers, in as far as they implement the ADO.Net interfaces correctly. Quite frankly something like this should have been part of the framework in my opinion :-).</description>
     <summary>ADO.Net helper class.</summary>
