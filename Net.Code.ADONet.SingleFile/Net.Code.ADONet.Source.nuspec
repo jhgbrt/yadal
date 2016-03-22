@@ -2,8 +2,8 @@
 <package >
   <metadata>
     <id>Net.Code.ADONet.Source</id>
-    <version>2.5.0</version>
-    <title>Net.Code.ADONet - Fluent ADO.Net helper, delivered as a single .cs file</title>
+    <version>3.0.0</version>
+    <title>Net.Code.ADONet.Source - Fluent ADO.Net helper, delivered as a single .cs file</title>
     <authors>Jeroen Haegebaert.</authors>
     <owners>Jeroen Haegebaert</owners>
     <licenseUrl>https://raw.github.com/jhgbrt/Net.Code/master/license.txt</licenseUrl>
@@ -15,7 +15,7 @@
       1.0.0 Initial release.
       1.0.3 Oracle.DataAccess.Client - use named parameters by default
       2.0.0 Async support
-      2.5.0 Net.Code.ADONet becomes a .dll. Use Net.Code.ADONet.Source for the source package
+      3.0.0 Net.Code.ADONet becomes a .dll. Use Net.Code.ADONet.Source for the source package
     </releaseNotes>
     <copyright>Copyright 2016 - Jeroen Haegebaert</copyright>
     <tags>ADO.Net</tags>
