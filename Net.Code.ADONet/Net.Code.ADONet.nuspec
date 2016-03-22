@@ -15,12 +15,12 @@
       1.0.0 Initial release.
       1.0.3 Oracle.DataAccess.Client - use named parameters by default
       2.0.0 Async support
-      2.5.0 Net.Code.ADONet becomes a .dll. Use Net.Code.ADONet.Source for the source package.
+      3.0.0 Net.Code.ADONet becomes a .dll. Use Net.Code.ADONet.Source for the source package.
     </releaseNotes>
     <copyright>Copyright 2016 - Jeroen Haegebaert</copyright>
     <tags>ADO.Net</tags>
   </metadata>
   <files>
-    <file src="bin\Release\Net.Code.ADONet.dll" target="lib" />
+    <file src="bin\Release\Net.Code.ADONet.dll" target="lib\net45" />
   </files>
 </package>
