@@ -21,6 +21,6 @@
     <tags>ADO.Net</tags>
   </metadata>
   <files>
-    <file src="Net.Code.ADONet\bin\Release\Net.Code.ADONet.dll" target="lib" />
+    <file src="bin\Release\Net.Code.ADONet.dll" target="lib" />
   </files>
 </package>
