@@ -105,34 +105,34 @@ namespace Net.Code.ADONet
         /// </summary>
         public IDbCommand Command { get; }
 
-        /// <summary>
-        /// Executes the query and returns the result as a list of dynamic objects. 
-        /// </summary>
-        public IEnumerable<dynamic> AsEnumerable() => Execute.Reader().AsEnumerable().ToExpandoList();
+		/// <summary>
+		/// Executes the query and returns the result as a list of dynamic objects. 
+		/// </summary>
+		public IEnumerable<dynamic> AsEnumerable() => Execute.Reader().ToExpandoList();
 
-        /// <summary>
-        /// Executes the query and returns the result as a list of [T]. This method is slightly faster. 
-        /// than doing AsEnumerable().Select(selector). The selector is required to map objects as the 
-        /// underlying datareader is enumerated.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="selector">mapping function that transforms a datarecord (wrapped as a dynamic object) to an instance of type [T]</param>
-        public IEnumerable<T> AsEnumerable<T>(Func<dynamic, T> selector) => Select(selector);
+		/// <summary>
+		/// Executes the query and returns the result as a list of [T]. This method is slightly faster. 
+		/// than doing AsEnumerable().Select(selector). The selector is required to map objects as the 
+		/// underlying datareader is enumerated.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="selector">mapping function that transforms a datarecord (wrapped as a dynamic object) to an instance of type [T]</param>
+		public IEnumerable<T> AsEnumerable<T>(Func<dynamic, T> selector) => Select(selector);
 
-        /// <summary>
-        /// Executes the query and returns the result as a list of [T] using the 'case-insensitive, underscore-agnostic column name to property mapping convention.' 
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        public IEnumerable<T> AsEnumerable<T>() => AsReader().AsEnumerable().Select(r => r.MapTo<T>(_config));
+		/// <summary>
+		/// Executes the query and returns the result as a list of [T] using the 'case-insensitive, underscore-agnostic column name to property mapping convention.' 
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		public IEnumerable<T> AsEnumerable<T>() => AsReader().AsEnumerable<T>(_config);
 
-        // enables linq 'select' syntax
-        public IEnumerable<T> Select<T>(Func<dynamic, T> selector) 
-            => Execute.Reader().AsEnumerable().ToDynamicDataRecord().Select(selector);
+		// enables linq 'select' syntax
+		public IEnumerable<T> Select<T>(Func<dynamic, T> selector)
+			=> Execute.Reader().ToDynamicDataRecord().Select(selector);
 
-        /// <summary>
-        /// Executes the query and returns the result as a list of lists
-        /// </summary>
-        public IEnumerable<IReadOnlyCollection<dynamic>> AsMultiResultSet()
+		/// <summary>
+		/// Executes the query and returns the result as a list of lists
+		/// </summary>
+		public IEnumerable<IReadOnlyCollection<dynamic>> AsMultiResultSet()
         {
             using (var reader = Execute.Reader())
             {
@@ -250,8 +250,8 @@ namespace Net.Code.ADONet
         public async Task<IEnumerable<dynamic>> AsEnumerableAsync()
         {
             var reader = await ExecuteAsync.Reader();
-            return reader.AsEnumerable().ToExpandoList();
-        }
+			return reader.ToExpandoList();
+		}
 
         /// <summary>
         /// Executes the query and returns the result as a list of [T] asynchronously
@@ -262,8 +262,8 @@ namespace Net.Code.ADONet
         public async Task<IEnumerable<T>> AsEnumerableAsync<T>(Func<dynamic, T> selector)
         {
             var reader = await ExecuteAsync.Reader();
-            return reader.AsEnumerable().ToDynamicDataRecord().Select(selector);
-        }
+			return reader.ToDynamicDataRecord().Select(selector);
+		}
 
         /// <summary>
         /// Executes the query and returns the result as a list of lists asynchronously

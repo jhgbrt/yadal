@@ -51,6 +51,7 @@
     <Compile Include="DataTableExtensions.cs" />
     <Compile Include="Db.cs" />
     <Compile Include="Extensions\Experimental\DbExtensions.cs" />
+    <Compile Include="Extensions\Experimental\FastReflection.cs" />
     <Compile Include="Extensions\Experimental\IQuery.cs" />
     <Compile Include="MultiResultSet.cs" />
     <Compile Include="FastReflection.cs" />
