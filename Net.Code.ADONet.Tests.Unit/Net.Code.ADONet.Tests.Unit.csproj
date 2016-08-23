@@ -54,6 +54,7 @@
     <Compile Include="DataRecordExtensionTests\DataRecordExtension.cs" />
     <Compile Include="DataTableExtensions\DataTableExtensionsTests.cs" />
     <Compile Include="DynamicIndexerTests.cs" />
+    <Compile Include="Extensions\Experimental\FastReflectionTests.cs" />
     <Compile Include="Extensions\Experimental\QueryGeneratorTests.cs" />
     <Compile Include="Fakes\FakeParameterCollection.cs" />
     <Compile Include="CommandBuilderTests.cs" />
