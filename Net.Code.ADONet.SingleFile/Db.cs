@@ -14,8 +14,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.RegularExpressions;
-using System.Linq.Expressions;
-using System.Threading;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.SqlClient;
@@ -126,7 +124,7 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Executes the query and returns the result as a list of dynamic objects. 
         /// </summary>
-        public IEnumerable<dynamic> AsEnumerable() => Execute.Reader().ToExpandoList();
+        public IEnumerable<dynamic> AsEnumerable() => Execute.Reader().AsEnumerable().ToExpandoList();
         /// <summary>
         /// Executes the query and returns the result as a list of [T]. This method is slightly faster. 
         /// than doing AsEnumerable().Select(selector). The selector is required to map objects as the 
@@ -139,9 +137,9 @@ namespace Net.Code.ADONet
         /// Executes the query and returns the result as a list of [T] using the 'case-insensitive, underscore-agnostic column name to property mapping convention.' 
         /// </summary>
         /// <typeparam name = "T"></typeparam>
-        public IEnumerable<T> AsEnumerable<T>() => AsReader().AsEnumerable<T>(_config);
+        public IEnumerable<T> AsEnumerable<T>() => AsReader().AsEnumerable().Select(r => r.MapTo<T>(_config));
         // enables linq 'select' syntax
-        public IEnumerable<T> Select<T>(Func<dynamic, T> selector) => Execute.Reader().ToDynamicDataRecord().Select(selector);
+        public IEnumerable<T> Select<T>(Func<dynamic, T> selector) => Execute.Reader().AsEnumerable().ToDynamicDataRecord().Select(selector);
         /// <summary>
         /// Executes the query and returns the result as a list of lists
         /// </summary>
@@ -242,7 +240,7 @@ namespace Net.Code.ADONet
         public async Task<IEnumerable<dynamic>> AsEnumerableAsync()
         {
             var reader = await ExecuteAsync.Reader();
-            return reader.ToExpandoList();
+            return reader.AsEnumerable().ToExpandoList();
         }
 
         /// <summary>
@@ -254,7 +252,7 @@ namespace Net.Code.ADONet
         public async Task<IEnumerable<T>> AsEnumerableAsync<T>(Func<dynamic, T> selector)
         {
             var reader = await ExecuteAsync.Reader();
-            return reader.ToDynamicDataRecord().Select(selector);
+            return reader.AsEnumerable().ToDynamicDataRecord().Select(selector);
         }
 
         /// <summary>
@@ -378,7 +376,6 @@ namespace Net.Code.ADONet
             From = CreateConvertFunction(typeof (T));
         }
 
-        private static Type _type = typeof (T);
         private static Func<object, T> CreateConvertFunction(Type type)
         {
             if (!type.IsValueType)
@@ -399,81 +396,41 @@ namespace Net.Code.ADONet
 
         // ReSharper disable once UnusedMember.Local
         // (used via reflection!)
-        private static TElem? ConvertNullableValueType<TElem>(object value)where TElem : struct
-        {
-            var destType = typeof (TElem);
-            if (DBNullHelper.IsNull(value))
-            {
-                return (TElem? )null;
-            }
-
-            if (value.GetType() == destType)
-            {
-                return (TElem)value;
-            }
-
-            if (value.GetType() == typeof (TElem? ))
-            {
-                return (TElem? )value;
-            }
-
-            return (TElem)(Convert.ChangeType(value, destType));
-        }
-
-        private static T ConvertRefType(object value)
-        {
-            if (DBNullHelper.IsNull(value))
-            {
-                return default (T);
-            }
-
-            return value.GetType() == _type ? (T)value : (T)(Convert.ChangeType(value, _type));
-        }
-
+        private static TElem? ConvertNullableValueType<TElem>(object value)where TElem : struct => DBNullHelper.IsNull(value) ? (TElem? )null : ConvertPrivate<TElem>(value);
+        private static T ConvertRefType(object value) => DBNullHelper.IsNull(value) ? default (T) : ConvertPrivate<T>(value);
         private static T ConvertValueType(object value)
         {
             if (DBNullHelper.IsNull(value))
             {
-                return default (T);
+                throw new NullReferenceException("Value is DbNull");
             }
 
-            return value.GetType() == _type ? (T)value : (T)(Convert.ChangeType(value, _type));
+            return ConvertPrivate<T>(value);
         }
+
+        private static TElem ConvertPrivate<TElem>(object value) => (TElem)(Convert.ChangeType(value, typeof (TElem)));
     }
 
     static class DataReaderExtensions
     {
-        internal static IEnumerable<dynamic> ToExpandoList(this IDataReader reader)
-        {
-            var fieldMap = reader.GetFieldMap();
-            using (reader)
-            {
-                while (reader.Read())
-                {
-                    yield return reader.ToExpando(fieldMap);
-                }
-            }
-        }
-
-        internal static IEnumerable<dynamic> ToDynamicDataRecord(this IDataReader reader)
+        public static IEnumerable<IDataRecord> AsEnumerable(this IDataReader reader)
         {
             using (reader)
             {
                 while (reader.Read())
-                {
-                    yield return Dynamic.From(reader);
-                }
+                    yield return reader;
             }
         }
 
+        internal static IEnumerable<dynamic> ToExpandoList(this IEnumerable<IDataRecord> input) => input.Select(item => item.ToExpando());
+        internal static IEnumerable<dynamic> ToDynamicDataRecord(this IEnumerable<IDataRecord> input) => input.Select(item => Dynamic.From(item));
         internal static IEnumerable<IReadOnlyCollection<dynamic>> ToMultiResultSet(this IDataReader reader)
         {
             do
             {
                 var list = new Collection<dynamic>();
-                var map = reader.GetFieldMap();
                 while (reader.Read())
-                    list.Add(reader.ToExpando(map));
+                    list.Add(reader.ToExpando());
                 yield return list;
             }
             while (reader.NextResult());
@@ -482,95 +439,28 @@ namespace Net.Code.ADONet
         internal static IReadOnlyCollection<T> GetResultSet<T>(this IDataReader reader, DbConfig config, out bool moreResults)
         {
             var list = new List<T>();
-            var map = reader.GetSetterMap<T>(config);
             while (reader.Read())
-                list.Add(reader.MapTo<T>(map));
+                list.Add(reader.MapTo<T>(config));
             moreResults = reader.NextResult();
             return list;
-        }
-
-        internal static IEnumerable<T> AsEnumerable<T>(this IDataReader reader, DbConfig config)
-        {
-            var setterMap = reader.GetSetterMap<T>(config);
-            using (reader)
-            {
-                while (reader.Read())
-                {
-                    yield return reader.MapTo<T>(setterMap);
-                }
-            }
         }
     }
 
     public static class DataRecordExtensions
     {
-        internal class SetterMap<T>
+        internal static T MapTo<T>(this IDataRecord record, DbConfig config)
         {
-            public int FieldIndex
-            {
-                get;
-                set;
-            }
-
-            public Action<T, object> Setter
-            {
-                get;
-                set;
-            }
-        }
-
-        internal class FieldMap
-        {
-            public int FieldIndex
-            {
-                get;
-                set;
-            }
-
-            public string FieldName
-            {
-                get;
-                set;
-            }
-        }
-
-        internal static IEnumerable<FieldMap> GetFieldMap(this IDataRecord reader)
-        {
-            List<FieldMap> map = new List<FieldMap>();
-            for (var i = 0; i < reader.FieldCount; i++)
-            {
-                map.Add(new FieldMap()
-                {FieldIndex = i, FieldName = reader.GetName(i)});
-            }
-
-            return map;
-        }
-
-        internal static IEnumerable<SetterMap<T>> GetSetterMap<T>(this IDataRecord reader, DbConfig config)
-        {
-            List<SetterMap<T>> map = new List<SetterMap<T>>();
             var convention = config.MappingConvention;
             var setters = FastReflection.Instance.GetSettersForType<T>();
-            for (var i = 0; i < reader.FieldCount; i++)
+            var result = Activator.CreateInstance<T>();
+            for (var i = 0; i < record.FieldCount; i++)
             {
                 Action<T, object> setter;
-                var columnName = convention.FromDb(reader.GetName(i));
-                if (setters.TryGetValue(columnName, out setter))
-                {
-                    map.Add(new SetterMap<T>()
-                    {FieldIndex = i, Setter = setter});
-                }
-            }
-
-            return map;
-        }
-
-        internal static T MapTo<T>(this IDataRecord record, IEnumerable<SetterMap<T>> setterMap)
-        {
-            var result = Activator.CreateInstance<T>();
-            foreach (var item in setterMap)
-            {
-                item.Setter(result, record.GetValue(item.FieldIndex));
+                var columnName = convention.FromDb(record.GetName(i));
+                if (!setters.TryGetValue(columnName, out setter))
+                    continue;
+                var val = DBNullHelper.FromDb(record.GetValue(i));
+                setter(result, val);
             }
 
             return result;
@@ -582,12 +472,14 @@ namespace Net.Code.ADONet
         /// </summary>
         /// <param name = "rdr">the data record</param>
         /// <returns>A dynamic object with fields corresponding to the database columns</returns>
-        internal static dynamic ToExpando(this IDataRecord rdr, IEnumerable<FieldMap> fieldMap)
+        internal static dynamic ToExpando(this IDataRecord rdr)
         {
             var d = new Dictionary<string, object>();
-            foreach (var item in fieldMap)
+            for (var i = 0; i < rdr.FieldCount; i++)
             {
-                d.Add(item.FieldName, rdr[item.FieldIndex]);
+                var name = rdr.GetName(i);
+                var value = rdr[i];
+                d.Add(name, value);
             }
 
             return Dynamic.From(d);
@@ -880,8 +772,8 @@ namespace Net.Code.ADONet
             private bool _disposed;
             // ReSharper disable StaticFieldInGenericType
             private static readonly PropertyInfo[] Properties;
-            private static readonly IReadOnlyDictionary<string, int> PropertyIndexesByName;
-            private static readonly IReadOnlyDictionary<string, Func<T, object>> Getters;
+            private static readonly IDictionary<string, int> PropertyIndexesByName;
+            private static readonly IDictionary<string, Func<T, object>> Getters;
             // ReSharper restore StaticFieldInGenericType
             static EnumerableDataReaderImpl()
             {
@@ -990,14 +882,14 @@ namespace Net.Code.ADONet
         }
 
         public static FastReflection Instance = new FastReflection();
-        public IReadOnlyDictionary<string, Action<T, object>> GetSettersForType<T>()
+        public IDictionary<string, Action<T, object>> GetSettersForType<T>()
         {
             var setters = _setters.GetOrAdd(new
             {
             Type = typeof (T)}
 
             , d => ((Type)d.Type).GetProperties().ToDictionary(p => p.Name, GetSetDelegate<T>));
-            return (IReadOnlyDictionary<string, Action<T, object>>)setters;
+            return (IDictionary<string, Action<T, object>>)setters;
         }
 
         private readonly ConcurrentDictionary<dynamic, object> _setters = new ConcurrentDictionary<dynamic, object>();
@@ -1018,14 +910,14 @@ namespace Net.Code.ADONet
             return ret;
         }
 
-        public IReadOnlyDictionary<string, Func<T, object>> GetGettersForType<T>()
+        public IDictionary<string, Func<T, object>> GetGettersForType<T>()
         {
             var setters = _getters.GetOrAdd(new
             {
             Type = typeof (T)}
 
             , d => ((Type)d.Type).GetProperties().ToDictionary(p => p.Name, GetGetDelegate<T>));
-            return (IReadOnlyDictionary<string, Func<T, object>>)setters;
+            return (IDictionary<string, Func<T, object>>)setters;
         }
 
         private readonly ConcurrentDictionary<dynamic, object> _getters = new ConcurrentDictionary<dynamic, object>();
@@ -1042,7 +934,7 @@ namespace Net.Code.ADONet
         static object CreateGetterDelegateHelper<TTarget, TProperty>(MethodInfo method)where TTarget : class
         {
             var func = (Func<TTarget, TProperty>)Delegate.CreateDelegate(typeof (Func<TTarget, TProperty>), method);
-            Func<TTarget, object> ret = target => func(target);
+            Func<TTarget, object> ret = target => ConvertTo<TProperty>.From(func(target));
             return ret;
         }
     }
@@ -1473,138 +1365,6 @@ namespace Net.Code.ADONet.Extensions
     internal static class TypeExtensions
     {
         public static bool HasCustomAttribute<TAttribute>(this MemberInfo t, Func<TAttribute, bool> whereClause) => t.GetCustomAttributes(false).OfType<TAttribute>().Where(whereClause).Any();
-    }
-}
-
-namespace Net.Code.ADONet.Extensions.Experimental
-{
-    public class FastReflection<T>
-    {
-        private FastReflection()
-        {
-        }
-
-#region Field Members
-        private Lazy<Dictionary<string, Action<T, object>>> _setters = new Lazy<Dictionary<string, Action<T, object>>>(GetSetDelegates, LazyThreadSafetyMode.ExecutionAndPublication);
-        private Lazy<Dictionary<string, Func<T, object>>> _getters = new Lazy<Dictionary<string, Func<T, object>>>(GetGetDelegates, LazyThreadSafetyMode.ExecutionAndPublication);
-#endregion
-#region Public Members
-        public readonly static FastReflection<T> Instance = new FastReflection<T>();
-        public IReadOnlyDictionary<string, Action<T, object>> GetSetters()
-        {
-            return _setters.Value;
-        }
-
-        public IReadOnlyDictionary<string, Func<T, object>> GetGetters()
-        {
-            return _getters.Value;
-        }
-
-#endregion
-#region Private Members
-        private static Dictionary<string, Action<T, object>> GetSetDelegates()
-        {
-            var typeInfo = typeof (T);
-            if (typeInfo.IsClass && !typeInfo.IsAbstract && !typeInfo.IsInterface)
-            {
-                var memberInfo = typeInfo.GetProperties().Where(x => x.CanWrite && x.SetMethod != null).Select(x => (MemberInfo)x).ToList();
-                memberInfo.AddRange(typeInfo.GetFields().Where(x => x.IsPublic).Select(x => (MemberInfo)x));
-                return memberInfo.ToDictionary(x => x.Name, GetSetDelegate);
-            }
-
-            return new Dictionary<string, Action<T, object>>();
-        }
-
-        private static Action<T, object> GetSetDelegate(MemberInfo p)
-        {
-            Type targetType = (p is PropertyInfo) ? ((PropertyInfo)p).PropertyType : ((FieldInfo)p).FieldType;
-            var genericHelper = typeof (FastReflection<T>).GetMethod(nameof(CreateSetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
-            var constructedHelper = genericHelper.MakeGenericMethod(targetType);
-            return (Action<T, object>)constructedHelper.Invoke(null, new object[]{p.Name});
-        }
-
-        private static Action<T, object> CreateSetterDelegateHelper<P>(string memberName)
-        {
-            var backingField = BackingFields<T>.Instance.ForMember(memberName);
-            var func = ConvertTo<P>.From;
-            var instance = Expression.Parameter(typeof (T), "i");
-            var input = Expression.Parameter(typeof (object), "input");
-            var instanceProp = backingField != null ? Expression.Field(instance, backingField) : Expression.PropertyOrField(instance, memberName);
-            var convertCall = Expression.Call(null, func.Method, input);
-            var assign = Expression.Assign(instanceProp, convertCall);
-            return Expression.Lambda<Action<T, object>>(assign, instance, input).Compile();
-        }
-
-        private static Dictionary<string, Func<T, object>> GetGetDelegates()
-        {
-            var typeInfo = typeof (T);
-            if (typeInfo.IsClass && !typeInfo.IsAbstract && !typeInfo.IsInterface)
-            {
-                var memberInfo = typeInfo.GetProperties().Where(x => x.CanRead && x.GetMethod != null).Select(x => (MemberInfo)x).ToList();
-                memberInfo.AddRange(typeInfo.GetFields().Where(x => x.IsPublic).Select(x => (MemberInfo)x));
-                return memberInfo.ToDictionary(x => x.Name, GetGetDelegate);
-            }
-
-            return new Dictionary<string, Func<T, object>>();
-        }
-
-        private static Func<T, object> GetGetDelegate(MemberInfo p)
-        {
-            Type targetType = (p is PropertyInfo) ? ((PropertyInfo)p).PropertyType : ((FieldInfo)p).FieldType;
-            var genericHelper = typeof (FastReflection<T>).GetMethod(nameof(CreateGetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
-            var constructedHelper = genericHelper.MakeGenericMethod(targetType);
-            return (Func<T, object>)constructedHelper.Invoke(null, new object[]{p.Name});
-        }
-
-        private static Func<T, object> CreateGetterDelegateHelper<P>(string memberName)
-        {
-            var backingField = BackingFields<T>.Instance.ForMember(memberName);
-            var instance = Expression.Parameter(typeof (T), "i");
-            var instanceProp = backingField != null ? Expression.Field(instance, backingField) : Expression.PropertyOrField(instance, memberName);
-            var convert = Expression.Convert(instanceProp, typeof (object));
-            return Expression.Lambda<Func<T, object>>(convert, instance).Compile();
-        }
-#endregion
-    }
-
-    internal class BackingFields<T>
-    {
-        private BackingFields()
-        {
-        }
-
-#region Field Members
-        private Lazy<Dictionary<string, FieldInfo>> _backingFields = new Lazy<Dictionary<string, FieldInfo>>(GetBackingFields, LazyThreadSafetyMode.ExecutionAndPublication);
-#endregion
-#region Public Members
-        public readonly static BackingFields<T> Instance = new BackingFields<T>();
-        public FieldInfo ForMember(string name)
-        {
-            var key = string.Format("<{0}>k__BackingField", name);
-            FieldInfo info;
-            _backingFields.Value.TryGetValue(key, out info);
-            return info;
-        }
-
-#endregion
-#region Private Members
-        private static Dictionary<string, FieldInfo> GetBackingFields()
-        {
-            return GetBackingFieldsFor(typeof (T)).ToDictionary(x => x.Name, y => y);
-        }
-
-        private static List<FieldInfo> GetBackingFieldsFor(Type t)
-        {
-            if (t == null)
-            {
-                return new List<FieldInfo>();
-            }
-
-            var fields = t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).Where(x => x.Name.IndexOf(">k__BackingField", 0, StringComparison.OrdinalIgnoreCase) > 0).ToList();
-            fields.AddRange(GetBackingFieldsFor(t.BaseType));
-            return fields.GroupBy(x => x.Name).Select(x => x.First()).ToList();
-        }
-#endregion
     }
 }
 

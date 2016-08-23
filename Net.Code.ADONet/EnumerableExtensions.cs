@@ -45,8 +45,8 @@ namespace Net.Code.ADONet
 
             // ReSharper disable StaticFieldInGenericType
             private static readonly PropertyInfo[] Properties;
-            private static readonly IReadOnlyDictionary<string, int> PropertyIndexesByName;
-            private static readonly IReadOnlyDictionary<string, Func<T, object>> Getters;
+            private static readonly IDictionary<string, int> PropertyIndexesByName;
+            private static readonly IDictionary<string, Func<T, object>> Getters;
             // ReSharper restore StaticFieldInGenericType
 
             static EnumerableDataReaderImpl()
