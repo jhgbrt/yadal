@@ -25,7 +25,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
                 new {Name = "UNMAPPED_PROPERTY", Value = (object) "SomeValue"},
             };
 
-            var record = Substitute.For<IDataRecord>();
+            var record = Substitute.For<IDataReader>();
             record.FieldCount.Returns(2);
             for (int i = 0; i < values.Length; i++)
             {
@@ -33,7 +33,10 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
                 record.GetValue(i).Returns(values[i].Value);
             }
 
-            var entity = record.MapTo<MyEntity>(new DbConfig(c => {}, MappingConvention.OracleStyle, string.Empty));
+            var config = new DbConfig(c => { }, MappingConvention.OracleStyle, string.Empty);
+            var map = record.GetSetterMap<MyEntity>(config);
+            
+            var entity = record.MapTo<MyEntity>(map);
 
             Assert.IsNull(entity.MyProperty);
             Assert.AreEqual(default(int), entity.MyInt1);
@@ -45,7 +48,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
         [TestMethod]
         public void MapTo_WhenCalled_EntityIsMapped()
         {
-            var record = Substitute.For<IDataRecord>();
+            var reader = Substitute.For<IDataReader>();
 
             var values = new[]
             {
@@ -55,14 +58,16 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
                 new {Name = "MY_INT1", Value = (object) 2}
             };
 
-            record.FieldCount.Returns(values.Length);
+            reader.FieldCount.Returns(values.Length);
             for (int i = 0; i < values.Length; i++)
             {
-                record.GetName(i).Returns(values[i].Name);
-                record.GetValue(i).Returns(values[i].Value);
+                reader.GetName(i).Returns(values[i].Name);
+                reader.GetValue(i).Returns(values[i].Value);
             }
 
-            var entity = record.MapTo<MyEntity>(new DbConfig(c => { }, MappingConvention.OracleStyle, string.Empty));
+            var config = new DbConfig(c => { }, MappingConvention.OracleStyle, string.Empty);
+            var map = reader.GetSetterMap<MyEntity>(config);
+            var entity = reader.MapTo<MyEntity>(map);
             
             Assert.AreEqual("SomeValue", entity.MyProperty);
             Assert.IsNull(entity.MyNullableInt1);

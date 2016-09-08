@@ -108,7 +108,7 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Executes the query and returns the result as a list of dynamic objects. 
         /// </summary>
-        public IEnumerable<dynamic> AsEnumerable() => Execute.Reader().AsEnumerable().ToExpandoList();
+        public IEnumerable<dynamic> AsEnumerable() => Execute.Reader().ToExpandoList();
 
         /// <summary>
         /// Executes the query and returns the result as a list of [T]. This method is slightly faster. 
@@ -123,11 +123,11 @@ namespace Net.Code.ADONet
         /// Executes the query and returns the result as a list of [T] using the 'case-insensitive, underscore-agnostic column name to property mapping convention.' 
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        public IEnumerable<T> AsEnumerable<T>() => AsReader().AsEnumerable().Select(r => r.MapTo<T>(_config));
+        public IEnumerable<T> AsEnumerable<T>() => AsReader().AsEnumerable<T>(_config);
 
         // enables linq 'select' syntax
         public IEnumerable<T> Select<T>(Func<dynamic, T> selector) 
-            => Execute.Reader().AsEnumerable().ToDynamicDataRecord().Select(selector);
+            => Execute.Reader().ToDynamicDataRecord().Select(selector);
 
         /// <summary>
         /// Executes the query and returns the result as a list of lists
@@ -250,7 +250,7 @@ namespace Net.Code.ADONet
         public async Task<IEnumerable<dynamic>> AsEnumerableAsync()
         {
             var reader = await ExecuteAsync.Reader();
-            return reader.AsEnumerable().ToExpandoList();
+            return reader.ToExpandoList();
         }
 
         /// <summary>
@@ -262,7 +262,7 @@ namespace Net.Code.ADONet
         public async Task<IEnumerable<T>> AsEnumerableAsync<T>(Func<dynamic, T> selector)
         {
             var reader = await ExecuteAsync.Reader();
-            return reader.AsEnumerable().ToDynamicDataRecord().Select(selector);
+            return reader.ToDynamicDataRecord().Select(selector);
         }
 
         /// <summary>
