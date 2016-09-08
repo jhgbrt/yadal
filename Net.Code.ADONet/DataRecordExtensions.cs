@@ -6,18 +6,44 @@ namespace Net.Code.ADONet
 {
     public static class DataRecordExtensions
     {
-        internal static T MapTo<T>(this IDataRecord record, DbConfig config)
+        internal class Setter<T>
         {
+            public Setter(int fieldIndex, Action<T, object> action)
+            {
+                FieldIndex = fieldIndex;
+                Action = action;
+            }
+
+            public int FieldIndex { get; private set; }
+            public Action<T,object> Action { get; private set; }
+        }
+
+        internal class SetterMap<T> : List<Setter<T>> { }
+
+        internal static SetterMap<T> GetSetterMap<T>(this IDataReader reader, DbConfig config)
+        {
+            SetterMap<T> map = new SetterMap<T>();
             var convention = config.MappingConvention;
             var setters = FastReflection.Instance.GetSettersForType<T>();
-            var result = Activator.CreateInstance<T>();
-            for (var i = 0; i < record.FieldCount; i++)
+            for (var i = 0; i < reader.FieldCount; i++)
             {
-                Action<T,object> setter;
-                var columnName = convention.FromDb(record.GetName(i));
-                if (!setters.TryGetValue(columnName, out setter))
-                    continue;
-                var val = DBNullHelper.FromDb(record.GetValue(i));
+                var columnName = convention.FromDb(reader.GetName(i));
+                Action<T, object> setter;
+                if (setters.TryGetValue(columnName, out setter))
+                {
+                    map.Add(new Setter<T>(i, setter));
+                }
+            }
+            return map;
+        }
+
+        internal static T MapTo<T>(this IDataRecord record, SetterMap<T> setterMap)
+        {
+            var result = Activator.CreateInstance<T>();
+            foreach (var item in setterMap)
+            {
+                var val = DBNullHelper.FromDb(record.GetValue(item.FieldIndex));
+                Action<T, object> setter = item.Action;
                 setter(result, val);
             }
             return result;
