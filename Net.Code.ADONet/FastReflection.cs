@@ -10,13 +10,13 @@ namespace Net.Code.ADONet
     {
         private FastReflection() { }
         public static FastReflection Instance = new FastReflection();
-        public IDictionary<string, Action<T, object>> GetSettersForType<T>()
+        public IReadOnlyDictionary<string, Action<T, object>> GetSettersForType<T>()
         {
             var setters = _setters.GetOrAdd(
                 new { Type = typeof(T)},
                 d => ((Type)d.Type).GetProperties().ToDictionary(p => p.Name, GetSetDelegate<T>)
                 );
-            return (IDictionary<string, Action<T, object>>)setters;
+            return (IReadOnlyDictionary<string, Action<T, object>>)setters;
         }
         private readonly ConcurrentDictionary<dynamic, object> _setters = new ConcurrentDictionary<dynamic, object>();
         static Action<T, object> GetSetDelegate<T>(PropertyInfo p)
@@ -35,13 +35,13 @@ namespace Net.Code.ADONet
             return ret;
         }
 
-        public IDictionary<string, Func<T, object>> GetGettersForType<T>()
+        public IReadOnlyDictionary<string, Func<T, object>> GetGettersForType<T>()
         {
             var setters = _getters.GetOrAdd(
                 new { Type = typeof(T) },
                 d => ((Type)d.Type).GetProperties().ToDictionary(p => p.Name, GetGetDelegate<T>)
                 );
-            return (IDictionary<string, Func<T, object>>)setters;
+            return (IReadOnlyDictionary<string, Func<T, object>>)setters;
         }
         private readonly ConcurrentDictionary<dynamic, object> _getters = new ConcurrentDictionary<dynamic, object>();
         static Func<T, object> GetGetDelegate<T>(PropertyInfo p)

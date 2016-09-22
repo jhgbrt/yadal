@@ -23,7 +23,7 @@ namespace Net.Code.ADONet.Tests.Unit.ReflectionHelper
             IntProperty = 1,
             NullableIntProperty = 2
         };
-        IDictionary<string, Func<MyTestEntity, object>> getters = FastReflection.Instance.GetGettersForType<MyTestEntity>();
+        IReadOnlyDictionary<string, Func<MyTestEntity, object>> getters = FastReflection.Instance.GetGettersForType<MyTestEntity>();
 
         [TestMethod]
         public void Getter_ForStringProperty_ReturnsCorrectValue()
@@ -57,7 +57,7 @@ namespace Net.Code.ADONet.Tests.Unit.ReflectionHelper
         {
         };
 
-        IDictionary<string, Action<MyTestEntity,object>> setters = FastReflection.Instance.GetSettersForType<MyTestEntity>();
+        IReadOnlyDictionary<string, Action<MyTestEntity,object>> setters = FastReflection.Instance.GetSettersForType<MyTestEntity>();
 
         [TestMethod]
         public void Setter_ForStringProperty_ReturnsCorrectValue()
