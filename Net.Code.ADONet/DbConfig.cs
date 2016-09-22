@@ -5,7 +5,7 @@ namespace Net.Code.ADONet
 {
     public class DbConfig
     {
-        internal DbConfig(Action<IDbCommand> prepareCommand, MappingConvention convention, string providerName)
+        internal DbConfig(Action<IDbCommand> prepareCommand, IMappingConvention convention, string providerName)
         {
             PrepareCommand = prepareCommand;
             MappingConvention = convention;
@@ -13,7 +13,7 @@ namespace Net.Code.ADONet
         }
 
         public Action<IDbCommand> PrepareCommand { get; }
-        internal MappingConvention MappingConvention { get; }
+        internal IMappingConvention MappingConvention { get; }
         public string ProviderName { get; }
 
         public static readonly DbConfig Default = Create("System.Data.SqlClient");
@@ -27,9 +27,9 @@ namespace Net.Code.ADONet
         // one has to set the BindByName property on the OracleDbCommand.
         // Mapping: 
         // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
-        private static DbConfig Oracle(string providerName) => new DbConfig(SetBindByName, MappingConvention.OracleStyle, providerName);
+        private static DbConfig Oracle(string providerName) => new DbConfig(SetBindByName, Net.Code.ADONet.MappingConvention.OracleStyle, providerName);
 
-        private static DbConfig Create(string providerName) => new DbConfig(c => { }, MappingConvention.Default, providerName);
+        private static DbConfig Create(string providerName) => new DbConfig(c => { }, Net.Code.ADONet.MappingConvention.Default, providerName);
 
         private static void SetBindByName(dynamic c) => c.BindByName = true;
     }

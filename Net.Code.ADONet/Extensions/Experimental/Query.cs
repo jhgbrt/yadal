@@ -16,9 +16,9 @@ namespace Net.Code.ADONet.Extensions
         private string _count;
 
         public static IQueryGenerator Create(string providerName) => Create(DbConfig.FromProviderName(providerName).MappingConvention);
-        internal static IQueryGenerator Create(MappingConvention convention) => new Query<T>(convention);
+        internal static IQueryGenerator Create(IMappingConvention convention) => new Query<T>(convention);
 
-        Query(MappingConvention convention)
+        Query(IMappingConvention convention)
         {
             var properties = typeof(T).GetProperties();
 
