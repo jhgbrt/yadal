@@ -124,7 +124,7 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Executes the query and returns the result as a list of dynamic objects. 
         /// </summary>
-        public IEnumerable<dynamic> AsEnumerable() => Execute.Reader().AsEnumerable().ToExpandoList();
+        public IEnumerable<dynamic> AsEnumerable() => Execute.Reader().ToExpandoList();
         /// <summary>
         /// Executes the query and returns the result as a list of [T]. This method is slightly faster. 
         /// than doing AsEnumerable().Select(selector). The selector is required to map objects as the 
@@ -137,9 +137,9 @@ namespace Net.Code.ADONet
         /// Executes the query and returns the result as a list of [T] using the 'case-insensitive, underscore-agnostic column name to property mapping convention.' 
         /// </summary>
         /// <typeparam name = "T"></typeparam>
-        public IEnumerable<T> AsEnumerable<T>() => AsReader().AsEnumerable().Select(r => r.MapTo<T>(_config));
+        public IEnumerable<T> AsEnumerable<T>() => AsReader().AsEnumerable<T>(_config);
         // enables linq 'select' syntax
-        public IEnumerable<T> Select<T>(Func<dynamic, T> selector) => Execute.Reader().AsEnumerable().ToDynamicDataRecord().Select(selector);
+        public IEnumerable<T> Select<T>(Func<dynamic, T> selector) => Execute.Reader().ToDynamicDataRecord().Select(selector);
         /// <summary>
         /// Executes the query and returns the result as a list of lists
         /// </summary>
@@ -240,7 +240,7 @@ namespace Net.Code.ADONet
         public async Task<IEnumerable<dynamic>> AsEnumerableAsync()
         {
             var reader = await ExecuteAsync.Reader();
-            return reader.AsEnumerable().ToExpandoList();
+            return reader.ToExpandoList();
         }
 
         /// <summary>
@@ -252,7 +252,7 @@ namespace Net.Code.ADONet
         public async Task<IEnumerable<T>> AsEnumerableAsync<T>(Func<dynamic, T> selector)
         {
             var reader = await ExecuteAsync.Reader();
-            return reader.AsEnumerable().ToDynamicDataRecord().Select(selector);
+            return reader.ToDynamicDataRecord().Select(selector);
         }
 
         /// <summary>
@@ -422,8 +422,34 @@ namespace Net.Code.ADONet
             }
         }
 
-        internal static IEnumerable<dynamic> ToExpandoList(this IEnumerable<IDataRecord> input) => input.Select(item => item.ToExpando());
-        internal static IEnumerable<dynamic> ToDynamicDataRecord(this IEnumerable<IDataRecord> input) => input.Select(item => Dynamic.From(item));
+        public static IEnumerable<T> AsEnumerable<T>(this IDataReader reader, DbConfig config)
+        {
+            var setterMap = reader.GetSetterMap<T>(config);
+            using (reader)
+            {
+                while (reader.Read())
+                    yield return reader.MapTo<T>(setterMap);
+            }
+        }
+
+        internal static IEnumerable<dynamic> ToExpandoList(this IDataReader reader)
+        {
+            using (reader)
+            {
+                while (reader.Read())
+                    yield return reader.ToExpando();
+            }
+        }
+
+        internal static IEnumerable<dynamic> ToDynamicDataRecord(this IDataReader reader)
+        {
+            using (reader)
+            {
+                while (reader.Read())
+                    yield return Dynamic.From(reader);
+            }
+        }
+
         internal static IEnumerable<IReadOnlyCollection<dynamic>> ToMultiResultSet(this IDataReader reader)
         {
             do
@@ -439,8 +465,9 @@ namespace Net.Code.ADONet
         internal static IReadOnlyCollection<T> GetResultSet<T>(this IDataReader reader, DbConfig config, out bool moreResults)
         {
             var list = new List<T>();
+            var map = reader.GetSetterMap<T>(config);
             while (reader.Read())
-                list.Add(reader.MapTo<T>(config));
+                list.Add(reader.MapTo<T>(map));
             moreResults = reader.NextResult();
             return list;
         }
@@ -448,18 +475,56 @@ namespace Net.Code.ADONet
 
     public static class DataRecordExtensions
     {
-        internal static T MapTo<T>(this IDataRecord record, DbConfig config)
+        internal class Setter<T>
         {
+            public Setter(int fieldIndex, Action<T, object> action)
+            {
+                FieldIndex = fieldIndex;
+                Action = action;
+            }
+
+            public int FieldIndex
+            {
+                get;
+                private set;
+            }
+
+            public Action<T, object> Action
+            {
+                get;
+                private set;
+            }
+        }
+
+        internal class SetterMap<T> : List<Setter<T>>
+        {
+        }
+
+        internal static SetterMap<T> GetSetterMap<T>(this IDataReader reader, DbConfig config)
+        {
+            SetterMap<T> map = new SetterMap<T>();
             var convention = config.MappingConvention;
             var setters = FastReflection.Instance.GetSettersForType<T>();
-            var result = Activator.CreateInstance<T>();
-            for (var i = 0; i < record.FieldCount; i++)
+            for (var i = 0; i < reader.FieldCount; i++)
             {
+                var columnName = convention.FromDb(reader.GetName(i));
                 Action<T, object> setter;
-                var columnName = convention.FromDb(record.GetName(i));
-                if (!setters.TryGetValue(columnName, out setter))
-                    continue;
-                var val = DBNullHelper.FromDb(record.GetValue(i));
+                if (setters.TryGetValue(columnName, out setter))
+                {
+                    map.Add(new Setter<T>(i, setter));
+                }
+            }
+
+            return map;
+        }
+
+        internal static T MapTo<T>(this IDataRecord record, SetterMap<T> setterMap)
+        {
+            var result = Activator.CreateInstance<T>();
+            foreach (var item in setterMap)
+            {
+                var val = DBNullHelper.FromDb(record.GetValue(item.FieldIndex));
+                Action<T, object> setter = item.Action;
                 setter(result, val);
             }
 
@@ -772,8 +837,8 @@ namespace Net.Code.ADONet
             private bool _disposed;
             // ReSharper disable StaticFieldInGenericType
             private static readonly PropertyInfo[] Properties;
-            private static readonly IDictionary<string, int> PropertyIndexesByName;
-            private static readonly IDictionary<string, Func<T, object>> Getters;
+            private static readonly IReadOnlyDictionary<string, int> PropertyIndexesByName;
+            private static readonly IReadOnlyDictionary<string, Func<T, object>> Getters;
             // ReSharper restore StaticFieldInGenericType
             static EnumerableDataReaderImpl()
             {
@@ -882,14 +947,14 @@ namespace Net.Code.ADONet
         }
 
         public static FastReflection Instance = new FastReflection();
-        public IDictionary<string, Action<T, object>> GetSettersForType<T>()
+        public IReadOnlyDictionary<string, Action<T, object>> GetSettersForType<T>()
         {
             var setters = _setters.GetOrAdd(new
             {
             Type = typeof (T)}
 
             , d => ((Type)d.Type).GetProperties().ToDictionary(p => p.Name, GetSetDelegate<T>));
-            return (IDictionary<string, Action<T, object>>)setters;
+            return (IReadOnlyDictionary<string, Action<T, object>>)setters;
         }
 
         private readonly ConcurrentDictionary<dynamic, object> _setters = new ConcurrentDictionary<dynamic, object>();
@@ -910,14 +975,14 @@ namespace Net.Code.ADONet
             return ret;
         }
 
-        public IDictionary<string, Func<T, object>> GetGettersForType<T>()
+        public IReadOnlyDictionary<string, Func<T, object>> GetGettersForType<T>()
         {
             var setters = _getters.GetOrAdd(new
             {
             Type = typeof (T)}
 
             , d => ((Type)d.Type).GetProperties().ToDictionary(p => p.Name, GetGetDelegate<T>));
-            return (IDictionary<string, Func<T, object>>)setters;
+            return (IReadOnlyDictionary<string, Func<T, object>>)setters;
         }
 
         private readonly ConcurrentDictionary<dynamic, object> _getters = new ConcurrentDictionary<dynamic, object>();
@@ -1248,7 +1313,7 @@ namespace Net.Code.ADONet.Extensions
         /// <summary>
         /// Please note: this is an experimental feature, API may change or be removed in future versions"
         /// </summary>
-        public static void Insert<T>(this IDb db, params T[] items)
+        public static void Insert<T>(this IDb db, IEnumerable<T> items)
         {
             var query = Query<T>.Create(db.ProviderName).Insert;
             Do(db, items, query);
@@ -1257,7 +1322,7 @@ namespace Net.Code.ADONet.Extensions
         /// <summary>
         /// Please note: this is an experimental feature, API may change or be removed in future versions"
         /// </summary>
-        public static void Update<T>(this IDb db, params T[] items)
+        public static void Update<T>(this IDb db, IEnumerable<T> items)
         {
             var query = Query<T>.Create(db.ProviderName).Update;
             Do(db, items, query);
@@ -1266,13 +1331,13 @@ namespace Net.Code.ADONet.Extensions
         /// <summary>
         /// Please note: this is an experimental feature, API may change or be removed in future versions"
         /// </summary>
-        public static void Delete<T>(this IDb db, params T[] items)
+        public static void Delete<T>(this IDb db, IEnumerable<T> items)
         {
             var query = Query<T>.Create(db.ProviderName).Delete;
             Do(db, items, query);
         }
 
-        private static void Do<T>(IDb db, T[] items, string query)
+        private static void Do<T>(IDb db, IEnumerable<T> items, string query)
         {
             var commandBuilder = db.Sql(query);
             foreach (var item in items)
