@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 
@@ -20,9 +21,14 @@ namespace Net.Code.ADONet
 
         internal class SetterMap<T> : List<Setter<T>> { }
 
+        private static readonly IDictionary<Type, object> SetterMaps = new ConcurrentDictionary<Type, object>();
         internal static SetterMap<T> GetSetterMap<T>(this IDataReader reader, DbConfig config)
         {
-            SetterMap<T> map = new SetterMap<T>();
+            dynamic dmap;
+            if (SetterMaps.TryGetValue(typeof(T), out dmap))
+                return dmap;
+
+            var map = new SetterMap<T>();
             var convention = config.MappingConvention;
             var setters = FastReflection.Instance.GetSettersForType<T>();
             for (var i = 0; i < reader.FieldCount; i++)
@@ -34,6 +40,7 @@ namespace Net.Code.ADONet
                     map.Add(new Setter<T>(i, setter));
                 }
             }
+            SetterMaps.Add(typeof(T), map);
             return map;
         }
 
