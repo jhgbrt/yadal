@@ -27,8 +27,8 @@ namespace Net.Code.ADONet.Tests.Integration
 
         public void DropTables()
         {
-            _db.Execute($"DROP TABLE {nameof(Person)}");
-            _db.Execute($"DROP TABLE {nameof(Address)}");
+            _db.Execute(_target.DropPersonTable);
+            _db.Execute(_target.DropAddressTable);
         }
 
         public void Insert(IEnumerable<Person> people, IEnumerable<Address> addresses)
@@ -158,7 +158,7 @@ namespace Net.Code.ADONet.Tests.Integration
             return result;
         }
 
-        public void BulkInsert(Person[] list)
+        public void BulkInsert(IEnumerable<Person> list)
         {
             _target.BulkInsert(_db, list);
         }

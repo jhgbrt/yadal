@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Net.Code.ADONet.Tests.Integration
@@ -16,10 +17,9 @@ namespace Net.Code.ADONet.Tests.Integration
 
         public static class People
         {
-            public static Person[] List(int n)
+            public static IEnumerable<Person> List(int n)
             {
-                return Enumerable.Range(1, n).Select(x => One()).ToArray();
-
+                return Enumerable.Range(1, n).Select(x => One());
             }
 
             public static Person One()

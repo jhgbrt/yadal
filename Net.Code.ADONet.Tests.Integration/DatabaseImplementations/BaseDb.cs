@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Configuration;
 using Net.Code.ADONet.Extensions;
 
@@ -29,11 +30,13 @@ namespace Net.Code.ADONet.Tests.Integration
             => db.Sql($"{SelectPeople};\r\n{SelectAddresses}").AsMultiResultSet<Person, Address>();
         protected string SelectPeople => Query<Person>().SelectAll;
         protected string SelectAddresses => Query<Address>().SelectAll;
-        public virtual void BulkInsert(IDb db, Person[] list) => db.Insert(list);
+        public virtual void BulkInsert(IDb db, IEnumerable<Person> list) => db.Insert(list);
         protected string Name => GetType().Name;
         protected string MasterName => $"{Name}Master";
         public virtual string CreatePersonTable => DefaultCreatePersonTable;
+        public virtual string DropPersonTable => $"DROP TABLE {nameof(Person)}";
         public virtual string CreateAddressTable => DefaultCreateAddressTable;
+        public virtual string DropAddressTable => $"DROP TABLE {nameof(Address)}";
         public virtual string InsertPerson => GenerateInsertStatement<Person>();
         public virtual string InsertAddress => GenerateInsertStatement<Address>();
         protected string GenerateInsertStatement<T>() => Query<T>().Insert;

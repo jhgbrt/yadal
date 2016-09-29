@@ -81,8 +81,10 @@
     <Compile Include="DatabaseImplementations\SqlServer.cs" />
     <Compile Include="DatabaseImplementations\SqlServerCe.cs" />
     <Compile Include="DbTest.cs" />
+    <Compile Include="ExtensionsForLegacyComparison.cs" />
     <Compile Include="FakeData.cs" />
     <Compile Include="DatabaseTest.cs" />
+    <Compile Include="PerformanceTest.cs" />
     <Compile Include="Person.cs" />
     <Compile Include="DatabaseImplementations\BaseDb.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

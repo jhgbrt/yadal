@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections.ObjectModel;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Net.Code.ADONet.Extensions.SqlClient;
 
 // ReSharper disable UnusedMember.Local
 // ReSharper disable InconsistentNaming
@@ -44,7 +46,7 @@ namespace Net.Code.ADONet.Tests.Integration
                 Assert.Inconclusive($"{target.GetType().Name} - connnection failed {target.ConnectionString} {e}");
             }
 
-            people = FakeData.People.List(10);
+            people = FakeData.People.List(10).ToArray();
             addresses = FakeData.Addresses.List(10);
             test.CreateTables();
             test.Insert(people.Take(5), addresses);
@@ -62,7 +64,9 @@ namespace Net.Code.ADONet.Tests.Integration
         {
             var people = test.GetAllPeopleGeneric();
             foreach (var p in people)
-            p.RequiredNumber = 9999;
+            {
+                p.RequiredNumber = 9999;
+            }
             test.Update(people);
             people = test.GetAllPeopleGeneric();
             Assert.IsTrue(people.All(p => p.RequiredNumber == 9999));

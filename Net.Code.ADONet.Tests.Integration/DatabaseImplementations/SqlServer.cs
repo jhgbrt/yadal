@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Data.SqlClient;
 using Net.Code.ADONet.Extensions.SqlClient;
@@ -40,7 +41,7 @@ namespace Net.Code.ADONet.Tests.Integration
 
         public override bool SupportsTableValuedParameters => true;
 
-        public override void BulkInsert(IDb db, Person[] list)
+        public override void BulkInsert(IDb db, IEnumerable<Person> list)
         {
             db.BulkCopy(list);
         }
