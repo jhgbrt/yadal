@@ -6,11 +6,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Reflection;
 using System.Collections.ObjectModel;
+using System.Collections.Concurrent;
 using System.Configuration;
 using System.ComponentModel;
 using System.Dynamic;
 using System.Collections;
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.RegularExpressions;
@@ -500,9 +500,13 @@ namespace Net.Code.ADONet
         {
         }
 
+        private static readonly IDictionary<Type, object> SetterMaps = new ConcurrentDictionary<Type, object>();
         internal static SetterMap<T> GetSetterMap<T>(this IDataReader reader, DbConfig config)
         {
-            SetterMap<T> map = new SetterMap<T>();
+            dynamic dmap;
+            if (SetterMaps.TryGetValue(typeof (T), out dmap))
+                return dmap;
+            var map = new SetterMap<T>();
             var convention = config.MappingConvention;
             var setters = FastReflection.Instance.GetSettersForType<T>();
             for (var i = 0; i < reader.FieldCount; i++)
@@ -515,6 +519,7 @@ namespace Net.Code.ADONet
                 }
             }
 
+            SetterMaps.Add(typeof (T), map);
             return map;
         }
 
@@ -724,7 +729,7 @@ namespace Net.Code.ADONet
 
     public class DbConfig
     {
-        internal DbConfig(Action<IDbCommand> prepareCommand, MappingConvention convention, string providerName)
+        internal DbConfig(Action<IDbCommand> prepareCommand, IMappingConvention convention, string providerName)
         {
             PrepareCommand = prepareCommand;
             MappingConvention = convention;
@@ -736,7 +741,7 @@ namespace Net.Code.ADONet
             get;
         }
 
-        internal MappingConvention MappingConvention
+        internal IMappingConvention MappingConvention
         {
             get;
         }
@@ -756,12 +761,12 @@ namespace Net.Code.ADONet
         // one has to set the BindByName property on the OracleDbCommand.
         // Mapping: 
         // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
-        private static DbConfig Oracle(string providerName) => new DbConfig(SetBindByName, MappingConvention.OracleStyle, providerName);
+        private static DbConfig Oracle(string providerName) => new DbConfig(SetBindByName, Net.Code.ADONet.MappingConvention.OracleStyle, providerName);
         private static DbConfig Create(string providerName) => new DbConfig(c =>
         {
         }
 
-        , MappingConvention.Default, providerName);
+        , Net.Code.ADONet.MappingConvention.Default, providerName);
         private static void SetBindByName(dynamic c) => c.BindByName = true;
     }
 
@@ -1085,12 +1090,19 @@ namespace Net.Code.ADONet
         }
     }
 
-    internal class MappingConvention
+    public interface IMappingConvention
+    {
+        string FromDb(string s);
+        string ToDb(string s);
+        string Parameter(string s);
+    }
+
+    internal class MappingConvention : IMappingConvention
     {
         private readonly Func<string, string> _fromDb;
         private readonly Func<string, string> _toDb;
         private readonly char _escape;
-        public MappingConvention(Func<string, string> todb, Func<string, string> fromdb, char escape)
+        private MappingConvention(Func<string, string> todb, Func<string, string> fromdb, char escape)
         {
             _toDb = todb;
             _fromDb = fromdb;
@@ -1101,34 +1113,20 @@ namespace Net.Code.ADONet
         /// Maps column names to property names based on exact, case sensitive match. Database artefacts are named exactly
         /// like the .Net objects.
         /// </summary>
-        public static readonly MappingConvention Default = new MappingConvention(s => s, s => s, '@');
+        public static readonly IMappingConvention Default = new MappingConvention(s => s, s => s, '@');
         /// <summary>
         /// Maps column names to property names based on case insensitive match, ignoring underscores. Database artefacts are named using
         /// UPPER_CASE_AND_UNDERSCORES
         /// </summary>
-        public static readonly MappingConvention OracleStyle = new MappingConvention(s => s.ToPascalCase(), s => s.ToUpperWithUnderscores(), ':');
+        public static readonly IMappingConvention OracleStyle = new MappingConvention(s => s.ToPascalCase(), s => s.ToUpperWithUnderscores(), ':');
         /// <summary>
         /// Maps column names to property names based on case insensitive match, ignoring underscores. Database artefacts are named using
         /// lower_case_and_underscores
         /// </summary>
-        public static readonly MappingConvention UnderScores = new MappingConvention(s => s.ToPascalCase(), s => s.ToLowerWithUnderscores(), '@');
+        public static readonly IMappingConvention UnderScores = new MappingConvention(s => s.ToPascalCase(), s => s.ToLowerWithUnderscores(), '@');
         public string FromDb(string s) => _toDb(s);
         public string ToDb(string s) => _fromDb(s);
         public string Parameter(string s) => $"{_escape}{s}";
-        public MappingConvention WithEscapeCharacter(char e)
-        {
-            return new MappingConvention(_toDb, _fromDb, e);
-        }
-
-        public MappingConvention MapPropertyToDbName(Func<string, string> todb)
-        {
-            return new MappingConvention(todb, _fromDb, _escape);
-        }
-
-        public MappingConvention MapDbNameToPropertyName(Func<string, string> fromdb)
-        {
-            return new MappingConvention(_toDb, fromdb, _escape);
-        }
     }
 
     public static class MultiResultSet
@@ -1389,8 +1387,8 @@ namespace Net.Code.ADONet.Extensions
         private string _select;
         private string _count;
         public static IQueryGenerator Create(string providerName) => Create(DbConfig.FromProviderName(providerName).MappingConvention);
-        internal static IQueryGenerator Create(MappingConvention convention) => new Query<T>(convention);
-        Query(MappingConvention convention)
+        internal static IQueryGenerator Create(IMappingConvention convention) => new Query<T>(convention);
+        Query(IMappingConvention convention)
         {
             var properties = typeof (T).GetProperties();
             var keyProperties = properties.Where(p => p.CustomAttributes.Any(a => a.AttributeType == typeof (KeyAttribute))).ToArray();
@@ -1454,7 +1452,7 @@ namespace Net.Code.ADONet.Extensions.SqlClient
         }
 
         /// <summary>
-        /// Assumes on to one mapping between 
+        /// Assumes one to one mapping between 
         /// - tablename and typename 
         /// - property names and column names
         /// </summary>
