@@ -10,7 +10,7 @@ namespace Net.Code.ADONet
     class Logger
     {
 #if DEBUG
-        internal static Action<string> Log = s => { Debug.WriteLine(s); };
+        public static Action<string> Log = s => { Debug.WriteLine(s); };
 #else
         public static Action<string> Log;
 #endif

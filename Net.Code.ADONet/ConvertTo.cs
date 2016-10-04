@@ -31,14 +31,16 @@ namespace Net.Code.ADONet
             {
                 return ConvertRefType;
             }
-            if (type.IsNullableType())
+
+            if (!type.IsNullableType())
             {
-                var delegateType = typeof(Func<object, T>);
-                var methodInfo = typeof(ConvertTo<T>).GetMethod("ConvertNullableValueType", BindingFlags.NonPublic | BindingFlags.Static);
-                var genericMethodForElement = methodInfo.MakeGenericMethod(type.GetGenericArguments()[0]);
-                return (Func<object, T>)Delegate.CreateDelegate(delegateType, genericMethodForElement);
+                return ConvertValueType;
             }
-            return ConvertValueType;
+
+            var delegateType = typeof(Func<object, T>);
+            var methodInfo = typeof(ConvertTo<T>).GetMethod("ConvertNullableValueType", BindingFlags.NonPublic | BindingFlags.Static);
+            var genericMethodForElement = methodInfo.MakeGenericMethod(type.GetGenericArguments()[0]);
+            return (Func<object, T>)Delegate.CreateDelegate(delegateType, genericMethodForElement);
         }
 
         // ReSharper disable once UnusedMember.Local

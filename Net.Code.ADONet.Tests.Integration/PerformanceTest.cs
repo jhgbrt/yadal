@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Net.Code.ADONet.Extensions;
+using Net.Code.ADONet.Extensions.Experimental;
 
 namespace Net.Code.ADONet.Tests.Integration
 {
@@ -21,7 +21,7 @@ namespace Net.Code.ADONet.Tests.Integration
 
                 db.Insert(FakeData.People.List(10000));
 
-                var selectAll = Query<Person>.Create(target.ProviderName).SelectAll;
+                var selectAll = Query<Person>.Create(target.MappingConvention).SelectAll;
 
                 var slow = DoQuery(() => db.Sql(selectAll).AsEnumerableLegacy<Person>(db.Config));
                 Trace.WriteLine(slow);

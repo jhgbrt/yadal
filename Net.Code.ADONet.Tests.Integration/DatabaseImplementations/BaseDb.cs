@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Configuration;
-using Net.Code.ADONet.Extensions;
+using Net.Code.ADONet.Extensions.Experimental;
 
 namespace Net.Code.ADONet.Tests.Integration
 {
@@ -45,9 +45,11 @@ namespace Net.Code.ADONet.Tests.Integration
         public virtual bool SupportsTableValuedParameters => false;
         public abstract void DropAndRecreate();
         protected abstract Type ProviderType { get; }
-        public string ConnectionString => Db.FromConfig(Name).ConnectionString;
-        public IDb CreateDb() => Db.FromConfig(Name);
+        public string ConnectionString => ConfigurationManager.ConnectionStrings[Name].ConnectionString;
+        public IDb CreateDb() => new Db(ConnectionString, Config);
         public virtual Person Project(dynamic d) => new Person { Id = d.Id, Email = d.Email, Name = d.Name, OptionalNumber = d.OptionalNumber, RequiredNumber = d.RequiredNumber };
-        public IQueryGenerator Query<T>() => Extensions.Query<T>.Create(ProviderName);
+        public IQuery Query<T>() => Extensions.Experimental.Query<T>.Create(Config.MappingConvention);
+        public IMappingConvention MappingConvention => Config.MappingConvention;
+        private DbConfig Config => DbConfig.FromProviderName(ProviderName);
     }
 }

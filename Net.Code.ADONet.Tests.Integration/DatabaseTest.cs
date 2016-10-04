@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.ObjectModel;
 using System.Data;
-using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Net.Code.ADONet.Extensions.SqlClient;
 
 // ReSharper disable UnusedMember.Local
 // ReSharper disable InconsistentNaming

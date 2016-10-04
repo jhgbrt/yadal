@@ -1,7 +1,7 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Net.Code.ADONet.Extensions;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Net.Code.ADONet.Extensions.Experimental;
 
 namespace Net.Code.ADONet.Tests.Unit.Extensions.Experimental
 {
@@ -32,7 +32,7 @@ namespace Net.Code.ADONet.Tests.Unit.Extensions.Experimental
     [TestClass]
     public class QueryGeneratorTestsForEntityWithDatabaseGeneratedId
     {
-        IQueryGenerator generator = Query<MyEntityWithGeneratedId>.Create("SqlClient");
+        IQuery generator = Query<MyEntityWithGeneratedId>.Create(MappingConvention.Default);
 
         [TestMethod]
         public void Insert()
@@ -75,7 +75,7 @@ namespace Net.Code.ADONet.Tests.Unit.Extensions.Experimental
     [TestClass]
     public class QueryGeneratorTestsForDefaultEntity
     {
-        IQueryGenerator generator = Query<MyEntity>.Create(MappingConvention.UnderScores);
+        IQuery generator = Query<MyEntity>.Create(MappingConvention.UnderScores);
 
         [TestMethod]
         public void Insert()
@@ -117,7 +117,7 @@ namespace Net.Code.ADONet.Tests.Unit.Extensions.Experimental
     [TestClass]
     public class QueryGeneratorTestsForEntityWithCompositeKey
     {
-        IQueryGenerator generator = Query<MyEntityWithCompositeKey>.Create("Oracle");
+        IQuery generator = Query<MyEntityWithCompositeKey>.Create(MappingConvention.OracleStyle);
 
         [TestMethod]
         public void Insert()

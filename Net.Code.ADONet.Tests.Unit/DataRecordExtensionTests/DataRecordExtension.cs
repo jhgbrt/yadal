@@ -17,6 +17,15 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
             public int MyInt1 { get; set; }
         }
 
+        public class SomeEntity
+        {
+            public string MyProperty { get; set; }
+            public int? MyNullableInt1 { get; set; }
+            public int? MyNullableInt2 { get; set; }
+            public int MyInt1 { get; set; }
+
+        }
+
         [TestMethod]
         public void MapTo_WhenCalled_MissingProperty_IsIgnored()
         {
@@ -34,15 +43,14 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
             }
 
             var config = new DbConfig(c => { }, MappingConvention.OracleStyle, string.Empty);
-            var map = record.GetSetterMap<MyEntity>(config);
-            
-            var entity = record.MapTo<MyEntity>(map);
+            var map = record.GetSetterMap<SomeEntity>(config);
+
+            var entity = record.MapTo(map);
 
             Assert.IsNull(entity.MyProperty);
+            Assert.IsNull(entity.MyNullableInt1);
+            Assert.IsNull(entity.MyNullableInt2);
             Assert.AreEqual(default(int), entity.MyInt1);
-            Assert.AreEqual(default(int?), entity.MyNullableInt1);
-            Assert.AreEqual(default(int?), entity.MyNullableInt2);
-
         }
 
         [TestMethod]
@@ -67,7 +75,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
 
             var config = new DbConfig(c => { }, MappingConvention.OracleStyle, string.Empty);
             var map = reader.GetSetterMap<MyEntity>(config);
-            var entity = reader.MapTo<MyEntity>(map);
+            var entity = reader.MapTo(map);
             
             Assert.AreEqual("SomeValue", entity.MyProperty);
             Assert.IsNull(entity.MyNullableInt1);

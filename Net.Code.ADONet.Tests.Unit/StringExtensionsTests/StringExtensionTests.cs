@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Net.Code.ADONet.Tests.Unit.StringExtensionsTests
 {

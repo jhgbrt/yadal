@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Data;
 
 namespace Net.Code.ADONet
@@ -32,5 +34,6 @@ namespace Net.Code.ADONet
         private static DbConfig Create(string providerName) => new DbConfig(c => { }, Net.Code.ADONet.MappingConvention.Default, providerName);
 
         private static void SetBindByName(dynamic c) => c.BindByName = true;
+
     }
 }

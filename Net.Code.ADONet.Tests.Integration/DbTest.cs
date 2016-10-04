@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Net.Code.ADONet.Extensions;
+using Net.Code.ADONet.Extensions.Experimental;
 using Net.Code.ADONet.Extensions.SqlClient;
 
 namespace Net.Code.ADONet.Tests.Integration

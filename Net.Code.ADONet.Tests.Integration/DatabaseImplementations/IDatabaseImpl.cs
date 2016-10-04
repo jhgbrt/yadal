@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Net.Code.ADONet.Extensions;
+using Net.Code.ADONet.Extensions.Experimental;
 
 namespace Net.Code.ADONet.Tests.Integration
 {
@@ -20,6 +20,6 @@ namespace Net.Code.ADONet.Tests.Integration
         Person Project(dynamic d);
         MultiResultSet<Person, Address> SelectPersonAndAddress(IDb db);
         void BulkInsert(IDb db, IEnumerable<Person> list);
-        IQueryGenerator Query<T>();
+        IQuery Query<T>();
     }
 }

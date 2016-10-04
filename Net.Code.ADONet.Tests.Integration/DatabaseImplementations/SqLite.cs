@@ -1,7 +1,5 @@
 using System;
-using System.Configuration;
 using System.Data.SQLite;
-using System.IO;
 
 namespace Net.Code.ADONet.Tests.Integration
 {
