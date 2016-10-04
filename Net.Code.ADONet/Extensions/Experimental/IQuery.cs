@@ -1,6 +1,6 @@
-﻿namespace Net.Code.ADONet.Extensions
+﻿namespace Net.Code.ADONet.Extensions.Experimental
 {
-    public interface IQueryGenerator
+    public interface IQuery
     {
         string Insert { get; }
         string Delete { get; }

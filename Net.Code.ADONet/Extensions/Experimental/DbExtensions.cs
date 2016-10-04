@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Net.Code.ADONet.Extensions
+namespace Net.Code.ADONet.Extensions.Experimental
 {
     public static class DbExtensions
     {
@@ -9,7 +9,7 @@ namespace Net.Code.ADONet.Extensions
         /// </summary>
         public static void Insert<T>(this IDb db, IEnumerable<T> items)
         {
-            var query = Query<T>.Create(db.ProviderName).Insert;
+            var query = Query<T>.Create(((Db)db).MappingConvention).Insert;
             Do(db, items, query);
         }
 
@@ -18,7 +18,7 @@ namespace Net.Code.ADONet.Extensions
         /// </summary>
         public static void Update<T>(this IDb db, IEnumerable<T> items)
         {
-            var query = Query<T>.Create(db.ProviderName).Update;
+            var query = Query<T>.Create(((Db)db).MappingConvention).Update;
             Do(db, items, query);
         }
 
@@ -27,7 +27,7 @@ namespace Net.Code.ADONet.Extensions
         /// </summary>
         public static void Delete<T>(this IDb db, IEnumerable<T> items)
         {
-            var query = Query<T>.Create(db.ProviderName).Delete;
+            var query = Query<T>.Create(((Db)db).MappingConvention).Delete;
             Do(db, items, query);
         }
 

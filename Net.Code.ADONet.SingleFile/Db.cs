@@ -383,15 +383,15 @@ namespace Net.Code.ADONet
                 return ConvertRefType;
             }
 
-            if (type.IsNullableType())
+            if (!type.IsNullableType())
             {
-                var delegateType = typeof (Func<object, T>);
-                var methodInfo = typeof (ConvertTo<T>).GetMethod("ConvertNullableValueType", BindingFlags.NonPublic | BindingFlags.Static);
-                var genericMethodForElement = methodInfo.MakeGenericMethod(type.GetGenericArguments()[0]);
-                return (Func<object, T>)Delegate.CreateDelegate(delegateType, genericMethodForElement);
+                return ConvertValueType;
             }
 
-            return ConvertValueType;
+            var delegateType = typeof (Func<object, T>);
+            var methodInfo = typeof (ConvertTo<T>).GetMethod("ConvertNullableValueType", BindingFlags.NonPublic | BindingFlags.Static);
+            var genericMethodForElement = methodInfo.MakeGenericMethod(type.GetGenericArguments()[0]);
+            return (Func<object, T>)Delegate.CreateDelegate(delegateType, genericMethodForElement);
         }
 
         // ReSharper disable once UnusedMember.Local
@@ -500,12 +500,8 @@ namespace Net.Code.ADONet
         {
         }
 
-        private static readonly IDictionary<Type, object> SetterMaps = new ConcurrentDictionary<Type, object>();
         internal static SetterMap<T> GetSetterMap<T>(this IDataReader reader, DbConfig config)
         {
-            dynamic dmap;
-            if (SetterMaps.TryGetValue(typeof (T), out dmap))
-                return dmap;
             var map = new SetterMap<T>();
             var convention = config.MappingConvention;
             var setters = FastReflection.Instance.GetSettersForType<T>();
@@ -519,7 +515,6 @@ namespace Net.Code.ADONet
                 }
             }
 
-            SetterMaps.Add(typeof (T), map);
             return map;
         }
 
@@ -597,6 +592,7 @@ namespace Net.Code.ADONet
             get;
         }
 
+        internal IMappingConvention MappingConvention => Config.MappingConvention;
         public string ProviderName => Config.ProviderName;
         private readonly string _connectionString;
         private Lazy<IDbConnection> _connection;
@@ -1074,7 +1070,7 @@ namespace Net.Code.ADONet
     class Logger
     {
 #if DEBUG
-        internal static Action<string> Log = s => { Debug.WriteLine(s); };
+        public static Action<string> Log = s => { Debug.WriteLine(s); };
 #else
         public static Action<string> Log;
 #endif
@@ -1304,7 +1300,7 @@ namespace Net.Code.ADONet
     }
 }
 
-namespace Net.Code.ADONet.Extensions
+namespace Net.Code.ADONet.Extensions.Experimental
 {
     public static class DbExtensions
     {
@@ -1313,7 +1309,7 @@ namespace Net.Code.ADONet.Extensions
         /// </summary>
         public static void Insert<T>(this IDb db, IEnumerable<T> items)
         {
-            var query = Query<T>.Create(db.ProviderName).Insert;
+            var query = Query<T>.Create(((Db)db).MappingConvention).Insert;
             Do(db, items, query);
         }
 
@@ -1322,7 +1318,7 @@ namespace Net.Code.ADONet.Extensions
         /// </summary>
         public static void Update<T>(this IDb db, IEnumerable<T> items)
         {
-            var query = Query<T>.Create(db.ProviderName).Update;
+            var query = Query<T>.Create(((Db)db).MappingConvention).Update;
             Do(db, items, query);
         }
 
@@ -1331,7 +1327,7 @@ namespace Net.Code.ADONet.Extensions
         /// </summary>
         public static void Delete<T>(this IDb db, IEnumerable<T> items)
         {
-            var query = Query<T>.Create(db.ProviderName).Delete;
+            var query = Query<T>.Create(((Db)db).MappingConvention).Delete;
             Do(db, items, query);
         }
 
@@ -1345,7 +1341,7 @@ namespace Net.Code.ADONet.Extensions
         }
     }
 
-    public interface IQueryGenerator
+    public interface IQuery
     {
         string Insert
         {
@@ -1378,29 +1374,31 @@ namespace Net.Code.ADONet.Extensions
         }
     }
 
-    public class Query<T> : IQueryGenerator
+    internal class Query<T> : IQuery
     {
-        private string _insert;
-        private string _delete;
-        private string _update;
-        private string _selectAll;
-        private string _select;
-        private string _count;
-        public static IQueryGenerator Create(string providerName) => Create(DbConfig.FromProviderName(providerName).MappingConvention);
-        internal static IQueryGenerator Create(IMappingConvention convention) => new Query<T>(convention);
+        // ReSharper disable StaticMemberInGenericType
+        private static readonly PropertyInfo[] Properties;
+        private static readonly PropertyInfo[] KeyProperties;
+        private static readonly PropertyInfo[] DbGenerated;
+        // ReSharper restore StaticMemberInGenericType
+        internal static IQuery Create(IMappingConvention convention) => new Query<T>(convention);
+        static Query()
+        {
+            Properties = typeof (T).GetProperties();
+            KeyProperties = Properties.Where(p => p.CustomAttributes.Any(a => a.AttributeType == typeof (KeyAttribute))).ToArray();
+            if (!KeyProperties.Any())
+                KeyProperties = Properties.Where(p => p.Name.Equals("Id", StringComparison.OrdinalIgnoreCase)).ToArray();
+            if (!KeyProperties.Any())
+                KeyProperties = Properties.Where(p => p.Name.Equals($"{typeof (T).Name}Id", StringComparison.OrdinalIgnoreCase)).ToArray();
+            DbGenerated = KeyProperties.Where(p => p.HasCustomAttribute<DatabaseGeneratedAttribute>(a => a.DatabaseGeneratedOption != DatabaseGeneratedOption.None)).ToArray();
+        }
+
         Query(IMappingConvention convention)
         {
-            var properties = typeof (T).GetProperties();
-            var keyProperties = properties.Where(p => p.CustomAttributes.Any(a => a.AttributeType == typeof (KeyAttribute))).ToArray();
-            if (!keyProperties.Any())
-                keyProperties = properties.Where(p => p.Name.Equals("Id", StringComparison.OrdinalIgnoreCase)).ToArray();
-            if (!keyProperties.Any())
-                keyProperties = properties.Where(p => p.Name.Equals($"{typeof (T).Name}Id", StringComparison.OrdinalIgnoreCase)).ToArray();
-            var dbGenerated = keyProperties.Where(p => p.HasCustomAttribute<DatabaseGeneratedAttribute>(a => a.DatabaseGeneratedOption != DatabaseGeneratedOption.None));
-            var allPropertyNames = properties.Select(p => convention.ToDb(p.Name)).ToArray();
-            var insertPropertyNames = properties.Except(dbGenerated).Select(p => p.Name).ToArray();
-            var keyPropertyNames = keyProperties.Select(p => p.Name).ToArray();
-            var nonKeyProperties = properties.Except(keyProperties).ToArray();
+            var allPropertyNames = Properties.Select(p => convention.ToDb(p.Name)).ToArray();
+            var insertPropertyNames = Properties.Except(DbGenerated).Select(p => p.Name).ToArray();
+            var keyPropertyNames = KeyProperties.Select(p => p.Name).ToArray();
+            var nonKeyProperties = Properties.Except(KeyProperties).ToArray();
             var nonKeyPropertyNames = nonKeyProperties.Select(p => p.Name).ToArray();
             Func<string, string> assign = s => $"{convention.ToDb(s)} = {convention.Parameter(s)}";
             var insertColumns = string.Join(", ", insertPropertyNames.Select(convention.ToDb));
@@ -1409,20 +1407,43 @@ namespace Net.Code.ADONet.Extensions
             var updateColumns = string.Join(", ", nonKeyPropertyNames.Select(assign));
             var allColumns = string.Join(", ", allPropertyNames);
             var tableName = convention.ToDb(typeof (T).Name);
-            _insert = $"INSERT INTO {tableName} ({insertColumns}) VALUES ({insertValues})";
-            _delete = $"DELETE FROM {tableName} WHERE {whereClause}";
-            _update = $"UPDATE {tableName} SET {updateColumns} WHERE {whereClause}";
-            _select = $"SELECT {allColumns} FROM {tableName} WHERE {whereClause}";
-            _selectAll = $"SELECT {allColumns} FROM {tableName}";
-            _count = $"SELECT COUNT(*) FROM {tableName}";
+            Insert = $"INSERT INTO {tableName} ({insertColumns}) VALUES ({insertValues})";
+            Delete = $"DELETE FROM {tableName} WHERE {whereClause}";
+            Update = $"UPDATE {tableName} SET {updateColumns} WHERE {whereClause}";
+            Select = $"SELECT {allColumns} FROM {tableName} WHERE {whereClause}";
+            SelectAll = $"SELECT {allColumns} FROM {tableName}";
+            Count = $"SELECT COUNT(*) FROM {tableName}";
         }
 
-        public string Insert => _insert;
-        public string Delete => _delete;
-        public string Update => _update;
-        public string Select => _select;
-        public string SelectAll => _selectAll;
-        public string Count => _count;
+        public string Insert
+        {
+            get;
+        }
+
+        public string Delete
+        {
+            get;
+        }
+
+        public string Update
+        {
+            get;
+        }
+
+        public string Select
+        {
+            get;
+        }
+
+        public string SelectAll
+        {
+            get;
+        }
+
+        public string Count
+        {
+            get;
+        }
     }
 
     internal static class TypeExtensions

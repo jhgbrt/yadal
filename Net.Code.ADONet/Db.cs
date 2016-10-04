@@ -22,7 +22,7 @@ namespace Net.Code.ADONet
     public class Db : IDb
     {
         internal DbConfig Config { get; }
-
+        internal IMappingConvention MappingConvention => Config.MappingConvention;
         public string ProviderName => Config.ProviderName;
 
         private readonly string _connectionString;
