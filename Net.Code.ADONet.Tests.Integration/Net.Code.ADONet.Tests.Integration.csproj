@@ -80,6 +80,7 @@
     <Compile Include="DatabaseImplementations\SqLite.cs" />
     <Compile Include="DatabaseImplementations\SqlServer.cs" />
     <Compile Include="DatabaseImplementations\SqlServerCe.cs" />
+    <Compile Include="DbTargetFactory.cs" />
     <Compile Include="DbTest.cs" />
     <Compile Include="ExtensionsForLegacyComparison.cs" />
     <Compile Include="FakeData.cs" />
@@ -98,6 +99,7 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
+    <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />

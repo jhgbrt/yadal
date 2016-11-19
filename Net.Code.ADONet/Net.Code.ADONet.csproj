@@ -52,6 +52,7 @@
     <Compile Include="Db.cs" />
     <Compile Include="Extensions\Experimental\DbExtensions.cs" />
     <Compile Include="Extensions\Experimental\IQuery.cs" />
+    <Compile Include="IConnectionFactory.cs" />
     <Compile Include="MultiResultSet.cs" />
     <Compile Include="FastReflection.cs" />
     <Compile Include="Extensions\SqlClient\Extensions.cs" />
@@ -59,7 +60,6 @@
     <Compile Include="DBNullHelper.cs" />
     <Compile Include="Dynamic.cs" />
     <Compile Include="EnumerableExtensions.cs" />
-    <Compile Include="IConnectionFactory.cs" />
     <Compile Include="IDb.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="MappingConvention.cs" />

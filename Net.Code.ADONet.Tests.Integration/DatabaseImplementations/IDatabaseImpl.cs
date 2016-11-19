@@ -10,11 +10,9 @@ namespace Net.Code.ADONet.Tests.Integration
         string CreateAddressTable { get; }
         string DropAddressTable { get; }
         string InsertPerson { get; }
-        string InsertAddress { get; }
         bool SupportsMultipleResultSets { get; }
         string ProviderName { get; }
         bool SupportsTableValuedParameters { get; }
-        string EscapeChar { get; }
         void DropAndRecreate();
         IDb CreateDb();
         Person Project(dynamic d);

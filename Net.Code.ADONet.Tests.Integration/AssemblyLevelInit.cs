@@ -14,11 +14,11 @@ namespace Net.Code.ADONet.Tests.Integration
         {
             var q =
                 from t in Assembly.GetExecutingAssembly().GetTypes()
-                where typeof (BaseDb).IsAssignableFrom(t)
+                where typeof (IDatabaseImpl).IsAssignableFrom(t)
                       && !t.IsInterface && !t.IsAbstract
                 select Activator.CreateInstance(t);
 
-            var supportedDbs = q.OfType<BaseDb>().ToArray();
+            var supportedDbs = q.OfType<IDatabaseImpl>().ToArray();
 
             foreach (var db in supportedDbs)
                 try

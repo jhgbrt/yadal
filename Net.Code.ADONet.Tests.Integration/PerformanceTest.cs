@@ -1,53 +1,88 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Net.Code.ADONet.Extensions.Experimental;
 
 namespace Net.Code.ADONet.Tests.Integration
 {
     [TestClass]
-    public class PerformanceTest
+    public abstract class PerformanceTest
     {
- 
+        protected PerformanceTest()
+        {
+            _target = DbTargetFactory.Create(GetType().Name);
+            _test = new DbTest(GetType().Name);
+        }
+
+        private readonly BaseDb _target;
+        private readonly DbTest _test;
+
+        [TestInitialize]
+        public void Setup()
+        {
+            try
+            {
+                _test.Initialize();
+            }
+            catch (Exception e)
+            {
+                Assert.Inconclusive($"{_target.GetType().Name} - connnection failed {_target.ConnectionString} {e}");
+            }
+            _test.BulkInsert(FakeData.People.List(10000));
+        }
+
+        [TestCleanup]
+        public void Cleanup()
+        {
+            _test.Cleanup();
+        }
+
+
         [TestMethod]
         public void WhenMappingWithCachedSetterMap_ThenMappingIsFaster()
         {
-            BaseDb target = new SqLite();
-            using (var db = (Db)target.CreateDb())
-            {
-                db.Sql(target.CreatePersonTable).AsNonQuery();
+            var fast = Measure(() => _test.GetAllPeopleGeneric());
+            Trace.WriteLine(fast);
 
-                db.Insert(FakeData.People.List(10000));
+            var slow = Measure(() => _test.GetAllPeopleGenericLegacy());
+            Trace.WriteLine(slow);
 
-                var selectAll = Query<Person>.Create(target.MappingConvention).SelectAll;
-
-                var slow = DoQuery(() => db.Sql(selectAll).AsEnumerableLegacy<Person>(db.Config));
-                Trace.WriteLine(slow);
-
-                var fast = DoQuery(() => db.Sql(selectAll).AsEnumerable<Person>());
-                Trace.WriteLine(fast);
-
-                db.Sql(target.DropPersonTable).AsNonQuery();
-                Assert.IsTrue(slow > fast);
-            }
-
+            Assert.IsTrue(slow > fast);
         }
 
-        private static TimeSpan DoQuery(Func<IEnumerable<Person>> action)
+        private static TimeSpan Measure(Action action)
         {
-            TimeSpan slow;
-            var stopwatch1 = Stopwatch.StartNew();
-            try
-            {
-                action().ToList();
-            }
-            finally
-            {
-                slow = stopwatch1.Elapsed;
-            }
-            return slow;
+            var sw = Stopwatch.StartNew();
+            action();
+            return sw.Elapsed;
+        }
+
+        [TestClass]
+        public class SqlServer : PerformanceTest
+        {
+        }
+        [TestClass]
+        public class Oracle : PerformanceTest
+        {
+        }
+
+        [TestClass]
+        public class SqlServerCe : PerformanceTest
+        {
+        }
+        [TestClass]
+        public class SqLite : PerformanceTest
+        {
+        }
+
+        [TestClass]
+        public class MySql : PerformanceTest
+        {
+        }
+
+        [TestClass]
+        public class PostgreSql : PerformanceTest
+        {
         }
     }
 }

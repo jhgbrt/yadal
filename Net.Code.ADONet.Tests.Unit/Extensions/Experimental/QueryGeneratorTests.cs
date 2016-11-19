@@ -73,6 +73,48 @@ namespace Net.Code.ADONet.Tests.Unit.Extensions.Experimental
     }
 
     [TestClass]
+    public class QueryGeneratorTestsForEntityOracleConvention
+    {
+        IQuery generator = Query<MyEntity>.Create(MappingConvention.OracleStyle);
+
+        [TestMethod]
+        public void Insert()
+        {
+            var sql = generator.Insert;
+            Assert.AreEqual("INSERT INTO MY_ENTITY (MY_ENTITY_ID, NAME, DESCRIPTION) VALUES (:MyEntityId, :Name, :Description)", sql);
+        }
+        [TestMethod]
+        public void Delete()
+        {
+            var sql = generator.Delete;
+            Assert.AreEqual("DELETE FROM MY_ENTITY WHERE MY_ENTITY_ID = :MyEntityId", sql);
+        }
+        [TestMethod]
+        public void Update()
+        {
+            var sql = generator.Update;
+            Assert.AreEqual("UPDATE MY_ENTITY SET NAME = :Name, DESCRIPTION = :Description WHERE MY_ENTITY_ID = :MyEntityId", sql);
+        }
+        [TestMethod]
+        public void Select()
+        {
+            var sql = generator.Select;
+            Assert.AreEqual("SELECT MY_ENTITY_ID, NAME, DESCRIPTION FROM MY_ENTITY WHERE MY_ENTITY_ID = :MyEntityId", sql);
+        }
+        [TestMethod]
+        public void SelectAll()
+        {
+            var sql = generator.SelectAll;
+            Assert.AreEqual("SELECT MY_ENTITY_ID, NAME, DESCRIPTION FROM MY_ENTITY", sql);
+        }
+        [TestMethod]
+        public void Count()
+        {
+            var sql = generator.Count;
+            Assert.AreEqual("SELECT COUNT(*) FROM MY_ENTITY", sql);
+        }
+    }
+    [TestClass]
     public class QueryGeneratorTestsForDefaultEntity
     {
         IQuery generator = Query<MyEntity>.Create(MappingConvention.UnderScores);

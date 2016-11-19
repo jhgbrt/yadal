@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Data;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -11,7 +10,7 @@ namespace Net.Code.ADONet.Tests.Integration
 {
     public abstract class DatabaseTest
     {
-        private readonly BaseDb target;
+        //private readonly BaseDb target;
         private readonly DbTest test;
         private Person[] people;
         private Address[] addresses;
@@ -19,15 +18,8 @@ namespace Net.Code.ADONet.Tests.Integration
 
         protected DatabaseTest()
         {
-            var targetType = (
-                from t in Assembly.GetExecutingAssembly().GetTypes()
-                where typeof (BaseDb).IsAssignableFrom(t) && t.Name == GetType().Name
-                select t
-                ).Single();
-
-            target = (BaseDb) Activator.CreateInstance(targetType);
-            test = new DbTest(target);
-            config = DbConfig.FromProviderName(target.ProviderName);
+            test = new DbTest(GetType().Name);
+            config = DbConfig.FromProviderName(test.ProviderName);
         }
 
        
@@ -36,16 +28,15 @@ namespace Net.Code.ADONet.Tests.Integration
         {
             try
             {
-                test.Connect();
+                test.Initialize();
             }
             catch (Exception e)
             {
-                Assert.Inconclusive($"{target.GetType().Name} - connnection failed {target.ConnectionString} {e}");
+                Assert.Inconclusive($"{GetType().Name} - connnection failed {e}");
             }
 
             people = FakeData.People.List(10).ToArray();
             addresses = FakeData.Addresses.List(10);
-            test.CreateTables();
             test.Insert(people.Take(5), addresses);
             test.InsertAsync(people.Skip(5)).Wait();
         }
@@ -53,7 +44,7 @@ namespace Net.Code.ADONet.Tests.Integration
         [TestCleanup]
         public void Cleanup()
         {
-            test.DropTables();
+            test.Cleanup();
         }
 
         [TestMethod]
@@ -118,7 +109,7 @@ namespace Net.Code.ADONet.Tests.Integration
         [TestMethod]
         public void MultiResultSet()
         {
-            if (target.SupportsMultipleResultSets)
+            if (test.SupportsMultipleResultSets)
             {
                 var result = test.AsMultiResultSet();
                 CollectionAssert.AreEqual(people, result.Set1.ToArray());
@@ -148,7 +139,7 @@ namespace Net.Code.ADONet.Tests.Integration
         [TestMethod]
         public void GetByIdList()
         {
-            if (target.SupportsTableValuedParameters)
+            if (test.SupportsTableValuedParameters)
             {
                 var ids = test.GetSomeIds(3);
                 var result = test.GetPeopleById(ids);

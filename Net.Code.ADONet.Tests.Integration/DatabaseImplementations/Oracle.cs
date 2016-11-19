@@ -71,7 +71,6 @@ namespace Net.Code.ADONet.Tests.Integration
         }
 
         protected override Type ProviderType => typeof (OracleClientFactory);
-        public override string EscapeChar => ":";
         public override Person Project(dynamic d)
         {
             return new Person

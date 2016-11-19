@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Net.Code.ADONet.Extensions.Experimental;
@@ -12,19 +13,24 @@ namespace Net.Code.ADONet.Tests.Integration
     {
         private readonly IDatabaseImpl _target;
         private readonly IDb _db;
-        public DbTest(IDatabaseImpl target)
+        public DbTest(string name)
         {
-            _target = target;
+            _target = DbTargetFactory.Create(name);
             _db = CreateDb();
         }
 
-        public void CreateTables()
+        public string ProviderName => _target.ProviderName;
+        public bool SupportsMultipleResultSets => _target.SupportsMultipleResultSets;
+        public bool SupportsTableValuedParameters => _target.SupportsTableValuedParameters;
+
+        public void Initialize()
         {
+            Connect();
             _db.Sql(_target.CreatePersonTable).AsNonQuery();
             _db.Sql(_target.CreateAddressTable).AsNonQuery();
         }
 
-        public void DropTables()
+        public void Cleanup()
         {
             _db.Execute(_target.DropPersonTable);
             _db.Execute(_target.DropAddressTable);
@@ -72,6 +78,13 @@ namespace Net.Code.ADONet.Tests.Integration
             return _db
                 .Sql(_target.Query<Person>().SelectAll)
                 .AsEnumerable<Person>()
+                .ToList();
+        }
+        public List<Person> GetAllPeopleGenericLegacy()
+        {
+            return _db
+                .Sql(_target.Query<Person>().SelectAll)
+                .AsEnumerableLegacy<Person>(((Db)_db).Config)
                 .ToList();
         }
 

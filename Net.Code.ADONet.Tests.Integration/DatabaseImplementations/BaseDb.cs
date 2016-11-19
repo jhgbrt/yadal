@@ -25,7 +25,6 @@ namespace Net.Code.ADONet.Tests.Integration
             $"   {nameof(Address.Country)} nvarchar(100)" +
             ");";
 
-        public virtual string EscapeChar => "@";
         public virtual MultiResultSet<Person, Address> SelectPersonAndAddress(IDb db) 
             => db.Sql($"{SelectPeople};\r\n{SelectAddresses}").AsMultiResultSet<Person, Address>();
         protected string SelectPeople => Query<Person>().SelectAll;
@@ -37,9 +36,7 @@ namespace Net.Code.ADONet.Tests.Integration
         public virtual string DropPersonTable => $"DROP TABLE {nameof(Person)}";
         public virtual string CreateAddressTable => DefaultCreateAddressTable;
         public virtual string DropAddressTable => $"DROP TABLE {nameof(Address)}";
-        public virtual string InsertPerson => GenerateInsertStatement<Person>();
-        public virtual string InsertAddress => GenerateInsertStatement<Address>();
-        protected string GenerateInsertStatement<T>() => Query<T>().Insert;
+        public virtual string InsertPerson => Query<Person>().Insert;
         public virtual bool SupportsMultipleResultSets => true;
         public string ProviderName => ConfigurationManager.ConnectionStrings[Name].ProviderName;
         public virtual bool SupportsTableValuedParameters => false;
@@ -49,7 +46,6 @@ namespace Net.Code.ADONet.Tests.Integration
         public IDb CreateDb() => new Db(ConnectionString, Config);
         public virtual Person Project(dynamic d) => new Person { Id = d.Id, Email = d.Email, Name = d.Name, OptionalNumber = d.OptionalNumber, RequiredNumber = d.RequiredNumber };
         public IQuery Query<T>() => Extensions.Experimental.Query<T>.Create(Config.MappingConvention);
-        public IMappingConvention MappingConvention => Config.MappingConvention;
         private DbConfig Config => DbConfig.FromProviderName(ProviderName);
     }
 }

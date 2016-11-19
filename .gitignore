@@ -10,3 +10,4 @@ packages
 *.nupkg
 *.DotSettings
 *.coverage
+lib
