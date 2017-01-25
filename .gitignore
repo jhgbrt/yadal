@@ -11,4 +11,4 @@ packages
 *.DotSettings
 *.coverage
 lib
-/.vs
+.vs
