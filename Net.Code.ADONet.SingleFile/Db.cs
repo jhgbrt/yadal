@@ -7,7 +7,9 @@ using System.Reflection;
 using System.Threading.Tasks;
 using System.Collections.ObjectModel;
 using System.Collections.Concurrent;
+#if !NETSTANDARD1_6
 using System.Configuration;
+#endif
 using System.ComponentModel;
 using System.Dynamic;
 using System.Collections;
