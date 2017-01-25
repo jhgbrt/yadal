@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Reflection;
+using System.Threading.Tasks;
 using System.Collections.ObjectModel;
 using System.Collections.Concurrent;
 using System.Configuration;
@@ -13,6 +13,7 @@ using System.Dynamic;
 using System.Collections;
 using System.Diagnostics;
 using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -57,7 +58,7 @@ namespace Net.Code.ADONet
         public CommandBuilder WithParameters<T>(T parameters)
         {
             var getters = FastReflection.Instance.GetGettersForType<T>();
-            var props = parameters.GetType().GetProperties();
+            var props = parameters.GetType().GetTypeInfo().GetProperties();
             foreach (var item in props)
             {
                 WithParameter(item.Name, getters[item.Name](parameters));
@@ -214,7 +215,6 @@ namespace Net.Code.ADONet
         /// Executes the command as a datareader. Use this if you need best performance.
         /// </summary>
         public IDataReader AsReader() => Execute.Reader();
-        public DataTable AsDataTable() => Execute.DataTable();
         public T Single<T>() => AsEnumerable<T>().Single();
         private Executor Execute => new Executor(Command);
         /// <summary>
@@ -280,19 +280,6 @@ namespace Net.Code.ADONet
             /// executes the query as a datareader
             /// </summary>
             public IDataReader Reader() => Prepare().ExecuteReader();
-            /// <summary>
-            /// Executes the query (using datareader) and fills a datatable
-            /// </summary>
-            public DataTable DataTable()
-            {
-                using (var reader = Reader())
-                {
-                    var tb = new DataTable();
-                    tb.Load(reader);
-                    return tb;
-                }
-            }
-
             /// <summary>
             /// Executes the command, returning the first column of the first result as a scalar value
             /// </summary>
@@ -373,10 +360,10 @@ namespace Net.Code.ADONet
         static ConvertTo()
         {
             // Sets the From delegate, depending on whether T is a reference type, a nullable value type or a value type.
-            From = CreateConvertFunction(typeof (T));
+            From = CreateConvertFunction(typeof (T).GetTypeInfo());
         }
 
-        private static Func<object, T> CreateConvertFunction(Type type)
+        private static Func<object, T> CreateConvertFunction(TypeInfo type)
         {
             if (!type.IsValueType)
             {
@@ -389,9 +376,9 @@ namespace Net.Code.ADONet
             }
 
             var delegateType = typeof (Func<object, T>);
-            var methodInfo = typeof (ConvertTo<T>).GetMethod("ConvertNullableValueType", BindingFlags.NonPublic | BindingFlags.Static);
+            var methodInfo = typeof (ConvertTo<T>).GetTypeInfo().GetMethod("ConvertNullableValueType", BindingFlags.NonPublic | BindingFlags.Static);
             var genericMethodForElement = methodInfo.MakeGenericMethod(type.GetGenericArguments()[0]);
-            return (Func<object, T>)Delegate.CreateDelegate(delegateType, genericMethodForElement);
+            return (Func<object, T>)genericMethodForElement.CreateDelegate(delegateType);
         }
 
         // ReSharper disable once UnusedMember.Local
@@ -564,12 +551,8 @@ namespace Net.Code.ADONet
         public static TResult Get<TResult>(this IDataRecord reader, int c) => ConvertTo<TResult>.From(reader[c]);
     }
 
-    public static class DataTableExtensions
+    static class DbFactory
     {
-        static dynamic ToDynamic(this DataRow dr) => Dynamic.From(dr);
-        public static IEnumerable<dynamic> AsEnumerable(this DataTable dataTable) => dataTable.Rows.OfType<DataRow>().Select(ToDynamic);
-        public static IEnumerable<T> Select<T>(this DataTable dt, Func<dynamic, T> selector) => dt.AsEnumerable().Select(selector);
-        public static IEnumerable<dynamic> Where(this DataTable dt, Func<dynamic, bool> predicate) => dt.AsEnumerable().Where(predicate);
     }
 
     /// <summary>
@@ -596,7 +579,7 @@ namespace Net.Code.ADONet
         public string ProviderName => Config.ProviderName;
         private readonly string _connectionString;
         private Lazy<IDbConnection> _connection;
-        private readonly IConnectionFactory _connectionFactory;
+        private readonly DbProviderFactory _connectionFactory;
         private readonly IDbConnection _externalConnection;
         /// <summary>
         /// Instantiate Db with existing connection. The connection is only used for creating commands; 
@@ -610,28 +593,15 @@ namespace Net.Code.ADONet
             Config = config ?? DbConfig.Default;
         }
 
+#if !NETSTANDARD1_6
         /// <summary>
         /// Instantiate Db with connectionString and DbProviderName
         /// </summary>
         /// <param name = "connectionString">The connection string</param>
         /// <param name = "providerName">The ADO .Net Provider name. When not specified, 
         /// the default value is used (see DefaultProviderName)</param>
-        public Db(string connectionString, string providerName): this (connectionString, DbConfig.FromProviderName(providerName))
+        public Db(string connectionString, string providerName): this (connectionString, DbConfig.FromProviderName(providerName), DbProviderFactories.GetFactory(providerName))
         {
-        }
-
-        /// <summary>
-        /// Instantiate Db with connectionString and a custom IConnectionFactory
-        /// </summary>
-        /// <param name = "connectionString">the connection string</param>
-        /// <param name = "config"></param>
-        /// <param name = "connectionFactory">the connection factory</param>
-        internal Db(string connectionString, DbConfig config, IConnectionFactory connectionFactory = null)
-        {
-            _connectionString = connectionString;
-            _connectionFactory = connectionFactory ?? new AdoNetProviderFactory(config.ProviderName);
-            _connection = new Lazy<IDbConnection>(CreateConnection);
-            Config = config;
         }
 
         /// <summary>
@@ -650,6 +620,21 @@ namespace Net.Code.ADONet
             var connectionString = connectionStringSettings.ConnectionString;
             var providerName = connectionStringSettings.ProviderName;
             return new Db(connectionString, providerName);
+        }
+
+#endif
+        /// <summary>
+        /// Instantiate Db with connectionString and a custom IConnectionFactory
+        /// </summary>
+        /// <param name = "connectionString">the connection string</param>
+        /// <param name = "config"></param>
+        /// <param name = "connectionFactory">the connection factory</param>
+        internal Db(string connectionString, DbConfig config, DbProviderFactory connectionFactory)
+        {
+            _connectionString = connectionString;
+            _connectionFactory = connectionFactory;
+            _connection = new Lazy<IDbConnection>(CreateConnection);
+            Config = config;
         }
 
         public void Connect()
@@ -688,7 +673,7 @@ namespace Net.Code.ADONet
         /// <returns>a CommandBuilder instance</returns>
         public CommandBuilder Sql(string sqlQuery) => CreateCommand(CommandType.Text, sqlQuery);
         /// <summary>
-        /// Create a Stored Procedure command
+        /// Create a Stored Procedure command builder
         /// </summary>
         /// <param name = "sprocName">name of the sproc</param>
         /// <returns>a CommandBuilder instance</returns>
@@ -705,22 +690,6 @@ namespace Net.Code.ADONet
         /// </summary>
         /// <param name = "command"></param>
         public int Execute(string command) => Sql(command).AsNonQuery();
-        class AdoNetProviderFactory : IConnectionFactory
-        {
-            private readonly string _providerInvariantName;
-            public AdoNetProviderFactory(string providerInvariantName)
-            {
-                _providerInvariantName = providerInvariantName;
-            }
-
-            public IDbConnection CreateConnection(string connectionString)
-            {
-                var connection = DbProviderFactories.GetFactory(_providerInvariantName).CreateConnection();
-                // ReSharper disable once PossibleNullReferenceException
-                connection.ConnectionString = connectionString;
-                return connection;
-            }
-        }
     }
 
     public class DbConfig
@@ -768,16 +737,30 @@ namespace Net.Code.ADONet
 
     public static class DBNullHelper
     {
-        public static Type GetUnderlyingType(this Type type) => type.IsNullableType() ? new NullableConverter(type).UnderlyingType : type;
-        public static bool IsNullableType(this Type type) => (type.IsGenericType && !type.IsGenericTypeDefinition) && (typeof (Nullable<>) == type.GetGenericTypeDefinition());
+        public static Type GetUnderlyingType(this Type type) => type.GetTypeInfo().IsNullableType() ? Nullable.GetUnderlyingType(type) : type;
+        public static bool IsNullableType(this Type type) => type.GetTypeInfo().IsNullableType();
+        public static bool IsNullableType(this TypeInfo type) => (type.IsGenericType && !type.IsGenericTypeDefinition) && (typeof (Nullable<>) == type.GetGenericTypeDefinition());
         public static bool IsNull(object o) => o == null || DBNull.Value.Equals(o);
         public static object FromDb(object o) => IsNull(o) ? null : o;
         public static object ToDb(object o) => IsNull(o) ? DBNull.Value : o;
     }
 
+    static class DbProviderFactoryEx
+    {
+        public static IDbConnection CreateConnection(this DbProviderFactory factory, string connectionString)
+        {
+            var connection = factory.CreateConnection();
+            // ReSharper disable once PossibleNullReferenceException
+            connection.ConnectionString = connectionString;
+            return connection;
+        }
+    }
+
     static class Dynamic
     {
+#if !NETSTANDARD1_6
         public static dynamic From(DataRow row) => From(row, (r, s) => r[s]);
+#endif
         public static dynamic From(IDataRecord record) => From(record, (r, s) => r[s]);
         public static dynamic From<TValue>(IDictionary<string, TValue> dictionary) => From(dictionary, (d, s) => d[s]);
         static dynamic From<T>(T item, Func<T, string, object> getter) => new DynamicIndexer<T>(item, getter);
@@ -806,27 +789,6 @@ namespace Net.Code.ADONet
 
     public static class EnumerableExtensions
     {
-        public static DataTable ToDataTable<T>(this IEnumerable<T> items)
-        {
-            var table = new DataTable(typeof (T).Name);
-            var props = typeof (T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
-            foreach (var prop in props)
-            {
-                var propType = prop.PropertyType.GetUnderlyingType();
-                table.Columns.Add(prop.Name, propType);
-            }
-
-            var values = new object[props.Length];
-            foreach (var item in items)
-            {
-                for (var i = 0; i < props.Length; i++)
-                    values[i] = props[i].GetValue(item, null);
-                table.Rows.Add(values);
-            }
-
-            return table;
-        }
-
         /// <summary>
         /// Adapter from IEnumerable[T] to IDataReader
         /// </summary>
@@ -843,7 +805,7 @@ namespace Net.Code.ADONet
             // ReSharper restore StaticFieldInGenericType
             static EnumerableDataReaderImpl()
             {
-                var propertyInfos = typeof (T).GetProperties();
+                var propertyInfos = typeof (T).GetTypeInfo().GetProperties();
                 Properties = propertyInfos.ToArray();
                 Getters = FastReflection.Instance.GetGettersForType<T>();
                 PropertyIndexesByName = Properties.Select((p, i) => new
@@ -896,7 +858,7 @@ namespace Net.Code.ADONet
                 var data = this.Get<TElem[]>(i);
                 var maxLength = Math.Min((long)buffer.Length - bufferoffset, length);
                 maxLength = Math.Min(data.Length - dataOffset, maxLength);
-                Array.Copy(data, dataOffset, buffer, bufferoffset, length);
+                Array.Copy(data, (int)dataOffset, buffer, bufferoffset, length);
                 return maxLength;
             }
 
@@ -905,6 +867,7 @@ namespace Net.Code.ADONet
             public override bool HasRows => _list.Any();
             public override object this[int i] => GetValue(i);
             public override object this[string name] => GetValue(GetOrdinal(name));
+#if !NETSTANDARD1_6
             public override void Close() => Dispose();
             public override DataTable GetSchemaTable()
             {
@@ -926,6 +889,7 @@ namespace Net.Code.ADONet
                 return dt;
             }
 
+#endif
             public override bool NextResult()
             {
                 _enumerator?.Dispose();
@@ -947,6 +911,7 @@ namespace Net.Code.ADONet
         {
         }
 
+        private static TypeInfo TypeInfo = typeof (FastReflection).GetTypeInfo();
         public static FastReflection Instance = new FastReflection();
         public IReadOnlyDictionary<string, Action<T, object>> GetSettersForType<T>()
         {
@@ -954,7 +919,7 @@ namespace Net.Code.ADONet
             {
             Type = typeof (T)}
 
-            , d => ((Type)d.Type).GetProperties().ToDictionary(p => p.Name, GetSetDelegate<T>));
+            , d => ((Type)d.Type).GetTypeInfo().GetProperties().ToDictionary(p => p.Name, GetSetDelegate<T>));
             return (IReadOnlyDictionary<string, Action<T, object>>)setters;
         }
 
@@ -962,7 +927,7 @@ namespace Net.Code.ADONet
         static Action<T, object> GetSetDelegate<T>(PropertyInfo p)
         {
             var method = p.GetSetMethod();
-            var genericHelper = typeof (FastReflection).GetMethod(nameof(CreateSetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
+            var genericHelper = TypeInfo.GetMethod(nameof(CreateSetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
             var constructedHelper = genericHelper.MakeGenericMethod(typeof (T), method.GetParameters()[0].ParameterType);
             return (Action<T, object>)constructedHelper.Invoke(null, new object[]{method});
         }
@@ -971,7 +936,7 @@ namespace Net.Code.ADONet
         // ReSharper disable once UnusedMember.Local
         static object CreateSetterDelegateHelper<TTarget, TProperty>(MethodInfo method)where TTarget : class
         {
-            var action = (Action<TTarget, TProperty>)Delegate.CreateDelegate(typeof (Action<TTarget, TProperty>), method);
+            var action = (Action<TTarget, TProperty>)method.CreateDelegate(typeof (Action<TTarget, TProperty>));
             Action<TTarget, object> ret = (target, param) => action(target, ConvertTo<TProperty>.From(param));
             return ret;
         }
@@ -982,7 +947,7 @@ namespace Net.Code.ADONet
             {
             Type = typeof (T)}
 
-            , d => ((Type)d.Type).GetProperties().ToDictionary(p => p.Name, GetGetDelegate<T>));
+            , d => ((Type)d.Type).GetTypeInfo().GetProperties().ToDictionary(p => p.Name, GetGetDelegate<T>));
             return (IReadOnlyDictionary<string, Func<T, object>>)setters;
         }
 
@@ -990,7 +955,7 @@ namespace Net.Code.ADONet
         static Func<T, object> GetGetDelegate<T>(PropertyInfo p)
         {
             var method = p.GetGetMethod();
-            var genericHelper = typeof (FastReflection).GetMethod(nameof(CreateGetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
+            var genericHelper = TypeInfo.GetMethod(nameof(CreateGetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
             var constructedHelper = genericHelper.MakeGenericMethod(typeof (T), method.ReturnType);
             return (Func<T, object>)constructedHelper.Invoke(null, new object[]{method});
         }
@@ -999,20 +964,10 @@ namespace Net.Code.ADONet
         // ReSharper disable once UnusedMember.Local
         static object CreateGetterDelegateHelper<TTarget, TProperty>(MethodInfo method)where TTarget : class
         {
-            var func = (Func<TTarget, TProperty>)Delegate.CreateDelegate(typeof (Func<TTarget, TProperty>), method);
+            var func = (Func<TTarget, TProperty>)method.CreateDelegate(typeof (Func<TTarget, TProperty>));
             Func<TTarget, object> ret = target => ConvertTo<TProperty>.From(func(target));
             return ret;
         }
-    }
-
-    internal interface IConnectionFactory
-    {
-        /// <summary>
-        /// Create the ADO.Net IDbConnection
-        /// </summary>
-        /// <param name = "connectionString"></param>
-        /// <returns>the connection</returns>
-        IDbConnection CreateConnection(string connectionString);
     }
 
     public interface IDb : IDisposable
@@ -1263,7 +1218,28 @@ namespace Net.Code.ADONet
     public static class StringExtensions
     {
         public static string ToUpperRemoveSpecialChars(this string str) => string.IsNullOrEmpty(str) ? str : Regex.Replace(str, @"([^\w]|_)", "").ToUpperInvariant();
-        public static string ToPascalCase(this string str) => string.IsNullOrEmpty(str) ? str : CultureInfo.InvariantCulture.TextInfo.ToTitleCase(str.ToLower()).Replace("_", "");
+        public static string ToPascalCase(this string str)
+        {
+            if (string.IsNullOrEmpty(str))
+                return str;
+            var sb = new StringBuilder();
+            bool toupper = true;
+            foreach (var c in str)
+            {
+                if (char.IsLetterOrDigit(c))
+                {
+                    sb.Append(toupper ? char.ToUpper(c) : char.ToLower(c));
+                    toupper = false;
+                }
+                else
+                {
+                    toupper = true;
+                }
+            }
+
+            return sb.ToString();
+        }
+
         public static string PascalCaseToSentence(this string source) => string.IsNullOrEmpty(source) ? source : string.Join(" ", SplitUpperCase(source));
         public static string ToUpperWithUnderscores(this string source)
         {
@@ -1297,6 +1273,49 @@ namespace Net.Code.ADONet
 
             yield return new string (letters, wordStart, letters.Length - wordStart);
         }
+    }
+
+    public static class ExtensionsForDataSetRelatedStuff
+    {
+#if !NETSTANDARD1_6
+        static dynamic ToDynamic(this DataRow dr) => Dynamic.From(dr);
+        public static IEnumerable<dynamic> AsEnumerable(this DataTable dataTable) => dataTable.Rows.OfType<DataRow>().Select(ToDynamic);
+        public static IEnumerable<T> Select<T>(this DataTable dt, Func<dynamic, T> selector) => dt.AsEnumerable().Select(selector);
+        public static IEnumerable<dynamic> Where(this DataTable dt, Func<dynamic, bool> predicate) => dt.AsEnumerable().Where(predicate);
+        /// <summary>
+        /// Executes the query (using datareader) and fills a datatable
+        /// </summary>
+        public static DataTable AsDataTable(this CommandBuilder commandBuilder)
+        {
+            using (var reader = commandBuilder.AsReader())
+            {
+                var tb = new DataTable();
+                tb.Load(reader);
+                return tb;
+            }
+        }
+
+        public static DataTable ToDataTable<T>(this IEnumerable<T> items)
+        {
+            var table = new DataTable(typeof (T).Name);
+            var props = typeof (T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            foreach (var prop in props)
+            {
+                var propType = prop.PropertyType.GetUnderlyingType();
+                table.Columns.Add(prop.Name, propType);
+            }
+
+            var values = new object[props.Length];
+            foreach (var item in items)
+            {
+                for (var i = 0; i < props.Length; i++)
+                    values[i] = props[i].GetValue(item, null);
+                table.Rows.Add(values);
+            }
+
+            return table;
+        }
+#endif
     }
 }
 
@@ -1384,7 +1403,7 @@ namespace Net.Code.ADONet.Extensions.Experimental
         internal static IQuery Create(IMappingConvention convention) => new Query<T>(convention);
         static Query()
         {
-            Properties = typeof (T).GetProperties();
+            Properties = typeof (T).GetTypeInfo().GetProperties();
             KeyProperties = Properties.Where(p => p.CustomAttributes.Any(a => a.AttributeType == typeof (KeyAttribute))).ToArray();
             if (!KeyProperties.Any())
                 KeyProperties = Properties.Where(p => p.Name.Equals("Id", StringComparison.OrdinalIgnoreCase)).ToArray();
@@ -1482,19 +1501,20 @@ namespace Net.Code.ADONet.Extensions.SqlClient
         /// <param name = "items"></param>
         public static void BulkCopy<T>(this IDb db, IEnumerable<T> items)
         {
+            // NOTE this snipped also works in NETSTANDARD if you take System.Data.SqlClient as a dependency
             using (var bcp = new SqlBulkCopy(db.ConnectionString))
             {
                 bcp.DestinationTableName = typeof (T).Name;
                 // by default, SqlBulkCopy assumes columns in the database 
                 // are in same order as the columns of the source data reader
                 // => add explicit column mappings by name
-                foreach (var p in typeof (T).GetProperties())
+                foreach (var p in typeof (T).GetTypeInfo().GetProperties())
                 {
                     bcp.ColumnMappings.Add(p.Name, p.Name);
                 }
 
-                var dataTable = items.AsDataReader();
-                bcp.WriteToServer(dataTable);
+                var datareader = items.AsDataReader();
+                bcp.WriteToServer((DbDataReader)datareader);
             }
         }
     }
