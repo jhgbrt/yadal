@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Net.Code.ADONet
@@ -45,7 +46,7 @@ namespace Net.Code.ADONet
         public CommandBuilder WithParameters<T>(T parameters)
         {
             var getters = FastReflection.Instance.GetGettersForType<T>();
-            var props = parameters.GetType().GetProperties();
+            var props = parameters.GetType().GetTypeInfo().GetProperties();
             foreach (var item in props)
             {
                 WithParameter(item.Name, getters[item.Name](parameters));
@@ -219,9 +220,6 @@ namespace Net.Code.ADONet
         /// </summary>
         public IDataReader AsReader() => Execute.Reader();
 
-        public DataTable AsDataTable() => Execute.DataTable();
-
-
         public T Single<T>() => AsEnumerable<T>().Single();
 
         private Executor Execute => new Executor(Command);
@@ -292,19 +290,6 @@ namespace Net.Code.ADONet
             public IDataReader Reader() => Prepare().ExecuteReader();
 
             /// <summary>
-            /// Executes the query (using datareader) and fills a datatable
-            /// </summary>
-            public DataTable DataTable()
-            {
-                using (var reader = Reader())
-                {
-                    var tb = new DataTable();
-                    tb.Load(reader);
-                    return tb;
-                }
-            }
-
-            /// <summary>
             /// Executes the command, returning the first column of the first result as a scalar value
             /// </summary>
             public object Scalar() => Prepare().ExecuteScalar();
@@ -370,5 +355,4 @@ namespace Net.Code.ADONet
         }
 
     }
-
 }

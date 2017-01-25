@@ -7,7 +7,9 @@ namespace Net.Code.ADONet
 {
     static class Dynamic
     {
+#if !NETSTANDARD1_6
         public static dynamic From(DataRow row) => From(row, (r, s) => r[s]);
+#endif
         public static dynamic From(IDataRecord record) => From(record, (r, s) => r[s]);
         public static dynamic From<TValue>(IDictionary<string, TValue> dictionary) => From(dictionary, (d, s) => d[s]);
 

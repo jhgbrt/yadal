@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Data.Common;
 using Net.Code.ADONet.Extensions.Experimental;
 
 namespace Net.Code.ADONet.Tests.Integration
@@ -43,9 +44,10 @@ namespace Net.Code.ADONet.Tests.Integration
         public abstract void DropAndRecreate();
         protected abstract Type ProviderType { get; }
         public string ConnectionString => ConfigurationManager.ConnectionStrings[Name].ConnectionString;
-        public IDb CreateDb() => new Db(ConnectionString, Config);
+        public IDb CreateDb() => new Db(ConnectionString, Config, Factory);
         public virtual Person Project(dynamic d) => new Person { Id = d.Id, Email = d.Email, Name = d.Name, OptionalNumber = d.OptionalNumber, RequiredNumber = d.RequiredNumber };
         public IQuery Query<T>() => Extensions.Experimental.Query<T>.Create(Config.MappingConvention);
         private DbConfig Config => DbConfig.FromProviderName(ProviderName);
+        private DbProviderFactory Factory => DbProviderFactories.GetFactory(ProviderName);
     }
 }

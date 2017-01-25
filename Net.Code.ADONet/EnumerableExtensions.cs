@@ -10,28 +10,6 @@ namespace Net.Code.ADONet
 {
     public static class EnumerableExtensions
     {
-        public static DataTable ToDataTable<T>(this IEnumerable<T> items)
-        {
-            var table = new DataTable(typeof(T).Name);
-
-            var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
-
-            foreach (var prop in props)
-            {
-                var propType = prop.PropertyType.GetUnderlyingType();
-                table.Columns.Add(prop.Name, propType);
-            }
-
-            var values = new object[props.Length];
-            foreach (var item in items)
-            {
-                for (var i = 0; i < props.Length; i++)
-                    values[i] = props[i].GetValue(item, null);
-                table.Rows.Add(values);
-            }
-            return table;
-        }
-
         /// <summary>
         /// Adapter from IEnumerable[T] to IDataReader
         /// </summary>
@@ -51,7 +29,7 @@ namespace Net.Code.ADONet
 
             static EnumerableDataReaderImpl()
             {
-                var propertyInfos = typeof (T).GetProperties();
+                var propertyInfos = typeof (T).GetTypeInfo().GetProperties();
                 Properties = propertyInfos.ToArray();
                 Getters = FastReflection.Instance.GetGettersForType<T>();
                 PropertyIndexesByName = Properties.Select((p, i) => new {p, i}).ToDictionary(x => x.p.Name, x => x.i);
@@ -109,7 +87,7 @@ namespace Net.Code.ADONet
                 var data = this.Get<TElem[]>(i);
                 var maxLength = Math.Min((long) buffer.Length - bufferoffset, length);
                 maxLength = Math.Min(data.Length - dataOffset, maxLength);
-                Array.Copy(data, dataOffset, buffer, bufferoffset, length);
+                Array.Copy(data, (int)dataOffset, buffer, bufferoffset, length);
                 return maxLength;
             }
 
@@ -123,8 +101,8 @@ namespace Net.Code.ADONet
 
             public override object this[string name] => GetValue(GetOrdinal(name));
 
+#if !NETSTANDARD1_6
             public override void Close() => Dispose();
-
             public override DataTable GetSchemaTable()
             {
                 var q = from x in Properties.Select((p, i) => new {p, i})
@@ -143,6 +121,7 @@ namespace Net.Code.ADONet
                 var dt = q.ToDataTable();
                 return dt;
             }
+#endif
 
             public override bool NextResult()
             {

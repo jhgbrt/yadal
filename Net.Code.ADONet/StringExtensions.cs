@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Net.Code.ADONet
@@ -10,10 +12,24 @@ namespace Net.Code.ADONet
         public static string ToUpperRemoveSpecialChars(this string str) 
             => string.IsNullOrEmpty(str) ? str : Regex.Replace(str, @"([^\w]|_)", "").ToUpperInvariant();
         public static string ToPascalCase(this string str)
-            => string.IsNullOrEmpty(str)
-                    ? str
-                    : CultureInfo.InvariantCulture.TextInfo.ToTitleCase(str.ToLower()).Replace("_", "");
-
+        {
+            if (string.IsNullOrEmpty(str)) return str;
+            var sb = new StringBuilder();
+            bool toupper = true;
+            foreach (var c in str)
+            {
+                if (char.IsLetterOrDigit(c))
+                {
+                    sb.Append(toupper ? char.ToUpper(c) : char.ToLower(c));
+                    toupper = false;
+                }
+                else
+                {
+                    toupper = true;
+                }
+            }
+            return sb.ToString();
+        }
         public static string PascalCaseToSentence(this string source) 
             => string.IsNullOrEmpty(source) ? source : string.Join(" ", SplitUpperCase(source));
 

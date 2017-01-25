@@ -13,7 +13,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         [TestMethod]
         public void Default_PrepareCommand_DoesNothing()
         {
-            var config = new Db(string.Empty, "unkown").Config;
+            var config = DbConfig.FromProviderName("unkown");
             var command = Substitute.For<IDbCommand>();
             config.PrepareCommand(command);
         }
@@ -21,7 +21,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         [TestMethod]
         public void SqlServer_PrepareCommand_DoesNothing()
         {
-            var config = new Db(string.Empty, "System.Data.SqlClient").Config;
+            var config = DbConfig.FromProviderName("System.Data.SqlClient");
             var command = new SqlCommand();
             config.PrepareCommand(command);
         }
@@ -29,7 +29,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         [TestMethod]
         public void Oracle_PrepareCommand_SetsBindByName()
         {
-            var config = new Db(string.Empty, "Oracle.DataAccess.Client").Config;
+            var config = DbConfig.FromProviderName("Oracle.DataAccess.Client");
             var oracleCommand = new FakeOracleDbCommand();
             config.PrepareCommand(oracleCommand);
             Assert.IsTrue(oracleCommand.BindByName);
@@ -38,7 +38,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         [TestMethod]
         public void OracleManaged_PrepareCommand_SetsBindByName()
         {
-            var config = new Db(string.Empty, "Oracle.ManagedDataAccess.Client").Config;
+            var config = DbConfig.FromProviderName("Oracle.ManagedDataAccess.Client");
             var oracleCommand = new FakeOracleDbCommand();
             config.PrepareCommand(oracleCommand);
             Assert.IsTrue(oracleCommand.BindByName);

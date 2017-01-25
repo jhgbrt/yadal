@@ -1,5 +1,6 @@
 ﻿using System.Configuration;
 using System.Data;
+using System.Data.Common;
 using NSubstitute;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -19,8 +20,8 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         [TestMethod]
         public void ProviderName_WhenCalled_ReturnsProviderName()
         {
-            var db = new Db(string.Empty, "provider");
-            Assert.AreEqual("provider", db.ProviderName);
+            var db = new Db(string.Empty, "System.Data.SqlClient");
+            Assert.AreEqual("System.Data.SqlClient", db.ProviderName);
         }
     }
 
@@ -43,11 +44,11 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         [TestMethod]
         public void GivenDbWithConnectionString_WhenDisposed_ConnectionIsDisposed()
         {
-            var fakeConnection = Substitute.For<IDbConnection>();
+            var fakeConnection = Substitute.For<DbConnection>();
+            fakeConnection.ConnectionString = "MyConnectionString";
+            var fakeFactory = Substitute.For<DbProviderFactory>();
 
-            var fakeFactory = Substitute.For<IConnectionFactory>();
-
-            fakeFactory.CreateConnection("").Returns(fakeConnection);
+            fakeFactory.CreateConnection().Returns(fakeConnection);
 
             using (var db = new Db("", DbConfig.Default, fakeFactory))
             {

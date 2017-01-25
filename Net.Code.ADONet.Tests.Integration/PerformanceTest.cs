@@ -41,6 +41,10 @@ namespace Net.Code.ADONet.Tests.Integration
         [TestMethod]
         public void WhenMappingWithCachedSetterMap_ThenMappingIsFaster()
         {
+            _test.GetAllPeopleGeneric();
+            _test.GetAllPeopleGenericLegacy();
+            
+
             var fast = Measure(() => _test.GetAllPeopleGeneric());
             Trace.WriteLine(fast);
 

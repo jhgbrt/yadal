@@ -45,14 +45,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CommandBuilder.cs" />
+    <Compile Include="Extensions\ExtensionsForDataSetRelatedStuff.cs" />
     <Compile Include="ConvertTo.cs" />
     <Compile Include="DataReaderExtensions.cs" />
     <Compile Include="DataRecordExtensions.cs" />
-    <Compile Include="DataTableExtensions.cs" />
     <Compile Include="Db.cs" />
+    <Compile Include="DbProviderFactoryEx.cs" />
     <Compile Include="Extensions\Experimental\DbExtensions.cs" />
     <Compile Include="Extensions\Experimental\IQuery.cs" />
-    <Compile Include="IConnectionFactory.cs" />
     <Compile Include="MultiResultSet.cs" />
     <Compile Include="FastReflection.cs" />
     <Compile Include="Extensions\SqlClient\Extensions.cs" />

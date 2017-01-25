@@ -1,10 +1,17 @@
 ﻿using System;
-using System.Configuration;
 using System.Data;
 using System.Data.Common;
+#if !NETSTANDARD1_6
+using System.Configuration;
+#endif
 
 namespace Net.Code.ADONet
 {
+    static class DbFactory
+    {
+        
+    }
+
 
     /// <summary>
     /// <para> Yet Another Data Access Layer</para>
@@ -27,7 +34,7 @@ namespace Net.Code.ADONet
 
         private readonly string _connectionString;
         private Lazy<IDbConnection> _connection;
-        private readonly IConnectionFactory _connectionFactory;
+        private readonly DbProviderFactory _connectionFactory;
         private readonly IDbConnection _externalConnection;
 
         /// <summary>
@@ -42,6 +49,7 @@ namespace Net.Code.ADONet
             Config = config ?? DbConfig.Default;
         }
 
+#if !NETSTANDARD1_6
         /// <summary>
         /// Instantiate Db with connectionString and DbProviderName
         /// </summary>
@@ -49,24 +57,9 @@ namespace Net.Code.ADONet
         /// <param name="providerName">The ADO .Net Provider name. When not specified, 
         /// the default value is used (see DefaultProviderName)</param>
         public Db(string connectionString, string providerName)
-            : this(connectionString, DbConfig.FromProviderName(providerName))
+            : this(connectionString, DbConfig.FromProviderName(providerName), DbProviderFactories.GetFactory(providerName))
         {
         }
-
-        /// <summary>
-        /// Instantiate Db with connectionString and a custom IConnectionFactory
-        /// </summary>
-        /// <param name="connectionString">the connection string</param>
-        /// <param name="config"></param>
-        /// <param name="connectionFactory">the connection factory</param>
-        internal Db(string connectionString, DbConfig config, IConnectionFactory connectionFactory = null)
-        {
-            _connectionString = connectionString;
-            _connectionFactory = connectionFactory ?? new AdoNetProviderFactory(config.ProviderName);
-            _connection = new Lazy<IDbConnection>(CreateConnection);
-            Config = config;
-        }
-
 
         /// <summary>
         /// Factory method, instantiating the Db class from the first connectionstring 
@@ -79,7 +72,7 @@ namespace Net.Code.ADONet
         /// Factory method, instantiating the Db class from a named connectionstring 
         /// in the app.config or web.config file.
         /// </summary>
-        public static Db FromConfig(string connectionStringName) 
+        public static Db FromConfig(string connectionStringName)
             => FromConfig(ConfigurationManager.ConnectionStrings[connectionStringName]);
 
         private static Db FromConfig(ConnectionStringSettings connectionStringSettings)
@@ -87,6 +80,21 @@ namespace Net.Code.ADONet
             var connectionString = connectionStringSettings.ConnectionString;
             var providerName = connectionStringSettings.ProviderName;
             return new Db(connectionString, providerName);
+        }
+#endif
+
+        /// <summary>
+        /// Instantiate Db with connectionString and a custom IConnectionFactory
+        /// </summary>
+        /// <param name="connectionString">the connection string</param>
+        /// <param name="config"></param>
+        /// <param name="connectionFactory">the connection factory</param>
+        internal Db(string connectionString, DbConfig config, DbProviderFactory connectionFactory)
+        {
+            _connectionString = connectionString;
+            _connectionFactory = connectionFactory;
+            _connection = new Lazy<IDbConnection>(CreateConnection);
+            Config = config;
         }
 
         public void Connect()
@@ -127,7 +135,7 @@ namespace Net.Code.ADONet
         public CommandBuilder Sql(string sqlQuery) => CreateCommand(CommandType.Text, sqlQuery);
 
         /// <summary>
-        /// Create a Stored Procedure command
+        /// Create a Stored Procedure command builder
         /// </summary>
         /// <param name="sprocName">name of the sproc</param>
         /// <returns>a CommandBuilder instance</returns>
@@ -145,23 +153,5 @@ namespace Net.Code.ADONet
         /// </summary>
         /// <param name="command"></param>
         public int Execute(string command) => Sql(command).AsNonQuery();
-
-        class AdoNetProviderFactory : IConnectionFactory
-        {
-            private readonly string _providerInvariantName;
-
-            public AdoNetProviderFactory(string providerInvariantName)
-            {
-                _providerInvariantName = providerInvariantName;
-            }
-
-            public IDbConnection CreateConnection(string connectionString)
-            {
-                var connection = DbProviderFactories.GetFactory(_providerInvariantName).CreateConnection();
-                // ReSharper disable once PossibleNullReferenceException
-                connection.ConnectionString = connectionString;
-                return connection;
-            }
-        }
     }
 }

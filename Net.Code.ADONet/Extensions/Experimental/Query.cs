@@ -18,7 +18,7 @@ namespace Net.Code.ADONet.Extensions.Experimental
 
         static Query()
         {
-            Properties = typeof(T).GetProperties();
+            Properties = typeof(T).GetTypeInfo().GetProperties();
 
             KeyProperties = Properties.Where(p => p.CustomAttributes.Any(a => a.AttributeType == typeof(KeyAttribute))).ToArray();
             if (!KeyProperties.Any())

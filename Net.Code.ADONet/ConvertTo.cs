@@ -22,10 +22,10 @@ namespace Net.Code.ADONet
         static ConvertTo()
         {
             // Sets the From delegate, depending on whether T is a reference type, a nullable value type or a value type.
-            From = CreateConvertFunction(typeof(T));
+            From = CreateConvertFunction(typeof(T).GetTypeInfo());
         }
 
-        private static Func<object, T> CreateConvertFunction(Type type)
+        private static Func<object, T> CreateConvertFunction(TypeInfo type)
         {
             if (!type.IsValueType)
             {
@@ -38,9 +38,9 @@ namespace Net.Code.ADONet
             }
 
             var delegateType = typeof(Func<object, T>);
-            var methodInfo = typeof(ConvertTo<T>).GetMethod("ConvertNullableValueType", BindingFlags.NonPublic | BindingFlags.Static);
+            var methodInfo = typeof(ConvertTo<T>).GetTypeInfo().GetMethod("ConvertNullableValueType", BindingFlags.NonPublic | BindingFlags.Static);
             var genericMethodForElement = methodInfo.MakeGenericMethod(type.GetGenericArguments()[0]);
-            return (Func<object, T>)Delegate.CreateDelegate(delegateType, genericMethodForElement);
+            return (Func<object, T>)genericMethodForElement.CreateDelegate(delegateType);
         }
 
         // ReSharper disable once UnusedMember.Local
