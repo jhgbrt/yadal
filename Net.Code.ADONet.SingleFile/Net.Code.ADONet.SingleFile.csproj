@@ -46,13 +46,14 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="join.cmd" />
     <None Include="Net.Code.ADONet.Source.nuspec" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>for /f %25%25i in ('dir /b $(SolutionDir)packages\Join.CSharp.*') do set p=%25%25i
-$(SolutionDir)packages\%25p%25\tools\joincs.exe $(SolutionDir)Net.Code.ADONet $(ProjectDir)Db.cs</PreBuildEvent>
+    <PreBuildEvent>
+    </PreBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
