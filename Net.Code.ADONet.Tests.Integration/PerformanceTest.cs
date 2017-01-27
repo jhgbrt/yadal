@@ -1,44 +1,36 @@
 using System;
 using System.Diagnostics;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Net.Code.ADONet.Extensions.Experimental;
+using Xunit;
 
 namespace Net.Code.ADONet.Tests.Integration
 {
-    [TestClass]
-    public abstract class PerformanceTest
+    
+
+    [Collection("Database collection")]
+    public abstract class PerformanceTest : IDisposable
     {
-        protected PerformanceTest()
+        protected PerformanceTest(IDatabaseImpl databaseImpl, AssemblyLevelInit init)
         {
-            _target = DbTargetFactory.Create(GetType().Name);
-            _test = new DbTest(GetType().Name);
-        }
+            _test = new DbTest(databaseImpl);
 
-        private readonly BaseDb _target;
-        private readonly DbTest _test;
+            var isAvailable = init.IsAvailable(databaseImpl);
+            Skip.IfNot(isAvailable);
 
-        [TestInitialize]
-        public void Setup()
-        {
-            try
-            {
-                _test.Initialize();
-            }
-            catch (Exception e)
-            {
-                Assert.Inconclusive($"{_target.GetType().Name} - connnection failed {_target.ConnectionString} {e}");
-            }
+            _test.Initialize();
             _test.BulkInsert(FakeData.People.List(10000));
         }
 
-        [TestCleanup]
-        public void Cleanup()
+        private readonly DbTest _test;
+
+
+        public void Dispose()
         {
             _test.Cleanup();
         }
 
 
-        [TestMethod]
+        [Fact]
         public void WhenMappingWithCachedSetterMap_ThenMappingIsFaster()
         {
             _test.GetAllPeopleGeneric();
@@ -51,7 +43,7 @@ namespace Net.Code.ADONet.Tests.Integration
             var slow = Measure(() => _test.GetAllPeopleGenericLegacy());
             Trace.WriteLine(slow);
 
-            Assert.IsTrue(slow > fast);
+            Assert.True(slow > fast);
         }
 
         private static TimeSpan Measure(Action action)
@@ -61,32 +53,42 @@ namespace Net.Code.ADONet.Tests.Integration
             return sw.Elapsed;
         }
 
-        [TestClass]
-        public class SqlServer : PerformanceTest
+        public class SqlServerTest : PerformanceTest
         {
+            public SqlServerTest(AssemblyLevelInit init) : base(new SqlServer(), init)
+            {
+            }
         }
-        [TestClass]
-        public class Oracle : PerformanceTest
+        public class OracleTest : PerformanceTest
         {
-        }
-
-        [TestClass]
-        public class SqlServerCe : PerformanceTest
-        {
-        }
-        [TestClass]
-        public class SqLite : PerformanceTest
-        {
+            public OracleTest(AssemblyLevelInit init) : base(new Oracle(), init)
+            {
+            }
         }
 
-        [TestClass]
-        public class MySql : PerformanceTest
+        public class SqlServerCeTest : PerformanceTest
         {
+            public SqlServerCeTest(AssemblyLevelInit init) : base(new SqlServerCe(), init)
+            {
+            }
         }
-
-        [TestClass]
-        public class PostgreSql : PerformanceTest
+        public class SqLiteTest : PerformanceTest
         {
+            public SqLiteTest(AssemblyLevelInit init) : base(new SqLite(), init)
+            {
+            }
+        }
+        public class MySqlTest : PerformanceTest
+        {
+            public MySqlTest(AssemblyLevelInit init) : base(new MySql(), init)
+            {
+            }
+        }
+        public class PostgreSqlTest : PerformanceTest
+        {
+            public PostgreSqlTest(AssemblyLevelInit init) : base(new PostgreSql(), init)
+            {
+            }
         }
     }
 }

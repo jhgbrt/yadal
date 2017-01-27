@@ -13,9 +13,9 @@ namespace Net.Code.ADONet.Tests.Integration
     {
         private readonly IDatabaseImpl _target;
         private readonly IDb _db;
-        public DbTest(string name)
+        public DbTest(IDatabaseImpl target)
         {
-            _target = DbTargetFactory.Create(name);
+            _target = target;
             _db = CreateDb();
         }
 

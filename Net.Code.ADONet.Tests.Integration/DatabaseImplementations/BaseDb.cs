@@ -49,5 +49,20 @@ namespace Net.Code.ADONet.Tests.Integration
         public IQuery Query<T>() => Extensions.Experimental.Query<T>.Create(Config.MappingConvention);
         private DbConfig Config => DbConfig.FromProviderName(ProviderName);
         private DbProviderFactory Factory => DbProviderFactories.GetFactory(ProviderName);
+        public bool IsAvailable()
+        {
+            try
+            {
+                using (var db = CreateDb())
+                {
+                    db.Connect();
+                }
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }

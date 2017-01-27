@@ -1,53 +1,60 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data;
 using System.Linq;
+using System.Runtime.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
+using Xunit.Abstractions;
+using Xunit.Sdk;
 
 // ReSharper disable UnusedMember.Local
 // ReSharper disable InconsistentNaming
 namespace Net.Code.ADONet.Tests.Integration
 {
-    public abstract class DatabaseTest
+    [CollectionDefinition("Database collection")]
+    public class DatabaseCollection 
+        : ICollectionFixture<AssemblyLevelInit>
     {
+    }
+
+    [Collection("Database collection")]
+    public abstract class DatabaseTest : IDisposable
+    {
+        private readonly AssemblyLevelInit _init;
         //private readonly BaseDb target;
         private readonly DbTest test;
         private Person[] people;
         private Address[] addresses;
         private DbConfig config;
 
-        protected DatabaseTest()
-        {
-            test = new DbTest(GetType().Name);
-            config = DbConfig.FromProviderName(test.ProviderName);
-        }
-
        
-        [TestInitialize]
-        public void Setup()
+        protected DatabaseTest(IDatabaseImpl databaseImpl, AssemblyLevelInit init)
         {
-            try
-            {
-                test.Initialize();
-            }
-            catch (Exception e)
-            {
-                Assert.Inconclusive($"{GetType().Name} - connnection failed {e}");
-            }
+            _init = init;
+            var isAvailable = _init.IsAvailable(databaseImpl);
 
+            Skip.IfNot(isAvailable);
+
+            test = new DbTest(databaseImpl);
+            config = DbConfig.FromProviderName(test.ProviderName);
+
+
+            test.Initialize();
             people = FakeData.People.List(10).ToArray();
             addresses = FakeData.Addresses.List(10);
             test.Insert(people.Take(5), addresses);
             test.InsertAsync(people.Skip(5)).Wait();
         }
 
-        [TestCleanup]
-        public void Cleanup()
+        public void Dispose()
         {
             test.Cleanup();
         }
 
-        [TestMethod]
+        [Fact]
         public void UpdateAll()
         {
             var people = test.GetAllPeopleGeneric();
@@ -57,67 +64,67 @@ namespace Net.Code.ADONet.Tests.Integration
             }
             test.Update(people);
             people = test.GetAllPeopleGeneric();
-            Assert.IsTrue(people.All(p => p.RequiredNumber == 9999));
+            Assert.True(people.All(p => p.RequiredNumber == 9999));
         }
 
-        [TestMethod]
+        [Fact]
         public void CountIsExpected()
         {
             var count = test.GetCountOfPeople();
-            Assert.AreEqual(10, count);
+            Assert.Equal(10, count);
 
         }
 
-        [TestMethod]
+        [Fact]
         public async Task CountIsExpectedAsync()
         {
             var count = await test.GetCountOfPeopleAsync();
-            Assert.AreEqual(10, count);
+            Assert.Equal(10, count);
 
         }
 
-        [TestMethod]
+        [Fact]
         public void GetAllPeopleGeneric()
         {
             var result = test.GetAllPeopleGeneric();
-            CollectionAssert.AreEqual(people, result);
+            Assert.Equal(people, result);
         }
 
-        [TestMethod]
+        [Fact]
         public void GetAllPeopleAsDynamic()
         {
             var result = test.GetAllPeopleAsDynamic();
-            CollectionAssert.AreEqual(people, result);
+            Assert.Equal(people, result);
         }
 
-        [TestMethod]
+        [Fact]
         public async Task GetAllPeopleAsDynamicAsync()
         {
             var result = await test.GetAllPeopleAsDynamicAsync();
-            CollectionAssert.AreEqual(people, result);
+            Assert.Equal(people, result);
         }
 
-        [TestMethod]
+        [Fact]
         public void AsDataTable()
         {
             var result = test.AsDataTable();
-            CollectionAssert.AreEqual(people.Select(p => p.Id).ToArray(), result.Rows.OfType<DataRow>().Select(dr => (int) dr["Id"]).ToArray());
+            Assert.Equal(people.Select(p => p.Id).ToArray(), result.Rows.OfType<DataRow>().Select(dr => (int) dr["Id"]).ToArray());
             var columnName = config.MappingConvention.ToDb("OptionalNumber");
-            CollectionAssert.AreEqual(people.Select(p => p.OptionalNumber).ToArray(), result.Rows.OfType<DataRow>().Select(dr => dr.Field<int?>(columnName)).ToArray());
+            Assert.Equal(people.Select(p => p.OptionalNumber).ToArray(), result.Rows.OfType<DataRow>().Select(dr => dr.Field<int?>(columnName)).ToArray());
         }
 
-        [TestMethod]
+        [Fact]
         public void MultiResultSet()
         {
             if (test.SupportsMultipleResultSets)
             {
                 var result = test.AsMultiResultSet();
-                CollectionAssert.AreEqual(people, result.Set1.ToArray());
-                CollectionAssert.AreEqual(addresses, result.Set2.ToArray());
+                Assert.Equal(people, result.Set1.ToArray());
+                Assert.Equal(addresses, result.Set2.ToArray());
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void GetSchemaTable()
         {
             var dt = test.GetSchemaTable();
@@ -127,58 +134,68 @@ namespace Net.Code.ADONet.Tests.Integration
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void InsertAndGet()
         {
             var person = FakeData.People.One();
             test.Insert(new[] { person }, Enumerable.Empty<Address>());
             var result = test.Get(person.Id);
-            Assert.AreEqual(person, result);
+            Assert.Equal(person, result);
         }
 
-        [TestMethod]
+        [Fact]
         public void GetByIdList()
         {
             if (test.SupportsTableValuedParameters)
             {
                 var ids = test.GetSomeIds(3);
                 var result = test.GetPeopleById(ids);
-                CollectionAssert.AreEqual(ids, result.Select(p => p.Id).ToList());
+                Assert.Equal(ids, result.Select(p => p.Id).ToList());
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void BulkCopy()
         {
             test.BulkInsert(FakeData.People.List(100));
         }
 
-        [TestClass]
-        public class SqlServer : DatabaseTest
+        public class SqlServerTest : DatabaseTest
         {
+            public SqlServerTest(AssemblyLevelInit init) : base(new SqlServer(), init)
+            {
+            }
         }
-        [TestClass]
-        public class Oracle : DatabaseTest
+        public class OracleTest : DatabaseTest
         {
-        }
-
-        [TestClass]
-        public class SqlServerCe : DatabaseTest
-        {
-        }
-        [TestClass]
-        public class SqLite : DatabaseTest
-        {
+            public OracleTest(AssemblyLevelInit init) : base(new Oracle(), init)
+            {
+            }
         }
 
-        [TestClass]
-        public class MySql : DatabaseTest
+        public class SqlServerCeTest : DatabaseTest
         {
+            public SqlServerCeTest(AssemblyLevelInit init) : base(new SqlServerCe(), init)
+            {
+            }
         }
-
-        [TestClass]
-        public class PostgreSql : DatabaseTest
+        public class SqLiteTest : DatabaseTest
         {
+            public SqLiteTest(AssemblyLevelInit init) : base(new SqLite(), init)
+            {
+            }
+        }
+        public class MySqlTest : DatabaseTest
+        {
+            public MySqlTest(AssemblyLevelInit init) : base(new MySql(), init)
+            {
+            }
+        }
+        public class PostgreSqlTest : DatabaseTest
+        {
+            public PostgreSqlTest(AssemblyLevelInit init) : base(new PostgreSql(), init)
+            {
+            }
         }
     }
 

@@ -1,16 +1,20 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Net.Code.ADONet.Tests.Integration;
+using Xunit;
 
 namespace Net.Code.ADONet.Tests.Integration
 {
-    [TestClass]
+
+
     public class AssemblyLevelInit
     {
-        [AssemblyInitialize]
-        public static void AssemblyInit(TestContext c)
+        private IDictionary<Type, bool> _available = new Dictionary<Type, bool>();
+        public AssemblyLevelInit()
         {
             var q =
                 from t in Assembly.GetExecutingAssembly().GetTypes()
@@ -21,14 +25,17 @@ namespace Net.Code.ADONet.Tests.Integration
             var supportedDbs = q.OfType<IDatabaseImpl>().ToArray();
 
             foreach (var db in supportedDbs)
-                try
-                {
+            {
+                var isAvailable = db.IsAvailable();
+                _available[db.GetType()] = isAvailable;
+                if (isAvailable)
                     db.DropAndRecreate();
-                }
-                catch (Exception e)
-                {
-                    Trace.TraceError(e.ToString());
-                }
+            }
+        }
+
+        public bool IsAvailable(IDatabaseImpl impl)
+        {
+            return _available[impl.GetType()];
         }
 
     }

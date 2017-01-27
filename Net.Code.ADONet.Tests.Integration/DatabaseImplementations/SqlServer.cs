@@ -8,6 +8,7 @@ namespace Net.Code.ADONet.Tests.Integration
 {
     public class SqlServer : BaseDb
     {
+
         public override void DropAndRecreate()
         {
             var connectionString = ConfigurationManager.ConnectionStrings[Name].ConnectionString;

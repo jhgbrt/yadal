@@ -5,6 +5,7 @@ namespace Net.Code.ADONet.Tests.Integration
 {
     public interface IDatabaseImpl
     {
+        bool IsAvailable();
         string CreatePersonTable { get; }
         string DropPersonTable { get; }
         string CreateAddressTable { get; }
