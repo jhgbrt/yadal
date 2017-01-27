@@ -1,41 +1,40 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
+using Xunit;
 
 namespace Net.Code.ADONet.Tests.Unit
 {
-    [TestClass]
+
     public class DynamicIndexerTests
     {
-        [TestMethod]
-        [ExpectedException(typeof(ArgumentNullException))]
+        [Fact]
         public void DynamicDataRow_NullRow_Throws()
         {
-            Dynamic.From((DataRow) null);
+            Assert.Throws<ArgumentNullException>(() => Dynamic.From((DataRow)null));
         }
 
-        [TestMethod]
+        [Fact]
         public void DynamicDataRow_WithIdAndName_CanGetPropertiesViaIndex()
         {
             var dr = DataRow();
 
             var d = Dynamic.From(dr);
 
-            Assert.AreEqual(1, d["Id"]);
-            Assert.AreEqual("Name", d["Name"]);
+            Assert.Equal(1, d["Id"]);
+            Assert.Equal("Name", d["Name"]);
         }
 
-        [TestMethod]
+        [Fact]
         public void DynamicDataRow_WithIdAndName_CanGetPropertiesViaDynamicAccess()
         {
             var dr = DataRow();
 
             var d = Dynamic.From(dr);
 
-            Assert.AreEqual(1, d.Id);
-            Assert.AreEqual("Name", d.Name);
+            Assert.Equal(1, d.Id);
+            Assert.Equal("Name", d.Name);
         }
 
         private static DataRow DataRow()
@@ -49,33 +48,32 @@ namespace Net.Code.ADONet.Tests.Unit
             return dr;
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(ArgumentNullException))]
+        [Fact]
         public void DynamicDictionary_NullRow_Throws()
         {
-            Dynamic.From<Dictionary<string, object>>(null);
+            Assert.Throws<ArgumentNullException>(() => Dynamic.From<Dictionary<string, object>>(null));
         }
 
-        [TestMethod]
+        [Fact]
         public void DynamicDictionary_WithIdAndName_CanGetPropertiesViaIndex()
         {
             var dr = Dictionary();
 
             var d = Dynamic.From(dr);
 
-            Assert.AreEqual(1, d["Id"]);
-            Assert.AreEqual("Name", d["Name"]);
+            Assert.Equal(1, d["Id"]);
+            Assert.Equal("Name", d["Name"]);
         }
 
-        [TestMethod]
+        [Fact]
         public void DynamicDictionary_WithIdAndName_CanGetPropertiesViaDynamicAccess()
         {
             var dr = Dictionary();
 
             var d = Dynamic.From(dr);
 
-            Assert.AreEqual(1, d.Id);
-            Assert.AreEqual("Name", d.Name);
+            Assert.Equal(1, d.Id);
+            Assert.Equal("Name", d.Name);
         }
 
         private IDictionary<string, object> Dictionary()
@@ -87,34 +85,33 @@ namespace Net.Code.ADONet.Tests.Unit
             };
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(ArgumentNullException))]
+        [Fact]
         public void DynamicDataRecord_NullDataRecord_Throws()
         {
             IDataRecord dr = null;
-            Dynamic.From(dr);
+            Assert.Throws<ArgumentNullException>(() => Dynamic.From(dr));
         }
 
-        [TestMethod]
+        [Fact]
         public void DynamicDataRecord_WithIdAndName_CanGetPropertiesViaIndexer()
         {
             IDataRecord dr = DataRecord();
 
             var d = Dynamic.From(dr);
 
-            Assert.AreEqual(1, d["Id"]);
-            Assert.AreEqual("Name", d["Name"]);
+            Assert.Equal(1, d["Id"]);
+            Assert.Equal("Name", d["Name"]);
         }
 
-        [TestMethod]
+        [Fact]
         public void DynamicDataRecord_WithIdAndName_CanGetPropertiesViaDynamicAccess()
         {
             IDataRecord dr = DataRecord();
 
             var d = Dynamic.From(dr);
 
-            Assert.AreEqual(1, d.Id);
-            Assert.AreEqual("Name", d.Name);
+            Assert.Equal(1, d.Id);
+            Assert.Equal("Name", d.Name);
         }
 
         private IDataRecord DataRecord()

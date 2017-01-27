@@ -3,17 +3,16 @@ using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace Net.Code.ADONet.Tests.Unit.DataTableExtensions
 {
-    [TestClass]
+
     public class DataTableExtensionsTests
     {
         private DataTable dt;
 
-        [TestInitialize]
-        public void Setup()
+        public DataTableExtensionsTests()
         {
             dt = new DataTable();
             dt.Columns.Add("Id", typeof (int));
@@ -21,37 +20,37 @@ namespace Net.Code.ADONet.Tests.Unit.DataTableExtensions
             dt.Rows.Add(1, "Description 1");
         }
 
-        [TestMethod]
+        [Fact]
         public void AsEnumerable()
         {
             var item = dt.AsEnumerable().Select(d => new { d.Id, d.Description }).First();
-            Assert.AreEqual("Description 1", item.Description);
-            Assert.AreEqual(1, item.Id);
+            Assert.Equal("Description 1", item.Description);
+            Assert.Equal(1, item.Id);
         }
 
-        [TestMethod]
+        [Fact]
         public void LinqSelect()
         {
             var query = from d in dt
                 select new { d.Id, d.Description };
             var item = query.First();
-            Assert.AreEqual("Description 1", item.Description);
-            Assert.AreEqual(1, item.Id);
+            Assert.Equal("Description 1", item.Description);
+            Assert.Equal(1, item.Id);
         }
  
-        [TestMethod]
+        [Fact]
         public void LinqWhere()
         {
             var query = from d in dt
                         where d.Id == 1
                         select new { d.Id, d.Description };
             var item = query.First();
-            Assert.AreEqual("Description 1", item.Description);
-            Assert.AreEqual(1, item.Id);
+            Assert.Equal("Description 1", item.Description);
+            Assert.Equal(1, item.Id);
         }
     }
 
-    [TestClass]
+
     public class ToDataTableTests
     {
         public class Person
@@ -75,7 +74,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataTableExtensions
                                                                }); }
         }
 
-        [TestMethod]
+        [Fact]
         public void ToDataTable()
         {
             var sw = Stopwatch.StartNew();

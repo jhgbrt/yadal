@@ -1,54 +1,53 @@
 ﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace Net.Code.ADONet.Tests.Unit.ConvertToTests
 {
-    [TestClass]
+
     public class ConvertToRefType
     {
-        [TestMethod]
+        [Fact]
         public void FromNull_ShouldReturnNull()
         {
             string result = Convert(null);
-            Assert.IsNull(result);
+            Assert.Null(result);
         }
 
-        [TestMethod]
+        [Fact]
         public void FromString_ShouldReturnString()
         {
             object o = "";
             var result = Convert(o);
-            Assert.AreEqual("", result);
+            Assert.Equal("", result);
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(InvalidCastException))]
+        [Fact]
         public void FromIncompatibleType_ShouldThrow()
         {
             object o = new object();
-            Convert(o);
+            Assert.Throws<InvalidCastException>(() => Convert(o));
         }
 
-        [TestMethod]
+        [Fact]
         public void FromValueType_ShouldConvertToString()
         {
             int o = 1;
             var result = Convert(o);
-            Assert.AreEqual("1", result);
+            Assert.Equal("1", result);
         }
 
-        [TestMethod]
+        [Fact]
         public void FromNullableType_DoesNotThrow()
         {
             int? o = 1;
-            Assert.AreEqual("1", Convert(o));
+            Assert.Equal("1", Convert(o));
         }
 
-        [TestMethod]
+        [Fact]
         public void FromDbNull_ShouldReturnNull()
         {
             var result = Convert(DBNull.Value);
-            Assert.IsNull(result);
+            Assert.Null(result);
         }
 
         private static string Convert(object o)

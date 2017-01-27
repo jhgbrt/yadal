@@ -1,13 +1,12 @@
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace Net.Code.ADONet.Tests.Unit
 {
-    [TestClass]
     public class CommandExecutionTests
     {
-        [TestMethod] 
+        [Fact] 
         public void AsDatatable_WhenCalled_ReturnsResults()
         {
             var command = PrepareCommand();
@@ -21,7 +20,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Person.VerifyDataTable(result);
         }
 
-        [TestMethod]
+        [Fact]
         public void AsEnumerable_WhenCalled_ReturnsResults()
         {
             var command = PrepareCommand();
@@ -34,7 +33,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
             Person.VerifySingleResultSet(result);
         }
-        [TestMethod]
+        [Fact]
         public void Single_WhenCalled_ReturnsSingleItem()
         {
             var command = PrepareCommand();
@@ -48,7 +47,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Person.VerifyResult(result);
         }
 
-        [TestMethod]
+        [Fact]
         public void AsEnumerableWithSelector_WhenCalled_ReturnsResults()
         {
             var command = PrepareCommand();
@@ -61,7 +60,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
             Person.VerifySingleResultSet(result);
         }
-        [TestMethod]
+        [Fact]
         public void AsEnumerableGeneric_WhenCalled_ReturnsResults()
         {
             var command = PrepareCommand();
@@ -75,7 +74,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Person.VerifySingleResultSet(result);
         }
 
-        [TestMethod]
+        [Fact]
         public void AsScalar_WhenCalled_ReturnsScalarValue()
         {
             var command = PrepareCommand();
@@ -85,10 +84,10 @@ namespace Net.Code.ADONet.Tests.Unit
 
             var result = commandBuilder.AsScalar<int>();
 
-            Assert.AreEqual(1, result);
+            Assert.Equal(1, result);
         }
 
-        [TestMethod]
+        [Fact]
         public void AsScalarObject_WhenCalled_ReturnsScalarValue()
         {
             var command = PrepareCommand();
@@ -98,10 +97,10 @@ namespace Net.Code.ADONet.Tests.Unit
 
             var result = commandBuilder.AsScalar<object>();
 
-            Assert.AreEqual(1, result);
+            Assert.Equal(1, result);
         }
 
-        [TestMethod]
+        [Fact]
         public void AsNonQuery_WhenCalled_ReturnsNonQueryResult()
         {
             var command = PrepareCommand();
@@ -110,10 +109,10 @@ namespace Net.Code.ADONet.Tests.Unit
 
             var result = commandBuilder.AsNonQuery();
             
-            Assert.AreEqual(1, result);
+            Assert.Equal(1, result);
         }
 
-        [TestMethod]
+        [Fact]
         public void AsMultiResultSet_WhenCalled_ReturnsMultipleResultSets()
         {
             var command = PrepareCommand();
@@ -128,7 +127,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Person.VerifyMultiResultSet(result);
         }
 
-        [TestMethod]
+        [Fact]
         public void AsMultiResultSetGeneric_WhenCalled_ReturnsMultipleResultSets()
         {
             var command = PrepareCommand();
@@ -142,7 +141,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
             Person.VerifyMultiResultSet(result);
         }
-        [TestMethod]
+        [Fact]
         public void AsMultiResultSetGeneric3_WhenCalled_ReturnsMultipleResultSets()
         {
             var command = PrepareCommand();
@@ -156,7 +155,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
             Person.VerifyMultiResultSet(result);
         }
-        [TestMethod]
+        [Fact]
         public void AsMultiResultSetGeneric4_WhenCalled_ReturnsMultipleResultSets()
         {
             var command = PrepareCommand();
@@ -170,7 +169,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
             Person.VerifyMultiResultSet(result);
         }
-        [TestMethod]
+        [Fact]
         public void AsMultiResultSetGeneric5_WhenCalled_ReturnsMultipleResultSets()
         {
             var command = PrepareCommand();
@@ -185,7 +184,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Person.VerifyMultiResultSet(result);
         }
 
-        [TestMethod]
+        [Fact]
         public async Task AsEnumerableAsync_WhenCalledAndAwaited_ReturnsResultSet()
         {
             var command = PrepareCommand();
@@ -197,7 +196,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Person.VerifySingleResultSet(result);
         }
 
-        [TestMethod]
+        [Fact]
         public async Task AsEnumerableAsyncWithSelector_WhenCalledAndAwaited_ReturnsResultSet()
         {
             var command = PrepareCommand();
@@ -209,7 +208,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Person.VerifySingleResultSet(result);
         }
 
-        [TestMethod]
+        [Fact]
         public async Task AsScalarAsync_WhenCalledAndAwaited_ReturnsScalarValue()
         {
             var command = PrepareCommand();
@@ -218,10 +217,10 @@ namespace Net.Code.ADONet.Tests.Unit
 
             var result = await commandBuilder.AsScalarAsync<int>();
 
-            Assert.AreEqual(1, result);
+            Assert.Equal(1, result);
         }
 
-        [TestMethod]
+        [Fact]
         public async Task AsNonQueryAsync_WhenCalledAndAwaited_ReturnsNonQueryValue()
         {
             var command = PrepareCommand();
@@ -230,10 +229,10 @@ namespace Net.Code.ADONet.Tests.Unit
             
             var result = await commandBuilder.AsNonQueryAsync();
             
-            Assert.AreEqual(1, result);
+            Assert.Equal(1, result);
         }
 
-        [TestMethod]
+        [Fact]
         public async Task AsMultipleResultSetAsync_WhenCalledAndAwaited_ReturnsMultiResultSet()
         {
             var command = PrepareCommand();

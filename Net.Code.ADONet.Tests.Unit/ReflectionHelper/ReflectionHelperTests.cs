@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
+
 
 namespace Net.Code.ADONet.Tests.Unit.ReflectionHelper
 {
@@ -13,7 +14,7 @@ namespace Net.Code.ADONet.Tests.Unit.ReflectionHelper
         public int? NullableIntProperty { get; set; }
     }
 
-    [TestClass]
+
     public class ReflectionHelperGetterTests
     {
         private MyTestEntity _entity = new MyTestEntity
@@ -25,32 +26,32 @@ namespace Net.Code.ADONet.Tests.Unit.ReflectionHelper
         };
         IReadOnlyDictionary<string, Func<MyTestEntity, object>> getters = FastReflection.Instance.GetGettersForType<MyTestEntity>();
 
-        [TestMethod]
+        [Fact]
         public void Getter_ForStringProperty_ReturnsCorrectValue()
         {
             var s = getters[nameof(MyTestEntity.SomeProperty)](_entity);
-            Assert.AreEqual("Hello World", s);
+            Assert.Equal("Hello World", s);
         }
-        [TestMethod]
+        [Fact]
         public void Getter_ForDbNullProperty_ReturnsNull()
         {
             var s = getters[nameof(MyTestEntity.DbNullValueProperty)](_entity);
-            Assert.IsNull(s);
+            Assert.Null(s);
         }
-        [TestMethod]
+        [Fact]
         public void Getter_ForNullableProperty_ReturnsValue()
         {
             var s = getters[nameof(MyTestEntity.NullableIntProperty)](_entity);
-            Assert.AreEqual(_entity.NullableIntProperty, s);
+            Assert.Equal(_entity.NullableIntProperty, s);
         }
-        [TestMethod]
+        [Fact]
         public void Getter_ForIntProperty_ReturnsValue()
         {
             var s = getters[nameof(MyTestEntity.IntProperty)](_entity);
-            Assert.AreEqual(_entity.IntProperty, s);
+            Assert.Equal(_entity.IntProperty, s);
         }
     }
-    [TestClass]
+
     public class ReflectionHelperSetterTests
     {
         private readonly MyTestEntity _entity = new MyTestEntity
@@ -59,34 +60,34 @@ namespace Net.Code.ADONet.Tests.Unit.ReflectionHelper
 
         IReadOnlyDictionary<string, Action<MyTestEntity,object>> setters = FastReflection.Instance.GetSettersForType<MyTestEntity>();
 
-        [TestMethod]
+        [Fact]
         public void Setter_ForStringProperty_ReturnsCorrectValue()
         {
             var s = setters[nameof(MyTestEntity.SomeProperty)];
             s(_entity, "Hello World");
-            Assert.AreEqual("Hello World", _entity.SomeProperty);
+            Assert.Equal("Hello World", _entity.SomeProperty);
         }
-        [TestMethod]
+        [Fact]
         public void Setter_ForDbNullProperty_ReturnsNull()
         {
             setters[nameof(MyTestEntity.DbNullValueProperty)](_entity, new object());
-            Assert.IsNotNull(_entity.DbNullValueProperty);
+            Assert.NotNull(_entity.DbNullValueProperty);
         }
-        [TestMethod]
+        [Fact]
         public void Setter_ForNullableProperty_ReturnsValue()
         {
             var s = setters[nameof(MyTestEntity.NullableIntProperty)];
             s(_entity, 1);
-            Assert.AreEqual(_entity.NullableIntProperty, 1);
+            Assert.Equal(_entity.NullableIntProperty, 1);
             s(_entity, null);
-            Assert.IsNull(_entity.NullableIntProperty);
+            Assert.Null(_entity.NullableIntProperty);
         }
-        [TestMethod]
+        [Fact]
         public void Setter_ForIntProperty_ReturnsValue()
         {
             var s = setters[nameof(MyTestEntity.IntProperty)];
             s(_entity, 1);
-            Assert.AreEqual(1, _entity.IntProperty);
+            Assert.Equal(1, _entity.IntProperty);
         }
     }
 }

@@ -4,16 +4,15 @@ using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Net.Code.ADONet.Extensions.SqlClient;
 using NSubstitute;
+using Xunit;
 
 namespace Net.Code.ADONet.Tests.Unit
 {
-    [TestClass]
     public class CommandBuilderTests
     {
-        [TestMethod]
+        [Fact]
         public void Logger_LogsCommand()
         {
             var logAction = Logger.Log;
@@ -28,13 +27,13 @@ namespace Net.Code.ADONet.Tests.Unit
             Logger.LogCommand(command);
             var loggedText = sb.ToString();
 
-            Assert.IsTrue(loggedText.Contains("commandtext"));
-            Assert.IsTrue(loggedText.Contains("name"));
-            Assert.IsTrue(loggedText.Contains("value"));
+            Assert.True(loggedText.Contains("commandtext"));
+            Assert.True(loggedText.Contains("name"));
+            Assert.True(loggedText.Contains("value"));
             Logger.Log = logAction;
         }
 
-        [TestMethod]
+        [Fact]
         public void Logger_WhenNull_DoesNotThrow()
         {
             var logAction = Logger.Log;
@@ -52,7 +51,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Logger.Log = logAction;
         }
 
-        [TestMethod]
+        [Fact]
         public void CommandBuilder_WithParameterOfTypeString_Adds_Parameter()
         {
             var command = PrepareCommand();
@@ -61,11 +60,11 @@ namespace Net.Code.ADONet.Tests.Unit
 
             var result = (IDbDataParameter)b.Command.Parameters[0];
 
-            Assert.AreEqual("name", result.ParameterName);
-            Assert.AreEqual("value", result.Value);
+            Assert.Equal("name", result.ParameterName);
+            Assert.Equal("value", result.Value);
         }
 
-        [TestMethod]
+        [Fact]
         public void CommandBuilder_WithParameterOfTypeString_WhenParameterExists_ChangesValue()
         {
             var command = PrepareCommand();
@@ -76,11 +75,11 @@ namespace Net.Code.ADONet.Tests.Unit
             
             var result = (IDbDataParameter)b.Command.Parameters[0];
 
-            Assert.AreEqual("name", result.ParameterName);
-            Assert.AreEqual("value2", result.Value);
+            Assert.Equal("name", result.ParameterName);
+            Assert.Equal("value2", result.Value);
         }
 
-        [TestMethod]
+        [Fact]
         public void CommandBuilder_WithParameterOfTypeGuid_Adds_Parameter()
         {
             var command = PrepareCommand();
@@ -90,11 +89,11 @@ namespace Net.Code.ADONet.Tests.Unit
 
             var result = (IDbDataParameter)b.Command.Parameters[0];
 
-            Assert.AreEqual("name", result.ParameterName);
-            Assert.AreEqual(newGuid, result.Value);
+            Assert.Equal("name", result.ParameterName);
+            Assert.Equal(newGuid, result.Value);
         }
 
-        [TestMethod]
+        [Fact]
         public void CommandBuilder_WithDbDataParameter_Adds_Parameters()
         {
             var command = PrepareCommand();
@@ -107,11 +106,11 @@ namespace Net.Code.ADONet.Tests.Unit
             var parameters = b.Command.Parameters;
 
             IDbDataParameter param1 = (IDbDataParameter) parameters[0];
-            Assert.IsNotNull(param1);
-            Assert.AreEqual("MyParameterValue", param1.Value);
+            Assert.NotNull(param1);
+            Assert.Equal("MyParameterValue", param1.Value);
         }
 
-        [TestMethod]
+        [Fact]
         public void CommandBuilder_WithParametersAnonymous_Adds_Parameters()
         {
             var command = PrepareCommand();
@@ -127,29 +126,29 @@ namespace Net.Code.ADONet.Tests.Unit
             var parameters = b.Command.Parameters;
 
             var param1 = parameters.OfType<IDbDataParameter>().FirstOrDefault(p => p.ParameterName == "Param1_Int32");
-            Assert.IsNotNull(param1);
-            Assert.AreEqual(0, param1.Value);
+            Assert.NotNull(param1);
+            Assert.Equal(0, param1.Value);
 
             var param2 = parameters.OfType<IDbDataParameter>().FirstOrDefault(p => p.ParameterName == "Param2_string");
-            Assert.IsNotNull(param2);
-            Assert.AreEqual(string.Empty, param2.Value);
+            Assert.NotNull(param2);
+            Assert.Equal(string.Empty, param2.Value);
 
             var param3 = parameters.OfType<IDbDataParameter>().FirstOrDefault(p => p.ParameterName == "Param3_DateTime");
-            Assert.IsNotNull(param3);
-            Assert.AreEqual(DateTime.MaxValue, param3.Value);
+            Assert.NotNull(param3);
+            Assert.Equal(DateTime.MaxValue, param3.Value);
 
         }
 
-        [TestMethod]
+        [Fact]
         public void CommandBuilder_WithTimeout_SetsTimeout()
         {
             var command = PrepareCommand();
             var b = new CommandBuilder(command, DbConfig.Default);
             b.WithTimeout(TimeSpan.FromSeconds(123));
-            Assert.AreEqual(123, command.CommandTimeout);
+            Assert.Equal(123, command.CommandTimeout);
         }
 
-        [TestMethod]
+        [Fact]
         public void WithParameter_utd()
         {
             var command = PrepareCommand();
@@ -158,14 +157,14 @@ namespace Net.Code.ADONet.Tests.Unit
                .WithParameter("ParamName", new[] { new { ID = 123 } }, "dbo.udtname");
 
             var p = (SqlParameter)b.Command.Parameters[0];
-            Assert.AreEqual("ParamName", p.ParameterName);
-            Assert.IsTrue(p.Value is DataTable);
-            Assert.IsTrue(System.Data.DataTableExtensions.AsEnumerable((DataTable)p.Value).Single().Field<int>("ID") == 123);
-            Assert.AreEqual("dbo.udtname", p.TypeName);
-            Assert.AreEqual(SqlDbType.Structured, p.SqlDbType);
+            Assert.Equal("ParamName", p.ParameterName);
+            Assert.True(p.Value is DataTable);
+            Assert.True(System.Data.DataTableExtensions.AsEnumerable((DataTable)p.Value).Single().Field<int>("ID") == 123);
+            Assert.Equal("dbo.udtname", p.TypeName);
+            Assert.Equal(SqlDbType.Structured, p.SqlDbType);
         }
 
-        [TestMethod]
+        [Fact]
         public void InTransaction_SetsTransactionOnCommand()
         {
             var command = PrepareCommand();
@@ -174,7 +173,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
             new CommandBuilder(command, DbConfig.Default).InTransaction(tx);
 
-            Assert.AreEqual(tx, command.Transaction);
+            Assert.Equal(tx, command.Transaction);
         }
 
         private static IDbCommand PrepareCommand()

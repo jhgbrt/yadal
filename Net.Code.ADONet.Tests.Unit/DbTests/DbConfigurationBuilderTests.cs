@@ -2,15 +2,15 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using NSubstitute;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace Net.Code.ADONet.Tests.Unit.DbTests
 {
-    [TestClass]
+
     public class DbConfigurationBuilderTests
     {
         
-        [TestMethod]
+        [Fact]
         public void Default_PrepareCommand_DoesNothing()
         {
             var config = DbConfig.FromProviderName("unkown");
@@ -18,7 +18,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             config.PrepareCommand(command);
         }
 
-        [TestMethod]
+        [Fact]
         public void SqlServer_PrepareCommand_DoesNothing()
         {
             var config = DbConfig.FromProviderName("System.Data.SqlClient");
@@ -26,25 +26,25 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             config.PrepareCommand(command);
         }
 
-        [TestMethod]
+        [Fact]
         public void Oracle_PrepareCommand_SetsBindByName()
         {
             var config = DbConfig.FromProviderName("Oracle.DataAccess.Client");
             var oracleCommand = new FakeOracleDbCommand();
             config.PrepareCommand(oracleCommand);
-            Assert.IsTrue(oracleCommand.BindByName);
+            Assert.True(oracleCommand.BindByName);
         }
 
-        [TestMethod]
+        [Fact]
         public void OracleManaged_PrepareCommand_SetsBindByName()
         {
             var config = DbConfig.FromProviderName("Oracle.ManagedDataAccess.Client");
             var oracleCommand = new FakeOracleDbCommand();
             config.PrepareCommand(oracleCommand);
-            Assert.IsTrue(oracleCommand.BindByName);
+            Assert.True(oracleCommand.BindByName);
         }
 
-        [TestMethod]
+        [Fact]
         public void GivenDb_WhenNoSpecificConfigure__AndExecuteIsCalled_UsesDefaultConfig()
         {
             var fakeConnection = new FakeConnection();
@@ -52,13 +52,13 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             db.Execute("");
         }
 
-        [TestMethod]
+        [Fact]
         public void GivenDb_WhenOnPrepareIsConfigured__AndExecuteIsCalled_CommandIsPrepared()
         {
             var fakeConnection = new FakeConnection();
             var db = new Db(fakeConnection, new DbConfig(c => ((FakeCommand)c).Comment = "PREPARED", MappingConvention.OracleStyle, string.Empty));
             db.Execute("");
-            Assert.AreEqual("PREPARED", fakeConnection.Commands.Single().Comment);
+            Assert.Equal("PREPARED", fakeConnection.Commands.Single().Comment);
         }
     }
 }

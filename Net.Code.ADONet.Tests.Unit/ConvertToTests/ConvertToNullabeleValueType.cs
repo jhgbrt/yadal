@@ -1,63 +1,59 @@
 using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace Net.Code.ADONet.Tests.Unit.ConvertToTests
 {
-    [TestClass]
     public class ConvertToNullabeleValueType
     {
-        [TestMethod]
+        [Fact]
         public void FromNull_ShouldReturnNull()
         {
             var result = Convert(null);
-            Assert.IsNull(result);
+            Assert.Null(result);
         }
 
-        [TestMethod]
+        [Fact]
         public void FromDBNull_ShouldReturnNull()
         {
             var result = Convert(DBNull.Value);
-            Assert.IsNull(result);
+            Assert.Null(result);
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(FormatException))]
+        [Fact]
         public void FromString_ShouldThrow()
         {
             object o = "";
-            Convert(o);
+            Assert.Throws<FormatException>(() => Convert(o));
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(InvalidCastException))]
+        [Fact]
         public void FromIncompatibleRefType_ShouldThrow()
         {
             object o = new object();
-            Convert(o);
+            Assert.Throws<InvalidCastException>(() => Convert(o));
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(InvalidCastException))]
+        [Fact]
         public void FromIncompatibleValueType_ShouldThrow()
         {
             object o = new object();
-            Convert(o);
+            Assert.Throws<InvalidCastException>(() => Convert(o));
         }
 
-        [TestMethod]
+        [Fact]
         public void FromCompatibleValueType_ShouldReturnValue()
         {
             int o = 1;
             var result = Convert(o);
-            Assert.AreEqual(1, result);
+            Assert.Equal(1, result);
         }
 
-        [TestMethod]
+        [Fact]
         public void FromCompatibleNullableType_ShouldReturnValue()
         {
             int? o = 1;
             var result = Convert(o);
-            Assert.AreEqual(1, result);
+            Assert.Equal(1, result);
         }
 
         private static int? Convert(object o)

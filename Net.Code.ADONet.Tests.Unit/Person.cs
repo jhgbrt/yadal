@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace Net.Code.ADONet.Tests.Unit
 {
@@ -43,11 +43,11 @@ namespace Net.Code.ADONet.Tests.Unit
 
         public static void VerifySingleResultSet(IEnumerable<dynamic> result)
         {
-            Assert.AreEqual(1, result.Single().Id);
+            Assert.Equal(1, result.Single().Id);
         }
         public static void VerifyDataTable(DataTable result)
         {
-            Assert.AreEqual(1, result.Rows[0]["Id"]);
+            Assert.Equal(1, result.Rows[0]["Id"]);
         }
 
         public static void VerifyMultiResultSet(List<IReadOnlyCollection<dynamic>> result)
@@ -63,7 +63,7 @@ namespace Net.Code.ADONet.Tests.Unit
             var expected = 1;
             foreach (var id in all)
             {
-                Assert.AreEqual(expected, id);
+                Assert.Equal(expected, id);
                 expected++;
             }
         }

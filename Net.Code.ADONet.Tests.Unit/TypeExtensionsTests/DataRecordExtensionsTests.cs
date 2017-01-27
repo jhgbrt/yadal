@@ -1,10 +1,11 @@
 ﻿using System.Data;
 using NSubstitute;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
+
 
 namespace Net.Code.ADONet.Tests.Unit.TypeExtensionsTests
 {
-    [TestClass]
+
     public class DataRecordExtensionsTests
     {
         private const string DATARECORD_COLUMN_NAME = "x";
@@ -12,24 +13,24 @@ namespace Net.Code.ADONet.Tests.Unit.TypeExtensionsTests
         private const int DATARECORD_VALUE = 5;
 
 
-        [TestMethod]
+        [Fact]
         public void Get_ByName_ShouldNotThrow()
         {
             var dataRecord = CreateFakeDataRecord();
 
             var result = dataRecord.Get<int>(DATARECORD_COLUMN_NAME);
 
-            Assert.AreEqual(DATARECORD_VALUE, result);
+            Assert.Equal(DATARECORD_VALUE, result);
         }
 
-        [TestMethod]
+        [Fact]
         public void Get_ByIndex_ShouldNotThrow()
         {
             var dataRecord = CreateFakeDataRecord();
 
             var result = dataRecord.Get<int>(DATARECORD_COLUMN_INDEX);
 
-            Assert.AreEqual(DATARECORD_VALUE, result);
+            Assert.Equal(DATARECORD_VALUE, result);
         }
 
         private static IDataRecord CreateFakeDataRecord()

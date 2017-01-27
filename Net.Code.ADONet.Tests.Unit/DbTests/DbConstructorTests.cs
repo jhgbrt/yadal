@@ -2,14 +2,15 @@
 using System.Data;
 using System.Data.Common;
 using NSubstitute;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
+
 
 namespace Net.Code.ADONet.Tests.Unit.DbTests
 {
-    [TestClass]
+
     public class DbTests
     {
-        [TestMethod]
+        [Fact]
         public void Connect_WhenCalled_OpensConnection()
         {
             var connection = Substitute.For<IDbConnection>();
@@ -17,19 +18,19 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             db.Connect();
             connection.Received(1).Open();
         }
-        [TestMethod]
+        [Fact]
         public void ProviderName_WhenCalled_ReturnsProviderName()
         {
             var db = new Db(string.Empty, "System.Data.SqlClient");
-            Assert.AreEqual("System.Data.SqlClient", db.ProviderName);
+            Assert.Equal("System.Data.SqlClient", db.ProviderName);
         }
     }
 
-    [TestClass]
+
     public class DbConstructorTests
     {
 
-        [TestMethod]
+        [Fact]
         public void GivenDbWithExternalConnection_WhenDisposed_ConnectionIsNotDisposed()
         {
             var fakeConnection = Substitute.For<IDbConnection>();
@@ -41,7 +42,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             fakeConnection.DidNotReceive().Dispose();
         }
 
-        [TestMethod]
+        [Fact]
         public void GivenDbWithConnectionString_WhenDisposed_ConnectionIsDisposed()
         {
             var fakeConnection = Substitute.For<DbConnection>();
@@ -61,17 +62,17 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             fakeConnection.Received().Dispose();
         }
 
-        [TestMethod]
+        [Fact]
         public void FromConfig_ReturnsDbWithFirstConfigurationSetting()
         {
             var db = Db.FromConfig();
-            Assert.AreEqual(ConfigurationManager.ConnectionStrings["firstConnectionString"].ConnectionString, db.ConnectionString);
+            Assert.Equal(ConfigurationManager.ConnectionStrings["firstConnectionString"].ConnectionString, db.ConnectionString);
         }
-        [TestMethod]
+        [Fact]
         public void FromConfig_ReturnsDbWithNamedConfigurationSetting()
         {
             var db = Db.FromConfig("secondConnectionString");
-            Assert.AreEqual(ConfigurationManager.ConnectionStrings["secondConnectionString"].ConnectionString, db.ConnectionString);
+            Assert.Equal(ConfigurationManager.ConnectionStrings["secondConnectionString"].ConnectionString, db.ConnectionString);
         }
     }
 }
