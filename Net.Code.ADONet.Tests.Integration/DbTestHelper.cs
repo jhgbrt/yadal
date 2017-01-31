@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Net.Code.ADONet.Extensions.Experimental;
@@ -9,23 +7,19 @@ using Net.Code.ADONet.Extensions.SqlClient;
 
 namespace Net.Code.ADONet.Tests.Integration
 {
-    public class DbTest
+    public class DbTestHelper
     {
         private readonly IDatabaseImpl _target;
         private readonly IDb _db;
-        public DbTest(IDatabaseImpl target)
+        public DbTestHelper(IDatabaseImpl target)
         {
             _target = target;
-            _db = CreateDb();
+            _db = _target.CreateDb();
         }
-
-        public string ProviderName => _target.ProviderName;
-        public bool SupportsMultipleResultSets => _target.SupportsMultipleResultSets;
-        public bool SupportsTableValuedParameters => _target.SupportsTableValuedParameters;
 
         public void Initialize()
         {
-            Connect();
+            _db.Connect();
             _db.Sql(_target.CreatePersonTable).AsNonQuery();
             _db.Sql(_target.CreateAddressTable).AsNonQuery();
         }
@@ -45,24 +39,6 @@ namespace Net.Code.ADONet.Tests.Integration
         public void Update(IEnumerable<Person> items)
         {
             _db.Update(items);
-        }
-
-        static Dictionary<Type, Exception> _exceptions = new Dictionary<Type, Exception>();
-        internal void Connect()
-        {
-            if (!_exceptions.ContainsKey(_target.GetType()))
-            {
-                try
-                {
-                    _db.Connect();
-                }
-                catch (Exception e)
-                {
-                    _exceptions[_target.GetType()] = e;
-                }
-            }
-            if (_exceptions.ContainsKey(_target.GetType()))
-                throw _exceptions[_target.GetType()];
         }
 
         public async Task InsertAsync(IEnumerable<Person> items)
@@ -130,11 +106,6 @@ namespace Net.Code.ADONet.Tests.Integration
         {
             var result = _target.SelectPersonAndAddress(_db);
             return result;
-        }
-
-        private IDb CreateDb()
-        {
-            return _target.CreateDb();
         }
 
         public Person Get(int id)

@@ -1,14 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Linq;
-using System.Runtime.Serialization;
-using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
-using Xunit.Sdk;
 
 // ReSharper disable UnusedMember.Local
 // ReSharper disable InconsistentNaming
@@ -23,9 +17,10 @@ namespace Net.Code.ADONet.Tests.Integration
     [Collection("Database collection")]
     public abstract class DatabaseTest : IDisposable
     {
+        private readonly IDatabaseImpl _databaseImpl;
         private readonly AssemblyLevelInit _init;
         //private readonly BaseDb target;
-        private readonly DbTest test;
+        private readonly DbTestHelper _testHelper;
         private Person[] people;
         private Address[] addresses;
         private DbConfig config;
@@ -33,44 +28,44 @@ namespace Net.Code.ADONet.Tests.Integration
        
         protected DatabaseTest(IDatabaseImpl databaseImpl, AssemblyLevelInit init)
         {
+            _databaseImpl = databaseImpl;
             _init = init;
             var isAvailable = _init.IsAvailable(databaseImpl);
 
             Skip.IfNot(isAvailable);
 
-            test = new DbTest(databaseImpl);
-            config = DbConfig.FromProviderName(test.ProviderName);
+            _testHelper = new DbTestHelper(databaseImpl);
+            config = DbConfig.FromProviderName(databaseImpl.ProviderName);
 
-
-            test.Initialize();
+            _testHelper.Initialize();
             people = FakeData.People.List(10).ToArray();
             addresses = FakeData.Addresses.List(10);
-            test.Insert(people.Take(5), addresses);
-            test.InsertAsync(people.Skip(5)).Wait();
+            _testHelper.Insert(people.Take(5), addresses);
+            _testHelper.InsertAsync(people.Skip(5)).Wait();
         }
 
         public void Dispose()
         {
-            test.Cleanup();
+            _testHelper.Cleanup();
         }
 
         [Fact]
         public void UpdateAll()
         {
-            var people = test.GetAllPeopleGeneric();
+            var people = _testHelper.GetAllPeopleGeneric();
             foreach (var p in people)
             {
                 p.RequiredNumber = 9999;
             }
-            test.Update(people);
-            people = test.GetAllPeopleGeneric();
+            _testHelper.Update(people);
+            people = _testHelper.GetAllPeopleGeneric();
             Assert.True(people.All(p => p.RequiredNumber == 9999));
         }
 
         [Fact]
         public void CountIsExpected()
         {
-            var count = test.GetCountOfPeople();
+            var count = _testHelper.GetCountOfPeople();
             Assert.Equal(10, count);
 
         }
@@ -78,7 +73,7 @@ namespace Net.Code.ADONet.Tests.Integration
         [Fact]
         public async Task CountIsExpectedAsync()
         {
-            var count = await test.GetCountOfPeopleAsync();
+            var count = await _testHelper.GetCountOfPeopleAsync();
             Assert.Equal(10, count);
 
         }
@@ -86,28 +81,28 @@ namespace Net.Code.ADONet.Tests.Integration
         [Fact]
         public void GetAllPeopleGeneric()
         {
-            var result = test.GetAllPeopleGeneric();
+            var result = _testHelper.GetAllPeopleGeneric();
             Assert.Equal(people, result);
         }
 
         [Fact]
         public void GetAllPeopleAsDynamic()
         {
-            var result = test.GetAllPeopleAsDynamic();
+            var result = _testHelper.GetAllPeopleAsDynamic();
             Assert.Equal(people, result);
         }
 
         [Fact]
         public async Task GetAllPeopleAsDynamicAsync()
         {
-            var result = await test.GetAllPeopleAsDynamicAsync();
+            var result = await _testHelper.GetAllPeopleAsDynamicAsync();
             Assert.Equal(people, result);
         }
 
         [Fact]
         public void AsDataTable()
         {
-            var result = test.AsDataTable();
+            var result = _testHelper.AsDataTable();
             Assert.Equal(people.Select(p => p.Id).ToArray(), result.Rows.OfType<DataRow>().Select(dr => (int) dr["Id"]).ToArray());
             var columnName = config.MappingConvention.ToDb("OptionalNumber");
             Assert.Equal(people.Select(p => p.OptionalNumber).ToArray(), result.Rows.OfType<DataRow>().Select(dr => dr.Field<int?>(columnName)).ToArray());
@@ -116,9 +111,9 @@ namespace Net.Code.ADONet.Tests.Integration
         [Fact]
         public void MultiResultSet()
         {
-            if (test.SupportsMultipleResultSets)
+            if (_databaseImpl.SupportsMultipleResultSets)
             {
-                var result = test.AsMultiResultSet();
+                var result = _testHelper.AsMultiResultSet();
                 Assert.Equal(people, result.Set1.ToArray());
                 Assert.Equal(addresses, result.Set2.ToArray());
             }
@@ -127,7 +122,7 @@ namespace Net.Code.ADONet.Tests.Integration
         [Fact]
         public void GetSchemaTable()
         {
-            var dt = test.GetSchemaTable();
+            var dt = _testHelper.GetSchemaTable();
             foreach (DataColumn dc in dt.Columns)
             {
                 Console.WriteLine($"{dc.ColumnName} ({dc.DataType})");
@@ -138,18 +133,18 @@ namespace Net.Code.ADONet.Tests.Integration
         public void InsertAndGet()
         {
             var person = FakeData.People.One();
-            test.Insert(new[] { person }, Enumerable.Empty<Address>());
-            var result = test.Get(person.Id);
+            _testHelper.Insert(new[] { person }, Enumerable.Empty<Address>());
+            var result = _testHelper.Get(person.Id);
             Assert.Equal(person, result);
         }
 
         [Fact]
         public void GetByIdList()
         {
-            if (test.SupportsTableValuedParameters)
+            if (_databaseImpl.SupportsTableValuedParameters)
             {
-                var ids = test.GetSomeIds(3);
-                var result = test.GetPeopleById(ids);
+                var ids = _testHelper.GetSomeIds(3);
+                var result = _testHelper.GetPeopleById(ids);
                 Assert.Equal(ids, result.Select(p => p.Id).ToList());
             }
         }
@@ -157,7 +152,7 @@ namespace Net.Code.ADONet.Tests.Integration
         [Fact]
         public void BulkCopy()
         {
-            test.BulkInsert(FakeData.People.List(100));
+            _testHelper.BulkInsert(FakeData.People.List(100));
         }
 
         public class SqlServerTest : DatabaseTest

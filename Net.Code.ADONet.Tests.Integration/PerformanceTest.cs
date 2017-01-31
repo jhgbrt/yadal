@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using Net.Code.ADONet.Extensions.Experimental;
 using Xunit;
 
 namespace Net.Code.ADONet.Tests.Integration
@@ -10,37 +9,40 @@ namespace Net.Code.ADONet.Tests.Integration
     [Collection("Database collection")]
     public abstract class PerformanceTest : IDisposable
     {
+        private readonly AssemblyLevelInit _init;
+
         protected PerformanceTest(IDatabaseImpl databaseImpl, AssemblyLevelInit init)
         {
-            _test = new DbTest(databaseImpl);
+            _init = init;
+            _testHelper = new DbTestHelper(databaseImpl);
 
-            var isAvailable = init.IsAvailable(databaseImpl);
+            var isAvailable = _init.IsAvailable(databaseImpl);
             Skip.IfNot(isAvailable);
 
-            _test.Initialize();
-            _test.BulkInsert(FakeData.People.List(10000));
+            _testHelper.Initialize();
+            _testHelper.BulkInsert(FakeData.People.List(10000));
         }
 
-        private readonly DbTest _test;
+        private readonly DbTestHelper _testHelper;
 
 
         public void Dispose()
         {
-            _test.Cleanup();
+            _testHelper.Cleanup();
         }
 
 
         [Fact]
         public void WhenMappingWithCachedSetterMap_ThenMappingIsFaster()
         {
-            _test.GetAllPeopleGeneric();
-            _test.GetAllPeopleGenericLegacy();
+            _testHelper.GetAllPeopleGeneric();
+            _testHelper.GetAllPeopleGenericLegacy();
             
 
-            var fast = Measure(() => _test.GetAllPeopleGeneric());
+            var fast = Measure(() => _testHelper.GetAllPeopleGeneric());
             Trace.WriteLine(fast);
 
-            var slow = Measure(() => _test.GetAllPeopleGenericLegacy());
+            var slow = Measure(() => _testHelper.GetAllPeopleGenericLegacy());
             Trace.WriteLine(slow);
 
             Assert.True(slow > fast);
