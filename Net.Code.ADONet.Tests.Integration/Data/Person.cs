@@ -1,4 +1,4 @@
-namespace Net.Code.ADONet.Tests.Integration
+namespace Net.Code.ADONet.Tests.Integration.Data
 {
     public class Person
     {

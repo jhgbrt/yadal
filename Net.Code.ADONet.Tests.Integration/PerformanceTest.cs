@@ -1,6 +1,10 @@
 using System;
 using System.Diagnostics;
+using Net.Code.ADONet.Tests.Integration.Data;
+using Net.Code.ADONet.Tests.Integration.Databases;
+using Net.Code.ADONet.Tests.Integration.TestSupport;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Net.Code.ADONet.Tests.Integration
 {
@@ -9,14 +13,15 @@ namespace Net.Code.ADONet.Tests.Integration
     [Collection("Database collection")]
     public abstract class PerformanceTest : IDisposable
     {
-        private readonly AssemblyLevelInit _init;
-
-        protected PerformanceTest(IDatabaseImpl databaseImpl, AssemblyLevelInit init)
+        private ITestOutputHelper _output;
+        protected PerformanceTest(
+            IDatabaseImpl databaseImpl, 
+            AssemblyLevelInit init, ITestOutputHelper output)
         {
-            _init = init;
+            _output = output;
             _testHelper = new DbTestHelper(databaseImpl);
 
-            var isAvailable = _init.IsAvailable(databaseImpl);
+            var isAvailable = init.IsAvailable(databaseImpl);
             Skip.IfNot(isAvailable);
 
             _testHelper.Initialize();
@@ -32,7 +37,7 @@ namespace Net.Code.ADONet.Tests.Integration
         }
 
 
-        [Fact]
+        [SkippableFact]
         public void WhenMappingWithCachedSetterMap_ThenMappingIsFaster()
         {
             _testHelper.GetAllPeopleGeneric();
@@ -40,10 +45,10 @@ namespace Net.Code.ADONet.Tests.Integration
             
 
             var fast = Measure(() => _testHelper.GetAllPeopleGeneric());
-            Trace.WriteLine(fast);
+            _output.WriteLine(fast.ToString());
 
             var slow = Measure(() => _testHelper.GetAllPeopleGenericLegacy());
-            Trace.WriteLine(slow);
+            _output.WriteLine(slow.ToString());
 
             Assert.True(slow > fast);
         }
@@ -57,38 +62,38 @@ namespace Net.Code.ADONet.Tests.Integration
 
         public class SqlServerTest : PerformanceTest
         {
-            public SqlServerTest(AssemblyLevelInit init) : base(new SqlServer(), init)
+            public SqlServerTest(AssemblyLevelInit init, ITestOutputHelper output) : base(new SqlServer(), init, output)
             {
             }
         }
         public class OracleTest : PerformanceTest
         {
-            public OracleTest(AssemblyLevelInit init) : base(new Oracle(), init)
+            public OracleTest(AssemblyLevelInit init, ITestOutputHelper output) : base(new Databases.Oracle(), init, output)
             {
             }
         }
 
         public class SqlServerCeTest : PerformanceTest
         {
-            public SqlServerCeTest(AssemblyLevelInit init) : base(new SqlServerCe(), init)
+            public SqlServerCeTest(AssemblyLevelInit init, ITestOutputHelper output) : base(new SqlServerCe(), init, output)
             {
             }
         }
         public class SqLiteTest : PerformanceTest
         {
-            public SqLiteTest(AssemblyLevelInit init) : base(new SqLite(), init)
+            public SqLiteTest(AssemblyLevelInit init, ITestOutputHelper output) : base(new SqLite(), init, output)
             {
             }
         }
         public class MySqlTest : PerformanceTest
         {
-            public MySqlTest(AssemblyLevelInit init) : base(new MySql(), init)
+            public MySqlTest(AssemblyLevelInit init, ITestOutputHelper output) : base(new Databases.MySql(), init, output)
             {
             }
         }
         public class PostgreSqlTest : PerformanceTest
         {
-            public PostgreSqlTest(AssemblyLevelInit init) : base(new PostgreSql(), init)
+            public PostgreSqlTest(AssemblyLevelInit init, ITestOutputHelper output) : base(new PostgreSql(), init, output)
             {
             }
         }

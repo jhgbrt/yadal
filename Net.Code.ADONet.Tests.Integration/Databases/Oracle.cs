@@ -1,9 +1,10 @@
 using System;
 using System.Configuration;
 using System.Data;
+using Net.Code.ADONet.Tests.Integration.Data;
 using Oracle.ManagedDataAccess.Client;
 
-namespace Net.Code.ADONet.Tests.Integration
+namespace Net.Code.ADONet.Tests.Integration.Databases
 {
     public class Oracle : BaseDb
     {
@@ -70,7 +71,6 @@ namespace Net.Code.ADONet.Tests.Integration
 
         }
 
-        protected override Type ProviderType => typeof (OracleClientFactory);
         public override Person Project(dynamic d)
         {
             return new Person

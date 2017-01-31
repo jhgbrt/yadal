@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 
-namespace Net.Code.ADONet.Tests.Integration
+namespace Net.Code.ADONet.Tests.Integration.TestSupport
 {
     static class ExtensionsForLegacyComparison
     {

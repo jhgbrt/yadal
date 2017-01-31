@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data.SqlClient;
 using Net.Code.ADONet.Extensions.SqlClient;
+using Net.Code.ADONet.Tests.Integration.Data;
 
-namespace Net.Code.ADONet.Tests.Integration
+namespace Net.Code.ADONet.Tests.Integration.Databases
 {
     public class SqlServer : BaseDb
     {
@@ -37,8 +38,6 @@ namespace Net.Code.ADONet.Tests.Integration
             }
 
         }
-
-        protected override Type ProviderType => typeof (SqlClientFactory);
 
         public override bool SupportsTableValuedParameters => true;
 

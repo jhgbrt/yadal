@@ -21,4 +21,8 @@ and configured.
 
 * Oracle Express Edition (XE)
 * MySql
+  downloads: https://dev.mysql.com/downloads/mysql/
+  download the zip archive, not the installer
+  extract 
+
 * PostGreSQL

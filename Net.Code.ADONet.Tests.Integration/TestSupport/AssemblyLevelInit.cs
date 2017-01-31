@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Net.Code.ADONet.Tests.Integration.Databases;
 
-namespace Net.Code.ADONet.Tests.Integration
+namespace Net.Code.ADONet.Tests.Integration.TestSupport
 {
 
 

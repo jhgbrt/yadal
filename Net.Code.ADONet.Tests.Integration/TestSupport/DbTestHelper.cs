@@ -4,8 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Net.Code.ADONet.Extensions.Experimental;
 using Net.Code.ADONet.Extensions.SqlClient;
+using Net.Code.ADONet.Tests.Integration.Data;
+using Net.Code.ADONet.Tests.Integration.Databases;
 
-namespace Net.Code.ADONet.Tests.Integration
+namespace Net.Code.ADONet.Tests.Integration.TestSupport
 {
     public class DbTestHelper
     {
@@ -95,7 +97,7 @@ namespace Net.Code.ADONet.Tests.Integration
                 .ToList();
         }
 
-        public DataTable AsDataTable()
+        public DataTable PeopleAsDataTable()
         {
             return _db
                 .Sql(_target.Query<Person>().SelectAll)
@@ -144,6 +146,11 @@ namespace Net.Code.ADONet.Tests.Integration
         public void BulkInsert(IEnumerable<Person> list)
         {
             _target.BulkInsert(_db, list);
+        }
+
+        public string GetColumnName(string propertyName)
+        {
+            return ((Db)(_db)).Config.MappingConvention.ToDb(propertyName);
         }
     }
 }

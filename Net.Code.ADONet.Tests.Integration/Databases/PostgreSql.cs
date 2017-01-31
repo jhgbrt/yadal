@@ -2,7 +2,7 @@ using System;
 using System.Configuration;
 using MySql.Data.MySqlClient;
 
-namespace Net.Code.ADONet.Tests.Integration
+namespace Net.Code.ADONet.Tests.Integration.Databases
 {
     public class PostgreSql : BaseDb
     {
@@ -24,10 +24,5 @@ namespace Net.Code.ADONet.Tests.Integration
             }
 
         }
-
-        protected override Type ProviderType => typeof(MySqlClientFactory);
-
-        public override bool SupportsTableValuedParameters => false;
-
     }
 }

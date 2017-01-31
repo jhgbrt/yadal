@@ -85,22 +85,21 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AssemblyLevelInit.cs" />
-    <Compile Include="DatabaseImplementations\IDatabaseImpl.cs" />
-    <Compile Include="DatabaseImplementations\MySql.cs" />
-    <Compile Include="DatabaseImplementations\PostgreSql.cs" />
-    <Compile Include="DatabaseImplementations\Oracle.cs" />
-    <Compile Include="DatabaseImplementations\SqLite.cs" />
-    <Compile Include="DatabaseImplementations\SqlServer.cs" />
-    <Compile Include="DatabaseImplementations\SqlServerCe.cs" />
-    <Compile Include="DbTestHelper.cs" />
-    <Compile Include="ExtensionsForLegacyComparison.cs" />
-    <Compile Include="FactAttribute.cs" />
-    <Compile Include="FakeData.cs" />
+    <Compile Include="TestSupport\ExtensionsForLegacyComparison.cs" />
+    <Compile Include="TestSupport\AssemblyLevelInit.cs" />
+    <Compile Include="Databases\IDatabaseImpl.cs" />
+    <Compile Include="Databases\MySql.cs" />
+    <Compile Include="Databases\PostgreSql.cs" />
+    <Compile Include="Databases\Oracle.cs" />
+    <Compile Include="Databases\SqLite.cs" />
+    <Compile Include="Databases\SqlServer.cs" />
+    <Compile Include="Databases\SqlServerCe.cs" />
+    <Compile Include="TestSupport\DbTestHelper.cs" />
+    <Compile Include="Data\FakeData.cs" />
     <Compile Include="DatabaseTest.cs" />
     <Compile Include="PerformanceTest.cs" />
-    <Compile Include="Person.cs" />
-    <Compile Include="DatabaseImplementations\BaseDb.cs" />
+    <Compile Include="Data\Person.cs" />
+    <Compile Include="Databases\BaseDb.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

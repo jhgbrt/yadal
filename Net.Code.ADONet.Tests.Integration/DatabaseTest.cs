@@ -2,6 +2,9 @@
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
+using Net.Code.ADONet.Tests.Integration.Data;
+using Net.Code.ADONet.Tests.Integration.Databases;
+using Net.Code.ADONet.Tests.Integration.TestSupport;
 using Xunit;
 
 // ReSharper disable UnusedMember.Local
@@ -9,7 +12,7 @@ using Xunit;
 namespace Net.Code.ADONet.Tests.Integration
 {
     [CollectionDefinition("Database collection")]
-    public class DatabaseCollection 
+    public class DatabaseCollection
         : ICollectionFixture<AssemblyLevelInit>
     {
     }
@@ -18,30 +21,27 @@ namespace Net.Code.ADONet.Tests.Integration
     public abstract class DatabaseTest : IDisposable
     {
         private readonly IDatabaseImpl _databaseImpl;
-        private readonly AssemblyLevelInit _init;
-        //private readonly BaseDb target;
         private readonly DbTestHelper _testHelper;
-        private Person[] people;
-        private Address[] addresses;
-        private DbConfig config;
+        private readonly Person[] _people;
+        private readonly Address[] _addresses;
+        private readonly DbConfig _config;
 
-       
+
         protected DatabaseTest(IDatabaseImpl databaseImpl, AssemblyLevelInit init)
         {
             _databaseImpl = databaseImpl;
-            _init = init;
-            var isAvailable = _init.IsAvailable(databaseImpl);
+            var isAvailable = init.IsAvailable(databaseImpl);
 
             Skip.IfNot(isAvailable);
 
             _testHelper = new DbTestHelper(databaseImpl);
-            config = DbConfig.FromProviderName(databaseImpl.ProviderName);
+            _config = DbConfig.FromProviderName(databaseImpl.ProviderName);
 
             _testHelper.Initialize();
-            people = FakeData.People.List(10).ToArray();
-            addresses = FakeData.Addresses.List(10);
-            _testHelper.Insert(people.Take(5), addresses);
-            _testHelper.InsertAsync(people.Skip(5)).Wait();
+            _people = FakeData.People.List(10).ToArray();
+            _addresses = FakeData.Addresses.List(10);
+            _testHelper.Insert(_people.Take(5), _addresses);
+            _testHelper.InsertAsync(_people.Skip(5)).Wait();
         }
 
         public void Dispose()
@@ -49,7 +49,7 @@ namespace Net.Code.ADONet.Tests.Integration
             _testHelper.Cleanup();
         }
 
-        [Fact]
+        [SkippableFact]
         public void UpdateAll()
         {
             var people = _testHelper.GetAllPeopleGeneric();
@@ -62,7 +62,7 @@ namespace Net.Code.ADONet.Tests.Integration
             Assert.True(people.All(p => p.RequiredNumber == 9999));
         }
 
-        [Fact]
+        [SkippableFact]
         public void CountIsExpected()
         {
             var count = _testHelper.GetCountOfPeople();
@@ -70,56 +70,54 @@ namespace Net.Code.ADONet.Tests.Integration
 
         }
 
-        [Fact]
+        [SkippableFact]
         public async Task CountIsExpectedAsync()
         {
             var count = await _testHelper.GetCountOfPeopleAsync();
             Assert.Equal(10, count);
-
         }
 
-        [Fact]
+        [SkippableFact]
         public void GetAllPeopleGeneric()
         {
             var result = _testHelper.GetAllPeopleGeneric();
-            Assert.Equal(people, result);
+            Assert.Equal(_people, result);
         }
 
-        [Fact]
+        [SkippableFact]
         public void GetAllPeopleAsDynamic()
         {
             var result = _testHelper.GetAllPeopleAsDynamic();
-            Assert.Equal(people, result);
+            Assert.Equal(_people, result);
         }
 
-        [Fact]
+        [SkippableFact]
         public async Task GetAllPeopleAsDynamicAsync()
         {
             var result = await _testHelper.GetAllPeopleAsDynamicAsync();
-            Assert.Equal(people, result);
+            Assert.Equal(_people, result);
         }
 
-        [Fact]
+        [SkippableFact]
         public void AsDataTable()
         {
-            var result = _testHelper.AsDataTable();
-            Assert.Equal(people.Select(p => p.Id).ToArray(), result.Rows.OfType<DataRow>().Select(dr => (int) dr["Id"]).ToArray());
-            var columnName = config.MappingConvention.ToDb("OptionalNumber");
-            Assert.Equal(people.Select(p => p.OptionalNumber).ToArray(), result.Rows.OfType<DataRow>().Select(dr => dr.Field<int?>(columnName)).ToArray());
+            var result = _testHelper.PeopleAsDataTable();
+            Assert.Equal(_people.Select(p => p.Id).ToArray(), result.Rows.OfType<DataRow>().Select(dr => (int)dr["Id"]).ToArray());
+            var columnName = _testHelper.GetColumnName(nameof(Person.OptionalNumber));
+            Assert.Equal(_people.Select(p => p.OptionalNumber).ToArray(), result.Rows.OfType<DataRow>().Select(dr => dr.Field<int?>(columnName)).ToArray());
         }
 
-        [Fact]
+        [SkippableFact]
         public void MultiResultSet()
         {
-            if (_databaseImpl.SupportsMultipleResultSets)
-            {
-                var result = _testHelper.AsMultiResultSet();
-                Assert.Equal(people, result.Set1.ToArray());
-                Assert.Equal(addresses, result.Set2.ToArray());
-            }
+            if (!_databaseImpl.SupportsMultipleResultSets)
+                throw new SkipException($"{_databaseImpl.GetType().Name} does not support multiple result sets");
+            var result = _testHelper.AsMultiResultSet();
+            Assert.Equal(_people, result.Set1.ToArray());
+            Assert.Equal(_addresses, result.Set2.ToArray());
         }
 
-        [Fact]
+        [SkippableFact]
         public void GetSchemaTable()
         {
             var dt = _testHelper.GetSchemaTable();
@@ -129,7 +127,7 @@ namespace Net.Code.ADONet.Tests.Integration
             }
         }
 
-        [Fact]
+        [SkippableFact]
         public void InsertAndGet()
         {
             var person = FakeData.People.One();
@@ -138,18 +136,17 @@ namespace Net.Code.ADONet.Tests.Integration
             Assert.Equal(person, result);
         }
 
-        [Fact]
+        [SkippableFact]
         public void GetByIdList()
         {
-            if (_databaseImpl.SupportsTableValuedParameters)
-            {
-                var ids = _testHelper.GetSomeIds(3);
-                var result = _testHelper.GetPeopleById(ids);
-                Assert.Equal(ids, result.Select(p => p.Id).ToList());
-            }
+            if (!_databaseImpl.SupportsTableValuedParameters)
+                throw new SkipException($"{_databaseImpl.GetType().Name} does not support table valued parameters");
+            var ids = _testHelper.GetSomeIds(3);
+            var result = _testHelper.GetPeopleById(ids);
+            Assert.Equal(ids, result.Select(p => p.Id).ToList());
         }
 
-        [Fact]
+        [SkippableFact]
         public void BulkCopy()
         {
             _testHelper.BulkInsert(FakeData.People.List(100));
@@ -163,7 +160,7 @@ namespace Net.Code.ADONet.Tests.Integration
         }
         public class OracleTest : DatabaseTest
         {
-            public OracleTest(AssemblyLevelInit init) : base(new Oracle(), init)
+            public OracleTest(AssemblyLevelInit init) : base(new Databases.Oracle(), init)
             {
             }
         }
@@ -182,7 +179,7 @@ namespace Net.Code.ADONet.Tests.Integration
         }
         public class MySqlTest : DatabaseTest
         {
-            public MySqlTest(AssemblyLevelInit init) : base(new MySql(), init)
+            public MySqlTest(AssemblyLevelInit init) : base(new Databases.MySql(), init)
             {
             }
         }

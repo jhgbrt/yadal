@@ -1,10 +1,10 @@
-using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data.Common;
 using Net.Code.ADONet.Extensions.Experimental;
+using Net.Code.ADONet.Tests.Integration.Data;
 
-namespace Net.Code.ADONet.Tests.Integration
+namespace Net.Code.ADONet.Tests.Integration.Databases
 {
     public abstract class BaseDb : IDatabaseImpl
     {
@@ -42,7 +42,6 @@ namespace Net.Code.ADONet.Tests.Integration
         public string ProviderName => ConfigurationManager.ConnectionStrings[Name].ProviderName;
         public virtual bool SupportsTableValuedParameters => false;
         public abstract void DropAndRecreate();
-        protected abstract Type ProviderType { get; }
         public string ConnectionString => ConfigurationManager.ConnectionStrings[Name].ConnectionString;
         public IDb CreateDb() => new Db(ConnectionString, Config, Factory);
         public virtual Person Project(dynamic d) => new Person { Id = d.Id, Email = d.Email, Name = d.Name, OptionalNumber = d.OptionalNumber, RequiredNumber = d.RequiredNumber };

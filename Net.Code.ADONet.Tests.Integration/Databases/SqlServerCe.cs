@@ -3,7 +3,7 @@ using System.Configuration;
 using System.Data.SqlServerCe;
 using System.IO;
 
-namespace Net.Code.ADONet.Tests.Integration
+namespace Net.Code.ADONet.Tests.Integration.Databases
 {
     public class SqlServerCe : BaseDb
     {
@@ -20,7 +20,5 @@ namespace Net.Code.ADONet.Tests.Integration
             var en = new SqlCeEngine(masterConnectionString);
             en.CreateDatabase();
         }
-
-        protected override Type ProviderType => typeof (SqlCeProviderFactory);
     }
 }
