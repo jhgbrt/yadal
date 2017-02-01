@@ -17,9 +17,9 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
                 from t in Assembly.GetExecutingAssembly().GetTypes()
                 where typeof (IDatabaseImpl).IsAssignableFrom(t)
                       && !t.IsInterface && !t.IsAbstract
-                select Activator.CreateInstance(t);
+                select (IDatabaseImpl)Activator.CreateInstance(t);
 
-            var supportedDbs = q.OfType<IDatabaseImpl>().ToArray();
+            var supportedDbs = q.ToArray();
 
             foreach (var db in supportedDbs)
             {
