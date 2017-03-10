@@ -6,10 +6,11 @@ using Net.Code.ADONet.Tests.Integration.Data;
 using Net.Code.ADONet.Tests.Integration.Databases;
 using Net.Code.ADONet.Tests.Integration.TestSupport;
 using Xunit;
+using Net.Code.ADONet;
 
 // ReSharper disable UnusedMember.Local
 // ReSharper disable InconsistentNaming
-namespace Net.Code.ADONet.Tests.Integration
+namespace IntegrationTests
 {
     [CollectionDefinition("Database collection")]
     public class DatabaseCollection
@@ -154,45 +155,49 @@ namespace Net.Code.ADONet.Tests.Integration
 
         public class SqlServerTest : DatabaseTest
         {
-            public SqlServerTest(AssemblyLevelInit init) : base(new SqlServer(), init)
+            public SqlServerTest(AssemblyLevelInit init) : base(new SqlServerDb(), init)
             {
             }
         }
         public class OracleTest : DatabaseTest
         {
-            public OracleTest(AssemblyLevelInit init) : base(new Databases.Oracle(), init)
+            public OracleTest(AssemblyLevelInit init) : base(new OracleDb(), init)
             {
             }
         }
 
         public class SqlServerCeTest : DatabaseTest
         {
-            public SqlServerCeTest(AssemblyLevelInit init) : base(new SqlServerCe(), init)
+            public SqlServerCeTest(AssemblyLevelInit init) : base(new SqlServerCeDb(), init)
             {
             }
         }
         public class SqLiteTest : DatabaseTest
         {
-            public SqLiteTest(AssemblyLevelInit init) : base(new SqLite(), init)
+            public SqLiteTest(AssemblyLevelInit init) : base(new SqLiteDb(), init)
             {
             }
         }
         public class MySqlTest : DatabaseTest
         {
-            public MySqlTest(AssemblyLevelInit init) : base(new Databases.MySql(), init)
+            public MySqlTest(AssemblyLevelInit init) : base(new MySqlDb(), init)
             {
             }
         }
         public class PostgreSqlTest : DatabaseTest
         {
-            public PostgreSqlTest(AssemblyLevelInit init) : base(new PostgreSql(), init)
+            public PostgreSqlTest(AssemblyLevelInit init) : base(new PostgreSqlDb(), init)
             {
             }
         }
     }
 
 
-
+    public class Dummy
+    {
+        [Fact]
+        public void SomeFact() { }
+    }
 
 
 

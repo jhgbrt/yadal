@@ -31,7 +31,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
         protected string SelectPeople => Query<Person>().SelectAll;
         protected string SelectAddresses => Query<Address>().SelectAll;
         public virtual void BulkInsert(IDb db, IEnumerable<Person> list) => db.Insert(list);
-        protected string Name => GetType().Name;
+        protected string Name => GetType().Name.Replace("Db", "");
         protected string MasterName => $"{Name}Master";
         public virtual string CreatePersonTable => DefaultCreatePersonTable;
         public virtual string DropPersonTable => $"DROP TABLE {nameof(Person)}";

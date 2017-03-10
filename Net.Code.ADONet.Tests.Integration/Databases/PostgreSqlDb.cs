@@ -4,7 +4,7 @@ using MySql.Data.MySqlClient;
 
 namespace Net.Code.ADONet.Tests.Integration.Databases
 {
-    public class PostgreSql : BaseDb
+    public class PostgreSqlDb : BaseDb
     {
         public override void DropAndRecreate()
         {

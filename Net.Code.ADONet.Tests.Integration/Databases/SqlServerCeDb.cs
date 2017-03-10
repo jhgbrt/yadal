@@ -5,7 +5,7 @@ using System.IO;
 
 namespace Net.Code.ADONet.Tests.Integration.Databases
 {
-    public class SqlServerCe : BaseDb
+    public class SqlServerCeDb : BaseDb
     {
         public override bool SupportsMultipleResultSets => false;
         public override void DropAndRecreate()

@@ -7,7 +7,7 @@ using Net.Code.ADONet.Tests.Integration.Data;
 
 namespace Net.Code.ADONet.Tests.Integration.Databases
 {
-    public class SqlServer : BaseDb
+    public class SqlServerDb : BaseDb
     {
 
         public override void DropAndRecreate()

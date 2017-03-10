@@ -4,7 +4,7 @@ using MySql.Data.MySqlClient;
 
 namespace Net.Code.ADONet.Tests.Integration.Databases
 {
-    public class MySql : BaseDb
+    public class MySqlDb : BaseDb
     {
         public override void DropAndRecreate()
         {

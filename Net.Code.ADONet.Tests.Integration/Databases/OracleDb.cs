@@ -6,7 +6,7 @@ using Oracle.ManagedDataAccess.Client;
 
 namespace Net.Code.ADONet.Tests.Integration.Databases
 {
-    public class Oracle : BaseDb
+    public class OracleDb : BaseDb
     {
         public override string CreatePersonTable => "CREATE TABLE PERSON (" +
                                                     "    ID NUMBER(8,0) NOT NULL" +
