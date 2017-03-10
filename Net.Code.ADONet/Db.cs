@@ -7,12 +7,6 @@ using System.Configuration;
 
 namespace Net.Code.ADONet
 {
-    static class DbFactory
-    {
-        
-    }
-
-
     /// <summary>
     /// <para> Yet Another Data Access Layer</para>
     /// <para>usage: </para>

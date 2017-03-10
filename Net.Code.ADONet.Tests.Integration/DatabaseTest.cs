@@ -191,14 +191,4 @@ namespace IntegrationTests
             }
         }
     }
-
-
-    public class Dummy
-    {
-        [Fact]
-        public void SomeFact() { }
-    }
-
-
-
 }

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Net.Code.ADONet
@@ -46,7 +45,7 @@ namespace Net.Code.ADONet
         public CommandBuilder WithParameters<T>(T parameters)
         {
             var getters = FastReflection.Instance.GetGettersForType<T>();
-            var props = parameters.GetType().GetTypeInfo().GetProperties();
+            var props = parameters.GetType().GetProperties();
             foreach (var item in props)
             {
                 WithParameter(item.Name, getters[item.Name](parameters));
@@ -147,10 +146,9 @@ namespace Net.Code.ADONet
         {
             using (var reader = Execute.Reader())
             {
-                bool more;
                 return MultiResultSet.Create(
-                    reader.GetResultSet<T1>(_config, out more),
-                    reader.GetResultSet<T2>(_config, out more)
+                    reader.GetResultSet<T1>(_config, out _),
+                    reader.GetResultSet<T2>(_config, out _)
                     );
             }
         }
@@ -161,11 +159,10 @@ namespace Net.Code.ADONet
         {
             using (var reader = Execute.Reader())
             {
-                bool more;
                 return MultiResultSet.Create(
-                    reader.GetResultSet<T1>(_config, out more),
-                    reader.GetResultSet<T2>(_config, out more),
-                    reader.GetResultSet<T3>(_config, out more)
+                    reader.GetResultSet<T1>(_config, out _),
+                    reader.GetResultSet<T2>(_config, out _),
+                    reader.GetResultSet<T3>(_config, out _)
                     );
             }
         }
@@ -176,12 +173,11 @@ namespace Net.Code.ADONet
         {
             using (var reader = Execute.Reader())
             {
-                bool more;
                 return MultiResultSet.Create(
-                    reader.GetResultSet<T1>(_config, out more),
-                    reader.GetResultSet<T2>(_config, out more),
-                    reader.GetResultSet<T3>(_config, out more),
-                    reader.GetResultSet<T4>(_config, out more)
+                    reader.GetResultSet<T1>(_config, out _),
+                    reader.GetResultSet<T2>(_config, out _),
+                    reader.GetResultSet<T3>(_config, out _),
+                    reader.GetResultSet<T4>(_config, out _)
                     );
             }
         }
@@ -192,13 +188,12 @@ namespace Net.Code.ADONet
         {
             using (var reader = Execute.Reader())
             {
-                bool more;
                 return MultiResultSet.Create(
-                    reader.GetResultSet<T1>(_config, out more),
-                    reader.GetResultSet<T2>(_config, out more),
-                    reader.GetResultSet<T3>(_config, out more),
-                    reader.GetResultSet<T4>(_config, out more),
-                    reader.GetResultSet<T5>(_config, out more)
+                    reader.GetResultSet<T1>(_config, out _),
+                    reader.GetResultSet<T2>(_config, out _),
+                    reader.GetResultSet<T3>(_config, out _),
+                    reader.GetResultSet<T4>(_config, out _),
+                    reader.GetResultSet<T5>(_config, out _)
                     );
             }
         }

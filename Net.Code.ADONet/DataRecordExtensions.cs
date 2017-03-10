@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 
@@ -29,8 +28,7 @@ namespace Net.Code.ADONet
             for (var i = 0; i < reader.FieldCount; i++)
             {
                 var columnName = convention.FromDb(reader.GetName(i));
-                Action<T, object> setter;
-                if (setters.TryGetValue(columnName, out setter))
+                if (setters.TryGetValue(columnName, out var setter))
                 {
                     map.Add(new Setter<T>(i, setter));
                 }

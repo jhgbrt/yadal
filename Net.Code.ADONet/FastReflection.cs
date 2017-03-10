@@ -9,13 +9,13 @@ namespace Net.Code.ADONet
     public class FastReflection
     {
         private FastReflection() { }
-        private static TypeInfo TypeInfo = typeof(FastReflection).GetTypeInfo();
+        private static Type Type = typeof(FastReflection);
         public static FastReflection Instance = new FastReflection();
         public IReadOnlyDictionary<string, Action<T, object>> GetSettersForType<T>()
         {
             var setters = _setters.GetOrAdd(
                 new { Type = typeof(T) },
-                d => ((Type)d.Type).GetTypeInfo().GetProperties().ToDictionary(p => p.Name, GetSetDelegate<T>)
+                d => ((Type)d.Type).GetProperties().ToDictionary(p => p.Name, GetSetDelegate<T>)
                 );
             return (IReadOnlyDictionary<string, Action<T, object>>)setters;
         }
@@ -23,7 +23,7 @@ namespace Net.Code.ADONet
         static Action<T, object> GetSetDelegate<T>(PropertyInfo p)
         {
             var method = p.GetSetMethod();
-            var genericHelper = TypeInfo.GetMethod(nameof(CreateSetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
+            var genericHelper = Type.GetMethod(nameof(CreateSetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
             var constructedHelper = genericHelper.MakeGenericMethod(typeof(T), method.GetParameters()[0].ParameterType);
             return (Action<T, object>)constructedHelper.Invoke(null, new object[] { method });
         }
@@ -41,7 +41,7 @@ namespace Net.Code.ADONet
         {
             var setters = _getters.GetOrAdd(
                 new { Type = typeof(T) },
-                d => ((Type)d.Type).GetTypeInfo().GetProperties().ToDictionary(p => p.Name, GetGetDelegate<T>)
+                d => ((Type)d.Type).GetProperties().ToDictionary(p => p.Name, GetGetDelegate<T>)
                 );
             return (IReadOnlyDictionary<string, Func<T, object>>)setters;
         }
@@ -49,7 +49,7 @@ namespace Net.Code.ADONet
         static Func<T, object> GetGetDelegate<T>(PropertyInfo p)
         {
             var method = p.GetGetMethod();
-            var genericHelper = TypeInfo.GetMethod(nameof(CreateGetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
+            var genericHelper = Type.GetMethod(nameof(CreateGetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
             var constructedHelper = genericHelper.MakeGenericMethod(typeof(T), method.ReturnType);
             return (Func<T, object>)constructedHelper.Invoke(null, new object[] { method });
         }

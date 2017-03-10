@@ -19,9 +19,8 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
             var result = Activator.CreateInstance<T>();
             for (var i = 0; i < record.FieldCount; i++)
             {
-                Action<T, object> setter;
                 var columnName = convention.FromDb(record.GetName(i));
-                if (!setters.TryGetValue(columnName, out setter))
+                if (!setters.TryGetValue(columnName, out var setter))
                     continue;
                 var val = DBNullHelper.FromDb(record.GetValue(i));
                 setter(result, val);

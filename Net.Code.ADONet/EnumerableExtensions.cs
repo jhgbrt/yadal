@@ -29,7 +29,7 @@ namespace Net.Code.ADONet
 
             static EnumerableDataReaderImpl()
             {
-                var propertyInfos = typeof (T).GetTypeInfo().GetProperties();
+                var propertyInfos = typeof (T).GetProperties();
                 Properties = propertyInfos.ToArray();
                 Getters = FastReflection.Instance.GetGettersForType<T>();
                 PropertyIndexesByName = Properties.Select((p, i) => new {p, i}).ToDictionary(x => x.p.Name, x => x.i);
