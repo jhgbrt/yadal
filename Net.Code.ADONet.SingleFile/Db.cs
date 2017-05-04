@@ -3,18 +3,14 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
+using System.Reflection;
 using System.Collections.ObjectModel;
-using System.Collections.Concurrent;
-#if !NETSTANDARD1_6
 using System.Configuration;
-#endif
-using System.ComponentModel;
 using System.Dynamic;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.ComponentModel.DataAnnotations;
@@ -60,7 +56,7 @@ namespace Net.Code.ADONet
         public CommandBuilder WithParameters<T>(T parameters)
         {
             var getters = FastReflection.Instance.GetGettersForType<T>();
-            var props = parameters.GetType().GetTypeInfo().GetProperties();
+            var props = parameters.GetType().GetProperties();
             foreach (var item in props)
             {
                 WithParameter(item.Name, getters[item.Name](parameters));
@@ -162,8 +158,7 @@ namespace Net.Code.ADONet
         {
             using (var reader = Execute.Reader())
             {
-                bool more;
-                return MultiResultSet.Create(reader.GetResultSet<T1>(_config, out more), reader.GetResultSet<T2>(_config, out more));
+                return MultiResultSet.Create(reader.GetResultSet<T1>(_config, out _), reader.GetResultSet<T2>(_config, out _));
             }
         }
 
@@ -174,8 +169,7 @@ namespace Net.Code.ADONet
         {
             using (var reader = Execute.Reader())
             {
-                bool more;
-                return MultiResultSet.Create(reader.GetResultSet<T1>(_config, out more), reader.GetResultSet<T2>(_config, out more), reader.GetResultSet<T3>(_config, out more));
+                return MultiResultSet.Create(reader.GetResultSet<T1>(_config, out _), reader.GetResultSet<T2>(_config, out _), reader.GetResultSet<T3>(_config, out _));
             }
         }
 
@@ -186,8 +180,7 @@ namespace Net.Code.ADONet
         {
             using (var reader = Execute.Reader())
             {
-                bool more;
-                return MultiResultSet.Create(reader.GetResultSet<T1>(_config, out more), reader.GetResultSet<T2>(_config, out more), reader.GetResultSet<T3>(_config, out more), reader.GetResultSet<T4>(_config, out more));
+                return MultiResultSet.Create(reader.GetResultSet<T1>(_config, out _), reader.GetResultSet<T2>(_config, out _), reader.GetResultSet<T3>(_config, out _), reader.GetResultSet<T4>(_config, out _));
             }
         }
 
@@ -198,8 +191,7 @@ namespace Net.Code.ADONet
         {
             using (var reader = Execute.Reader())
             {
-                bool more;
-                return MultiResultSet.Create(reader.GetResultSet<T1>(_config, out more), reader.GetResultSet<T2>(_config, out more), reader.GetResultSet<T3>(_config, out more), reader.GetResultSet<T4>(_config, out more), reader.GetResultSet<T5>(_config, out more));
+                return MultiResultSet.Create(reader.GetResultSet<T1>(_config, out _), reader.GetResultSet<T2>(_config, out _), reader.GetResultSet<T3>(_config, out _), reader.GetResultSet<T4>(_config, out _), reader.GetResultSet<T5>(_config, out _));
             }
         }
 
@@ -362,10 +354,10 @@ namespace Net.Code.ADONet
         static ConvertTo()
         {
             // Sets the From delegate, depending on whether T is a reference type, a nullable value type or a value type.
-            From = CreateConvertFunction(typeof (T).GetTypeInfo());
+            From = CreateConvertFunction(typeof (T));
         }
 
-        private static Func<object, T> CreateConvertFunction(TypeInfo type)
+        private static Func<object, T> CreateConvertFunction(Type type)
         {
             if (!type.IsValueType)
             {
@@ -378,7 +370,7 @@ namespace Net.Code.ADONet
             }
 
             var delegateType = typeof (Func<object, T>);
-            var methodInfo = typeof (ConvertTo<T>).GetTypeInfo().GetMethod("ConvertNullableValueType", BindingFlags.NonPublic | BindingFlags.Static);
+            var methodInfo = typeof (ConvertTo<T>).GetMethod("ConvertNullableValueType", BindingFlags.NonPublic | BindingFlags.Static);
             var genericMethodForElement = methodInfo.MakeGenericMethod(type.GetGenericArguments()[0]);
             return (Func<object, T>)genericMethodForElement.CreateDelegate(delegateType);
         }
@@ -497,8 +489,7 @@ namespace Net.Code.ADONet
             for (var i = 0; i < reader.FieldCount; i++)
             {
                 var columnName = convention.FromDb(reader.GetName(i));
-                Action<T, object> setter;
-                if (setters.TryGetValue(columnName, out setter))
+                if (setters.TryGetValue(columnName, out var setter))
                 {
                     map.Add(new Setter<T>(i, setter));
                 }
@@ -551,10 +542,6 @@ namespace Net.Code.ADONet
         /// Also handles conversion from DbNull to null, including nullable types.
         /// </summary>
         public static TResult Get<TResult>(this IDataRecord reader, int c) => ConvertTo<TResult>.From(reader[c]);
-    }
-
-    static class DbFactory
-    {
     }
 
     /// <summary>
@@ -739,9 +726,12 @@ namespace Net.Code.ADONet
 
     public static class DBNullHelper
     {
-        public static Type GetUnderlyingType(this Type type) => type.GetTypeInfo().IsNullableType() ? Nullable.GetUnderlyingType(type) : type;
-        public static bool IsNullableType(this Type type) => type.GetTypeInfo().IsNullableType();
-        public static bool IsNullableType(this TypeInfo type) => (type.IsGenericType && !type.IsGenericTypeDefinition) && (typeof (Nullable<>) == type.GetGenericTypeDefinition());
+        public static Type GetUnderlyingType(this Type type) => type.IsNullableType() ? Nullable.GetUnderlyingType(type) : type;
+        public static bool IsNullableType(this Type type)
+        {
+            return type.IsGenericType && !type.IsGenericTypeDefinition && typeof (Nullable<>) == type.GetGenericTypeDefinition();
+        }
+
         public static bool IsNull(object o) => o == null || DBNull.Value.Equals(o);
         public static object FromDb(object o) => IsNull(o) ? null : o;
         public static object ToDb(object o) => IsNull(o) ? DBNull.Value : o;
@@ -807,7 +797,7 @@ namespace Net.Code.ADONet
             // ReSharper restore StaticFieldInGenericType
             static EnumerableDataReaderImpl()
             {
-                var propertyInfos = typeof (T).GetTypeInfo().GetProperties();
+                var propertyInfos = typeof (T).GetProperties();
                 Properties = propertyInfos.ToArray();
                 Getters = FastReflection.Instance.GetGettersForType<T>();
                 PropertyIndexesByName = Properties.Select((p, i) => new
@@ -913,7 +903,7 @@ namespace Net.Code.ADONet
         {
         }
 
-        private static TypeInfo TypeInfo = typeof (FastReflection).GetTypeInfo();
+        private static Type Type = typeof (FastReflection);
         public static FastReflection Instance = new FastReflection();
         public IReadOnlyDictionary<string, Action<T, object>> GetSettersForType<T>()
         {
@@ -921,7 +911,7 @@ namespace Net.Code.ADONet
             {
             Type = typeof (T)}
 
-            , d => ((Type)d.Type).GetTypeInfo().GetProperties().ToDictionary(p => p.Name, GetSetDelegate<T>));
+            , d => ((Type)d.Type).GetProperties().ToDictionary(p => p.Name, GetSetDelegate<T>));
             return (IReadOnlyDictionary<string, Action<T, object>>)setters;
         }
 
@@ -929,7 +919,7 @@ namespace Net.Code.ADONet
         static Action<T, object> GetSetDelegate<T>(PropertyInfo p)
         {
             var method = p.GetSetMethod();
-            var genericHelper = TypeInfo.GetMethod(nameof(CreateSetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
+            var genericHelper = Type.GetMethod(nameof(CreateSetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
             var constructedHelper = genericHelper.MakeGenericMethod(typeof (T), method.GetParameters()[0].ParameterType);
             return (Action<T, object>)constructedHelper.Invoke(null, new object[]{method});
         }
@@ -949,7 +939,7 @@ namespace Net.Code.ADONet
             {
             Type = typeof (T)}
 
-            , d => ((Type)d.Type).GetTypeInfo().GetProperties().ToDictionary(p => p.Name, GetGetDelegate<T>));
+            , d => ((Type)d.Type).GetProperties().ToDictionary(p => p.Name, GetGetDelegate<T>));
             return (IReadOnlyDictionary<string, Func<T, object>>)setters;
         }
 
@@ -957,7 +947,7 @@ namespace Net.Code.ADONet
         static Func<T, object> GetGetDelegate<T>(PropertyInfo p)
         {
             var method = p.GetGetMethod();
-            var genericHelper = TypeInfo.GetMethod(nameof(CreateGetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
+            var genericHelper = Type.GetMethod(nameof(CreateGetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
             var constructedHelper = genericHelper.MakeGenericMethod(typeof (T), method.ReturnType);
             return (Func<T, object>)constructedHelper.Invoke(null, new object[]{method});
         }
@@ -1405,7 +1395,7 @@ namespace Net.Code.ADONet.Extensions.Experimental
         internal static IQuery Create(IMappingConvention convention) => new Query<T>(convention);
         static Query()
         {
-            Properties = typeof (T).GetTypeInfo().GetProperties();
+            Properties = typeof (T).GetProperties();
             KeyProperties = Properties.Where(p => p.CustomAttributes.Any(a => a.AttributeType == typeof (KeyAttribute))).ToArray();
             if (!KeyProperties.Any())
                 KeyProperties = Properties.Where(p => p.Name.Equals("Id", StringComparison.OrdinalIgnoreCase)).ToArray();
@@ -1503,14 +1493,14 @@ namespace Net.Code.ADONet.Extensions.SqlClient
         /// <param name = "items"></param>
         public static void BulkCopy<T>(this IDb db, IEnumerable<T> items)
         {
-            // NOTE this snipped also works in NETSTANDARD if you take System.Data.SqlClient as a dependency
+            // NOTE this snippet also works in NETSTANDARD if you take System.Data.SqlClient as a dependency
             using (var bcp = new SqlBulkCopy(db.ConnectionString))
             {
                 bcp.DestinationTableName = typeof (T).Name;
                 // by default, SqlBulkCopy assumes columns in the database 
                 // are in same order as the columns of the source data reader
                 // => add explicit column mappings by name
-                foreach (var p in typeof (T).GetTypeInfo().GetProperties())
+                foreach (var p in typeof (T).GetProperties())
                 {
                     bcp.ColumnMappings.Add(p.Name, p.Name);
                 }

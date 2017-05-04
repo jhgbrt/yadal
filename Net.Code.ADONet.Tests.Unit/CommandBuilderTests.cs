@@ -19,7 +19,7 @@ namespace Net.Code.ADONet.Tests.Unit
             var sb = new StringBuilder();
             Logger.Log = s => sb.AppendLine(s);
             var command = PrepareCommand();
-
+            
             new CommandBuilder(command, DbConfig.Default)
                 .WithCommandText("commandtext")
                 .WithParameter("name", "value");
