@@ -1,81 +1,29 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{F0B49F95-0B64-4FCE-AE4D-D9CE2A48A4F1}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Net.Code.ADONet</RootNamespace>
-    <AssemblyName>Net.Code.ADONet</AssemblyName>
-    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
-    <NuGetPackageImportStamp>e1cc885d</NuGetPackageImportStamp>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
+    <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
+    <SignAssembly>False</SignAssembly>
+    <Title>Net.Code.ADONet</Title>
+    <Version>3.0.0</Version>
+    <Copyright>Copyright Jeroen Haegebaert</Copyright>
+    <Description>ADO.Net helper library. Provides a fluent interface to throw some SQL or DDL at your database.</Description>
+    <Authors>Jeroen Haegebaert</Authors>
+    <Company></Company>
+    <PackageLicenseUrl>https://github.com/jhgbrt/yadal/blob/master/LICENSE.txt</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/jhgbrt/yadal/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/jhgbrt/yadal</RepositoryUrl>
+    <PackageTags>ado.net</PackageTags>
+    <PackageReleaseNotes></PackageReleaseNotes>
+    <AssemblyVersion>3.0.0</AssemblyVersion>
+    <FileVersion>3.0.0</FileVersion>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.ComponentModel.DataAnnotations" />
-    <Reference Include="System.Configuration" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
+    <PackageReference Include="Microsoft.CSharp" Version="4.5.0" />
+    <PackageReference Include="System.ComponentModel.Annotations" Version="4.5.0" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.5.0" />
+    <PackageReference Include="System.Data.Common" Version="4.3.0" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.5.1" />
+    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="CommandBuilder.cs" />
-    <Compile Include="Extensions\ExtensionsForDataSetRelatedStuff.cs" />
-    <Compile Include="ConvertTo.cs" />
-    <Compile Include="DataReaderExtensions.cs" />
-    <Compile Include="DataRecordExtensions.cs" />
-    <Compile Include="Db.cs" />
-    <Compile Include="DbProviderFactoryEx.cs" />
-    <Compile Include="Extensions\Experimental\DbExtensions.cs" />
-    <Compile Include="Extensions\Experimental\IQuery.cs" />
-    <Compile Include="MultiResultSet.cs" />
-    <Compile Include="FastReflection.cs" />
-    <Compile Include="Extensions\SqlClient\Extensions.cs" />
-    <Compile Include="DbConfig.cs" />
-    <Compile Include="DBNullHelper.cs" />
-    <Compile Include="Dynamic.cs" />
-    <Compile Include="EnumerableExtensions.cs" />
-    <Compile Include="IDb.cs" />
-    <Compile Include="Logger.cs" />
-    <Compile Include="MappingConvention.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Extensions\Experimental\Query.cs" />
-    <Compile Include="StringExtensions.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Net.Code.ADONet.nuspec" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
 </Project>

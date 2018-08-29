@@ -5,7 +5,6 @@ using Net.Code.ADONet.Tests.Integration.Databases;
 using Net.Code.ADONet.Tests.Integration.TestSupport;
 using Xunit;
 using Xunit.Abstractions;
-using Oracle = Net.Code.ADONet.Tests.Integration.Databases.OracleDb;
 
 namespace IntegrationTests
 {
@@ -27,7 +26,7 @@ namespace IntegrationTests
 
 
             _testHelper.Initialize();
-            _testHelper.BulkInsert(FakeData.People.List(10000));
+            _testHelper.BulkInsert(FakeData.People.List(1000));
         }
 
         private readonly DbTestHelper _testHelper;
@@ -52,7 +51,7 @@ namespace IntegrationTests
             var slow = Measure(() => _testHelper.GetAllPeopleGenericLegacy());
             _output.WriteLine(slow.ToString());
 
-            Assert.True(slow > fast);
+            Assert.True(slow > fast, $"Mapping using cached setters is slower! (old method: {slow}, new method: {fast})");
         }
 
         private static TimeSpan Measure(Action action)

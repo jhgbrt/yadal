@@ -8,7 +8,6 @@ namespace Net.Code.ADONet
 {
     public static class ExtensionsForDataSetRelatedStuff
     {
-#if !NETSTANDARD1_6
         static dynamic ToDynamic(this DataRow dr) => Dynamic.From(dr);
         public static IEnumerable<dynamic> AsEnumerable(this DataTable dataTable) => dataTable.Rows.OfType<DataRow>().Select(ToDynamic);
         public static IEnumerable<T> Select<T>(this DataTable dt, Func<dynamic, T> selector) => dt.AsEnumerable().Select(selector);
@@ -47,6 +46,5 @@ namespace Net.Code.ADONet
             }
             return table;
         }
-#endif       
     }
 }

@@ -1,5 +1,4 @@
-﻿#if !NETSTANDARD1_6
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Data.SqlClient;
@@ -58,4 +57,3 @@ namespace Net.Code.ADONet.Extensions.SqlClient
         }
     }
 }
-#endif

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Data;
 using System.Data.Common;
-#if !NETSTANDARD1_6
+#if NETFRAMEWORK
 using System.Configuration;
 #endif
 
@@ -43,7 +43,7 @@ namespace Net.Code.ADONet
             Config = config ?? DbConfig.Default;
         }
 
-#if !NETSTANDARD1_6
+#if NETFRAMEWORK
         /// <summary>
         /// Instantiate Db with connectionString and DbProviderName
         /// </summary>

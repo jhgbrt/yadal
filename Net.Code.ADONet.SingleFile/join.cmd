@@ -1,2 +1,2 @@
-for /f %%i in ('dir /b ..\packages\Join.CSharp.*') do set p=%%i
-..\packages\%p%\tools\joincs.exe ..\Net.Code.ADONet .\Db.cs
+joincs ..\Net.Code.ADONet .\netfx\Db.cs NETFRAMEWORK
+joincs ..\Net.Code.ADONet .\netstandard\Db.cs NETSTANDARD

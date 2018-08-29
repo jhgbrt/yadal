@@ -18,7 +18,7 @@ namespace Net.Code.ADONet
             var setterMap = reader.GetSetterMap<T>(config);
             using (reader)
             {
-                while (reader.Read()) yield return reader.MapTo<T>(setterMap);
+                while (reader.Read()) yield return reader.MapTo(setterMap);
             }
         }
 
@@ -52,7 +52,7 @@ namespace Net.Code.ADONet
         {
             var list = new List<T>();
             var map = reader.GetSetterMap<T>(config);
-            while (reader.Read()) list.Add(reader.MapTo<T>(map));
+            while (reader.Read()) list.Add(reader.MapTo(map));
             moreResults = reader.NextResult();
             return list;
         }

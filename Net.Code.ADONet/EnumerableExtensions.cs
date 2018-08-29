@@ -101,7 +101,6 @@ namespace Net.Code.ADONet
 
             public override object this[string name] => GetValue(GetOrdinal(name));
 
-#if !NETSTANDARD1_6
             public override void Close() => Dispose();
             public override DataTable GetSchemaTable()
             {
@@ -121,7 +120,6 @@ namespace Net.Code.ADONet
                 var dt = q.ToDataTable();
                 return dt;
             }
-#endif
 
             public override bool NextResult()
             {

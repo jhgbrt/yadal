@@ -27,9 +27,9 @@ namespace Net.Code.ADONet.Tests.Unit
             Logger.LogCommand(command);
             var loggedText = sb.ToString();
 
-            Assert.True(loggedText.Contains("commandtext"));
-            Assert.True(loggedText.Contains("name"));
-            Assert.True(loggedText.Contains("value"));
+            Assert.Contains("commandtext", loggedText);
+            Assert.Contains("name", loggedText);
+            Assert.Contains("value", loggedText);
             Logger.Log = logAction;
         }
 

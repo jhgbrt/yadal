@@ -7,7 +7,6 @@ using Xunit;
 
 namespace Net.Code.ADONet.Tests.Unit.DbTests
 {
-
     public class DbTests
     {
         [Fact]
@@ -21,15 +20,13 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         [Fact]
         public void ProviderName_WhenCalled_ReturnsProviderName()
         {
+            //DbProviderFactories.RegisterFactory("Substitute.For.DbProviderFactory", Substitute.For<DbProviderFactory>());
             var db = new Db(string.Empty, "System.Data.SqlClient");
             Assert.Equal("System.Data.SqlClient", db.ProviderName);
         }
     }
-
-
     public class DbConstructorTests
     {
-
         [Fact]
         public void GivenDbWithExternalConnection_WhenDisposed_ConnectionIsNotDisposed()
         {
@@ -62,6 +59,8 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             fakeConnection.Received().Dispose();
         }
 
+
+#if NETFRAMEWORK
         [Fact]
         public void FromConfig_ReturnsDbWithFirstConfigurationSetting()
         {
@@ -74,5 +73,6 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             var db = Db.FromConfig("secondConnectionString");
             Assert.Equal(ConfigurationManager.ConnectionStrings["secondConnectionString"].ConnectionString, db.ConnectionString);
         }
+#endif
     }
 }

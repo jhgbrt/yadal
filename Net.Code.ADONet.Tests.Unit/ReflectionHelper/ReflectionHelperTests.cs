@@ -78,7 +78,7 @@ namespace Net.Code.ADONet.Tests.Unit.ReflectionHelper
         {
             var s = setters[nameof(MyTestEntity.NullableIntProperty)];
             s(_entity, 1);
-            Assert.Equal(_entity.NullableIntProperty, 1);
+            Assert.Equal(1, _entity.NullableIntProperty);
             s(_entity, null);
             Assert.Null(_entity.NullableIntProperty);
         }

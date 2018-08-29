@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Configuration;
 using MySql.Data.MySqlClient;
+using Net.Code.ADONet.Tests.Integration.Data;
 
 namespace Net.Code.ADONet.Tests.Integration.Databases
 {
@@ -23,6 +25,11 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
                 db.Execute(ddl);
             }
 
+        }
+
+        public override void BulkInsert(IDb db, IEnumerable<Person> list)
+        {
+            base.BulkInsert(db, list);
         }
     }
 }

@@ -3,18 +3,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26228.4
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Net.Code.ADONet", "Net.Code.ADONet\Net.Code.ADONet.csproj", "{F0B49F95-0B64-4FCE-AE4D-D9CE2A48A4F1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Net.Code.ADONet", "Net.Code.ADONet\Net.Code.ADONet.csproj", "{F0B49F95-0B64-4FCE-AE4D-D9CE2A48A4F1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Net.Code.ADONet.Tests.Unit", "Net.Code.ADONet.Tests.Unit\Net.Code.ADONet.Tests.Unit.csproj", "{9A8A8275-F7B1-421C-BA48-97E399D13A8F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Net.Code.ADONet.Tests.Unit", "Net.Code.ADONet.Tests.Unit\Net.Code.ADONet.Tests.Unit.csproj", "{9A8A8275-F7B1-421C-BA48-97E399D13A8F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Net.Code.ADONet.Tests.Integration", "Net.Code.ADONet.Tests.Integration\Net.Code.ADONet.Tests.Integration.csproj", "{B912550C-A54D-46A9-BC22-A19AA87F2D3B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Net.Code.ADONet.Tests.Integration", "Net.Code.ADONet.Tests.Integration\Net.Code.ADONet.Tests.Integration.csproj", "{B912550C-A54D-46A9-BC22-A19AA87F2D3B}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{CF11235F-AE8D-4E08-86E7-AC31FE0C6989}"
-	ProjectSection(SolutionItems) = preProject
-		.nuget\NuGet.Config = .nuget\NuGet.Config
-	EndProjectSection
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SingleFile", "SingleFile", "{7652278A-5E4A-4E5D-8FE4-9BFA988A571E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Net.Code.ADONet.SingleFile", "Net.Code.ADONet.SingleFile\Net.Code.ADONet.SingleFile.csproj", "{7BEA2A9C-6E88-4188-8BC0-E3EB9B6CF46D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Db.NetFx", "Net.Code.ADONet.SingleFile\netfx\Db.NetFx.csproj", "{8AC34B5E-F174-4FC3-96BF-092913F5811A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Db.NetStandard", "Net.Code.ADONet.SingleFile\netstandard\Db.NetStandard.csproj", "{644CAAFB-DF03-4CA8-96D7-725F0E31332F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -62,20 +61,39 @@ Global
 		{B912550C-A54D-46A9-BC22-A19AA87F2D3B}.Release|x64.Build.0 = Release|Any CPU
 		{B912550C-A54D-46A9-BC22-A19AA87F2D3B}.Release|x86.ActiveCfg = Release|Any CPU
 		{B912550C-A54D-46A9-BC22-A19AA87F2D3B}.Release|x86.Build.0 = Release|Any CPU
-		{7BEA2A9C-6E88-4188-8BC0-E3EB9B6CF46D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7BEA2A9C-6E88-4188-8BC0-E3EB9B6CF46D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7BEA2A9C-6E88-4188-8BC0-E3EB9B6CF46D}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{7BEA2A9C-6E88-4188-8BC0-E3EB9B6CF46D}.Debug|x64.Build.0 = Debug|Any CPU
-		{7BEA2A9C-6E88-4188-8BC0-E3EB9B6CF46D}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{7BEA2A9C-6E88-4188-8BC0-E3EB9B6CF46D}.Debug|x86.Build.0 = Debug|Any CPU
-		{7BEA2A9C-6E88-4188-8BC0-E3EB9B6CF46D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7BEA2A9C-6E88-4188-8BC0-E3EB9B6CF46D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7BEA2A9C-6E88-4188-8BC0-E3EB9B6CF46D}.Release|x64.ActiveCfg = Release|Any CPU
-		{7BEA2A9C-6E88-4188-8BC0-E3EB9B6CF46D}.Release|x64.Build.0 = Release|Any CPU
-		{7BEA2A9C-6E88-4188-8BC0-E3EB9B6CF46D}.Release|x86.ActiveCfg = Release|Any CPU
-		{7BEA2A9C-6E88-4188-8BC0-E3EB9B6CF46D}.Release|x86.Build.0 = Release|Any CPU
+		{8AC34B5E-F174-4FC3-96BF-092913F5811A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8AC34B5E-F174-4FC3-96BF-092913F5811A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8AC34B5E-F174-4FC3-96BF-092913F5811A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8AC34B5E-F174-4FC3-96BF-092913F5811A}.Debug|x64.Build.0 = Debug|Any CPU
+		{8AC34B5E-F174-4FC3-96BF-092913F5811A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8AC34B5E-F174-4FC3-96BF-092913F5811A}.Debug|x86.Build.0 = Debug|Any CPU
+		{8AC34B5E-F174-4FC3-96BF-092913F5811A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8AC34B5E-F174-4FC3-96BF-092913F5811A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8AC34B5E-F174-4FC3-96BF-092913F5811A}.Release|x64.ActiveCfg = Release|Any CPU
+		{8AC34B5E-F174-4FC3-96BF-092913F5811A}.Release|x64.Build.0 = Release|Any CPU
+		{8AC34B5E-F174-4FC3-96BF-092913F5811A}.Release|x86.ActiveCfg = Release|Any CPU
+		{8AC34B5E-F174-4FC3-96BF-092913F5811A}.Release|x86.Build.0 = Release|Any CPU
+		{644CAAFB-DF03-4CA8-96D7-725F0E31332F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{644CAAFB-DF03-4CA8-96D7-725F0E31332F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{644CAAFB-DF03-4CA8-96D7-725F0E31332F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{644CAAFB-DF03-4CA8-96D7-725F0E31332F}.Debug|x64.Build.0 = Debug|Any CPU
+		{644CAAFB-DF03-4CA8-96D7-725F0E31332F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{644CAAFB-DF03-4CA8-96D7-725F0E31332F}.Debug|x86.Build.0 = Debug|Any CPU
+		{644CAAFB-DF03-4CA8-96D7-725F0E31332F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{644CAAFB-DF03-4CA8-96D7-725F0E31332F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{644CAAFB-DF03-4CA8-96D7-725F0E31332F}.Release|x64.ActiveCfg = Release|Any CPU
+		{644CAAFB-DF03-4CA8-96D7-725F0E31332F}.Release|x64.Build.0 = Release|Any CPU
+		{644CAAFB-DF03-4CA8-96D7-725F0E31332F}.Release|x86.ActiveCfg = Release|Any CPU
+		{644CAAFB-DF03-4CA8-96D7-725F0E31332F}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{8AC34B5E-F174-4FC3-96BF-092913F5811A} = {7652278A-5E4A-4E5D-8FE4-9BFA988A571E}
+		{644CAAFB-DF03-4CA8-96D7-725F0E31332F} = {7652278A-5E4A-4E5D-8FE4-9BFA988A571E}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F967B379-BBF8-42FB-953F-6EDD123CE6C6}
 	EndGlobalSection
 EndGlobal

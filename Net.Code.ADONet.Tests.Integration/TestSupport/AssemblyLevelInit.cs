@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using Net.Code.ADONet.Tests.Integration.Databases;
+using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Net.Code.ADONet.Tests.Integration.TestSupport
 {
@@ -23,10 +26,16 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
 
             foreach (var db in supportedDbs)
             {
-                var isAvailable = db.IsAvailable();
-                _available[db.GetType()] = isAvailable;
-                if (isAvailable)
+                try
+                {
+                    db.EstablishConnection();
                     db.DropAndRecreate();
+                    _available[db.GetType()] = true;
+                }
+                catch (Exception e)
+                {
+                    _available[db.GetType()] = false;
+                }
             }
         }
 
