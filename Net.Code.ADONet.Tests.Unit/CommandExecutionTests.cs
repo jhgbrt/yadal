@@ -139,7 +139,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
             var result = commandBuilder.AsMultiResultSet<Person, Person>();
 
-            Person.VerifyMultiResultSet(result);
+            Person.VerifyMultiResultSet(result.Item1, result.Item2);
         }
         [Fact]
         public void AsMultiResultSetGeneric3_WhenCalled_ReturnsMultipleResultSets()
@@ -153,7 +153,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
             var result = commandBuilder.AsMultiResultSet<Person, Person, Person>();
 
-            Person.VerifyMultiResultSet(result);
+            Person.VerifyMultiResultSet(result.Item1, result.Item2, result.Item3);
         }
         [Fact]
         public void AsMultiResultSetGeneric4_WhenCalled_ReturnsMultipleResultSets()
@@ -167,7 +167,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
             var result = commandBuilder.AsMultiResultSet<Person, Person, Person, Person>();
 
-            Person.VerifyMultiResultSet(result);
+            Person.VerifyMultiResultSet(result.Item1, result.Item2, result.Item3, result.Item4);
         }
         [Fact]
         public void AsMultiResultSetGeneric5_WhenCalled_ReturnsMultipleResultSets()
@@ -181,7 +181,7 @@ namespace Net.Code.ADONet.Tests.Unit
 
             var result = commandBuilder.AsMultiResultSet<Person, Person, Person, Person, Person>();
 
-            Person.VerifyMultiResultSet(result);
+            Person.VerifyMultiResultSet(result.Item1, result.Item2, result.Item3, result.Item4, result.Item5);
         }
 
         [Fact]

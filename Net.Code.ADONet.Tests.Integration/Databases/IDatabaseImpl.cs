@@ -18,7 +18,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
         void DropAndRecreate();
         IDb CreateDb();
         Person Project(dynamic d);
-        MultiResultSet<Person, Address> SelectPersonAndAddress(IDb db);
+        (IReadOnlyCollection<Person>, IReadOnlyCollection<Address>) SelectPersonAndAddress(IDb db);
         void BulkInsert(IDb db, IEnumerable<Person> list);
         IQuery Query<T>();
     }

@@ -104,7 +104,7 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
                 .AsDataTable();
         }
 
-        public MultiResultSet<Person, Address> AsMultiResultSet()
+        public (IReadOnlyCollection<Person>, IReadOnlyCollection<Address>) AsMultiResultSet()
         {
             var result = _target.SelectPersonAndAddress(_db);
             return result;

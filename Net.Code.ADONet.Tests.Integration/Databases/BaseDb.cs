@@ -26,7 +26,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
             $"   {ToDb(nameof(Address.Country))} varchar(100)" +
             ");";
 
-        public virtual MultiResultSet<Person, Address> SelectPersonAndAddress(IDb db) 
+        public virtual (IReadOnlyCollection<Person>, IReadOnlyCollection<Address>) SelectPersonAndAddress(IDb db) 
             => db.Sql($"{SelectPeople};\r\n{SelectAddresses}").AsMultiResultSet<Person, Address>();
         protected string SelectPeople => Query<Person>().SelectAll;
         protected string SelectAddresses => Query<Address>().SelectAll;

@@ -142,11 +142,11 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Executes the query and returns the result as a tuple of lists
         /// </summary>
-        public MultiResultSet<T1,T2> AsMultiResultSet<T1, T2>()
+        public (IReadOnlyCollection<T1>, IReadOnlyCollection<T2>) AsMultiResultSet<T1, T2>()
         {
             using (var reader = Execute.Reader())
             {
-                return MultiResultSet.Create(
+                return (
                     reader.GetResultSet<T1>(_config, out _),
                     reader.GetResultSet<T2>(_config, out _)
                     );
@@ -155,11 +155,11 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Executes the query and returns the result as a tuple of lists
         /// </summary>
-        public MultiResultSet<T1,T2,T3> AsMultiResultSet<T1, T2, T3>() 
+        public (IReadOnlyCollection<T1>, IReadOnlyCollection<T2>, IReadOnlyCollection<T3>) AsMultiResultSet<T1, T2, T3>() 
         {
             using (var reader = Execute.Reader())
             {
-                return MultiResultSet.Create(
+                return (
                     reader.GetResultSet<T1>(_config, out _),
                     reader.GetResultSet<T2>(_config, out _),
                     reader.GetResultSet<T3>(_config, out _)
@@ -169,11 +169,11 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Executes the query and returns the result as a tuple of lists
         /// </summary>
-        public MultiResultSet<T1, T2, T3, T4> AsMultiResultSet<T1, T2, T3, T4>()
+        public (IReadOnlyCollection<T1>, IReadOnlyCollection<T2>, IReadOnlyCollection<T3>, IReadOnlyCollection<T4>) AsMultiResultSet<T1, T2, T3, T4>()
         {
             using (var reader = Execute.Reader())
             {
-                return MultiResultSet.Create(
+                return (
                     reader.GetResultSet<T1>(_config, out _),
                     reader.GetResultSet<T2>(_config, out _),
                     reader.GetResultSet<T3>(_config, out _),
@@ -184,11 +184,11 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Executes the query and returns the result as a tuple of lists
         /// </summary>
-        public MultiResultSet<T1, T2, T3, T4, T5> AsMultiResultSet<T1, T2, T3, T4, T5>()
+        public (IReadOnlyCollection<T1>, IReadOnlyCollection<T2>, IReadOnlyCollection<T3>, IReadOnlyCollection<T4>, IReadOnlyCollection<T5>) AsMultiResultSet<T1, T2, T3, T4, T5>()
         {
             using (var reader = Execute.Reader())
             {
-                return MultiResultSet.Create(
+                return (
                     reader.GetResultSet<T1>(_config, out _),
                     reader.GetResultSet<T2>(_config, out _),
                     reader.GetResultSet<T3>(_config, out _),

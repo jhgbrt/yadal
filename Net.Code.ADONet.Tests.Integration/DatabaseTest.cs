@@ -114,8 +114,8 @@ namespace IntegrationTests
             if (!_databaseImpl.SupportsMultipleResultSets)
                 throw new SkipException($"{_databaseImpl.GetType().Name} does not support multiple result sets");
             var result = _testHelper.AsMultiResultSet();
-            Assert.Equal(_people, result.Set1.ToArray());
-            Assert.Equal(_addresses, result.Set2.ToArray());
+            Assert.Equal(_people, result.Item1.ToArray());
+            Assert.Equal(_addresses, result.Item2.ToArray());
         }
 
         [SkippableFact]

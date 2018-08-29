@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using Net.Code.ADONet.Tests.Integration.Data;
@@ -23,7 +24,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
                                                     ",   COUNTRY VARCHAR2(100) NOT NULL" +
                                                     ")";
 
-        public override MultiResultSet<Person, Address> SelectPersonAndAddress(IDb db)
+        public override (IReadOnlyCollection<Person>, IReadOnlyCollection<Address>) SelectPersonAndAddress(IDb db)
         {
             var query = "BEGIN\r\n" +
             $" OPEN :Cur1 FOR {SelectPeople}" +

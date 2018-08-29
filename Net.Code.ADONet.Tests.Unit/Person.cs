@@ -73,47 +73,65 @@ namespace Net.Code.ADONet.Tests.Unit
             VerifyIds(new[] {result.Id});
         }
 
-        public static void VerifyMultiResultSet(MultiResultSet<Person,Person> result)
+        public static void VerifyMultiResultSet(
+            IReadOnlyCollection<Person> result1, 
+            IReadOnlyCollection<Person> result2
+            )
         {
             var lists = new[]
             {
-                result.Set1,
-                result.Set2
+                result1,
+                result2
             };
             
             VerifyIds(from list in lists from item in list select item.Id);
         }
 
-        public static void VerifyMultiResultSet(MultiResultSet<Person, Person, Person> result)
+        public static void VerifyMultiResultSet(
+            IReadOnlyCollection<Person> result1,
+            IReadOnlyCollection<Person> result2,
+            IReadOnlyCollection<Person> result3
+            )
         {
             var lists = new[]
             {
-                result.Set1,
-                result.Set2,
-                result.Set3
+                result1,
+                result2,
+                result3
             };
             VerifyIds(from list in lists from item in list select item.Id);
         }
-        public static void VerifyMultiResultSet(MultiResultSet<Person, Person, Person, Person> result)
+        public static void VerifyMultiResultSet(
+            IReadOnlyCollection<Person> result1,
+            IReadOnlyCollection<Person> result2,
+            IReadOnlyCollection<Person> result3,
+            IReadOnlyCollection<Person> result4
+        )
         {
             var lists = new[]
             {
-                result.Set1,
-                result.Set2,
-                result.Set3,
-                result.Set4,
+                result1,
+                result2,
+                result3,
+                result4,
             };
             VerifyIds(from list in lists from item in list select item.Id);
         }
-        public static void VerifyMultiResultSet(MultiResultSet<Person, Person, Person, Person, Person> result)
+        public static void VerifyMultiResultSet(
+            IReadOnlyCollection<Person> result1,
+            IReadOnlyCollection<Person> result2,
+            IReadOnlyCollection<Person> result3,
+            IReadOnlyCollection<Person> result4,
+            IReadOnlyCollection<Person> result5
+            )
         {
             var lists = new[]
             {
-                result.Set1,
-                result.Set2,
-                result.Set3,
-                result.Set4,
-                result.Set5
+                result1,
+                result2,
+                result3,
+                result4,
+                result5
             };
             VerifyIds(from list in lists from item in list select item.Id);
         }
