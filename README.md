@@ -1,5 +1,7 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/6koxegsr4pk3n5dv?svg=true)](https://ci.appveyor.com/project/jhgbrt/yadal)
 
+[![Downloads](https://img.shields.io/nuget/dt/Net.Code.ADONet.svg)](https://www.nuget.org/packages/Net.Code.ADONet)
+
 # YaDal - yet another data access layer
 
 In a nutshell, this library is
