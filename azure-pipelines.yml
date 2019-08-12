@@ -11,8 +11,17 @@ pool:
 
 steps:
 - task: DotNetCoreCLI@2
+  displayName: build
   inputs:
     command: 'build'
 - task: DotNetCoreCLI@2
+  displayName: test
   inputs:
     command: 'test'
+- task: DotNetCoreCLI@2
+  displayName: pack
+  inputs:
+    command: 'pack'
+    packagesToPack: 'Net.Code.ADONet/**/*.csproj'
+    includesymbols: true
+    versioningScheme: 'off'
