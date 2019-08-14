@@ -33,13 +33,6 @@ namespace Net.Code.ADONet.Tests.Unit.ConvertToTests
         }
 
         [Fact]
-        public void FromIncompatibleValueType_ShouldThrow()
-        {
-            object o = new object();
-            Assert.Throws<InvalidCastException>(() => Convert(o));
-        }
-
-        [Fact]
         public void FromCompatibleValueType_ShouldReturnValue()
         {
             int o = 1;
@@ -55,9 +48,6 @@ namespace Net.Code.ADONet.Tests.Unit.ConvertToTests
             Assert.Equal(1, result);
         }
 
-        private static int Convert(object o)
-        {
-            return ConvertTo<int>.From(o);
-        }
+        private static int Convert(object o) => ConvertTo<int>.From(o);
     }
 }

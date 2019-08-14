@@ -3,6 +3,7 @@ using System.Reflection;
 
 namespace Net.Code.ADONet
 {
+    using static DBNullHelper;
     /// <summary>
     /// Class for runtime type conversion, including DBNull.Value to/from null. Supports reference types,
     /// value types and nullable value types
@@ -46,13 +47,13 @@ namespace Net.Code.ADONet
         // ReSharper disable once UnusedMember.Local
         // (used via reflection!)
         private static TElem? ConvertNullableValueType<TElem>(object value) where TElem : struct 
-            => DBNullHelper.IsNull(value) ? (TElem?)null : ConvertPrivate<TElem>(value);
+            => IsNull(value) ? default(TElem?) : ConvertPrivate<TElem>(value);
 
-        private static T ConvertRefType(object value) => DBNullHelper.IsNull(value) ? default(T) : ConvertPrivate<T>(value);
+        private static T ConvertRefType(object value) => IsNull(value) ? default : ConvertPrivate<T>(value);
 
         private static T ConvertValueType(object value)
         {
-            if (DBNullHelper.IsNull(value))
+            if (IsNull(value))
             {
                 throw new NullReferenceException("Value is DbNull");
             }

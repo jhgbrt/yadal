@@ -10,10 +10,16 @@ pool:
   vmImage: 'windows-latest'
 
 steps:
+- task: UseDotNet@2
+  inputs:
+    packageType: 'sdk'
+    version: '3.0.100-preview8-013656'
+    includePreviewVersions: true
 - task: DotNetCoreCLI@2
   displayName: build
   inputs:
     command: 'build'
+    arguments: '-p:Version=$(Version)'
 - task: DotNetCoreCLI@2
   displayName: test
   inputs:
@@ -22,6 +28,12 @@ steps:
   displayName: pack
   inputs:
     command: 'pack'
+    arguments: ' -p:PackageVersion=$(Version)'
     packagesToPack: 'Net.Code.ADONet/**/*.csproj'
     includesymbols: true
     versioningScheme: 'off'
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'

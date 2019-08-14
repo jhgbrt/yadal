@@ -50,9 +50,6 @@ namespace Net.Code.ADONet.Tests.Unit.ConvertToTests
             Assert.Null(result);
         }
 
-        private static string Convert(object o)
-        {
-            return ConvertTo<string>.From(o);
-        }
+        private static string Convert(object o) => ConvertTo<string>.From(o);
     }
 }
