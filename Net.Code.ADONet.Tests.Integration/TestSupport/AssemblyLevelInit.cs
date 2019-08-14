@@ -32,7 +32,7 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
                     db.DropAndRecreate();
                     _available[db.GetType()] = true;
                 }
-                catch (Exception e)
+                catch
                 {
                     _available[db.GetType()] = false;
                 }

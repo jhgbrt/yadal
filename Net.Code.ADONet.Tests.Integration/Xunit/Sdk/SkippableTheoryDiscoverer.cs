@@ -81,7 +81,7 @@ namespace Xunit.Sdk
             /// <param name="defaultMethodDisplay">The preferred test name derivation.</param>
             /// <param name="testMethod">The test method.</param>
             public SkippableTheoryTestCase(string[] skippingExceptionNames, IMessageSink diagnosticMessageSink, TestMethodDisplay defaultMethodDisplay, ITestMethod testMethod)
-                : base(diagnosticMessageSink, defaultMethodDisplay, testMethod)
+                : base(diagnosticMessageSink, defaultMethodDisplay, TestMethodDisplayOptions.All, testMethod)
             {
                 Requires.NotNull(skippingExceptionNames, nameof(skippingExceptionNames));
                 this.SkippingExceptionNames = skippingExceptionNames;

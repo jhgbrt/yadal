@@ -70,7 +70,7 @@
             /// <param name="testMethod">The test method.</param>
             /// <param name="testMethodArguments">The test method arguments.</param>
             public SkippableFactTestCase(string[] skippingExceptionNames, IMessageSink diagnosticMessageSink, TestMethodDisplay defaultMethodDisplay, ITestMethod testMethod, object[] testMethodArguments = null)
-                : base(diagnosticMessageSink, defaultMethodDisplay, testMethod, testMethodArguments)
+                : base(diagnosticMessageSink, defaultMethodDisplay, TestMethodDisplayOptions.All, testMethod, testMethodArguments)
             {
                 Requires.NotNull(skippingExceptionNames, nameof(skippingExceptionNames));
                 this.SkippingExceptionNames = skippingExceptionNames;
