@@ -5,7 +5,22 @@ using Xunit;
 
 namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
 {
-   
+    public static class DataReaderHelper
+    {
+        public static IDataReader ToDataReader(this (string name, object value)[] values)
+        {
+            var reader = Substitute.For<IDataReader>();
+            reader.FieldCount.Returns(values.Length);
+            for (int i = 0; i < values.Length; i++)
+            {
+                reader.GetName(i).Returns(values[i].name);
+                reader.GetValue(i).Returns(values[i].value);
+            }
+            return reader;
+        }
+    }
+
+
     public class DataRecordExtension
     {
         public class MyEntity
@@ -30,17 +45,10 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
         {
             var values = new[]
             {
-                new {Name = "UNMAPPED_PROPERTY", Value = (object) "SomeValue"},
+                ("UNMAPPED_PROPERTY",  (object)"SomeValue"),
             };
 
-            var record = Substitute.For<IDataReader>();
-            record.FieldCount.Returns(2);
-            for (int i = 0; i < values.Length; i++)
-            {
-                record.GetName(i).Returns(values[i].Name);
-                record.GetValue(i).Returns(values[i].Value);
-            }
-
+            var record = values.ToDataReader();
             var config = new DbConfig(c => { }, MappingConvention.OracleStyle, string.Empty);
             var map = record.GetSetterMap<SomeEntity>(config);
 
@@ -55,22 +63,15 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
         [Fact]
         public void MapTo_WhenCalled_EntityIsMapped()
         {
-            var reader = Substitute.For<IDataReader>();
-
             var values = new[]
             {
-                new {Name = "MY_PROPERTY", Value = (object) "SomeValue"},
-                new {Name = "MY_NULLABLE_INT1", Value = (object) DBNull.Value},
-                new {Name = "MY_NULLABLE_INT2", Value = (object) 1},
-                new {Name = "MY_INT1", Value = (object) 2}
+                ("MY_PROPERTY",  "SomeValue"),
+                ("MY_NULLABLE_INT1", DBNull.Value),
+                ("MY_NULLABLE_INT2", 1),
+                ("MY_INT1", (object) 2)
             };
 
-            reader.FieldCount.Returns(values.Length);
-            for (int i = 0; i < values.Length; i++)
-            {
-                reader.GetName(i).Returns(values[i].Name);
-                reader.GetValue(i).Returns(values[i].Value);
-            }
+            var reader = values.ToDataReader();
 
             var config = new DbConfig(c => { }, MappingConvention.OracleStyle, string.Empty);
             var map = reader.GetSetterMap<MyEntity>(config);

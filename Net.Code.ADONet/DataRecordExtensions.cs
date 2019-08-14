@@ -42,7 +42,7 @@ namespace Net.Code.ADONet
             foreach (var item in setterMap)
             {
                 var val = DBNullHelper.FromDb(record.GetValue(item.FieldIndex));
-                Action<T, object> setter = item.Action;
+                var setter = item.Action;
                 setter(result, val);
             }
             return result;
