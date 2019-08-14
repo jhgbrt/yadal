@@ -17,10 +17,10 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Net.Code.ADONet.Tests.Integration")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Net.Code.ADONet.Tests.Unit")]
 namespace Net.Code.ADONet
 {
+    using static DBNullHelper;
+
     public class CommandBuilder
     {
         private readonly DbConfig _config;
@@ -157,44 +157,44 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Executes the query and returns the result as a tuple of lists
         /// </summary>
-        public MultiResultSet<T1, T2> AsMultiResultSet<T1, T2>()
+        public (IReadOnlyCollection<T1>, IReadOnlyCollection<T2>) AsMultiResultSet<T1, T2>()
         {
             using (var reader = Execute.Reader())
             {
-                return MultiResultSet.Create(reader.GetResultSet<T1>(_config, out _), reader.GetResultSet<T2>(_config, out _));
+                return (reader.GetResultSet<T1>(_config, out _), reader.GetResultSet<T2>(_config, out _));
             }
         }
 
         /// <summary>
         /// Executes the query and returns the result as a tuple of lists
         /// </summary>
-        public MultiResultSet<T1, T2, T3> AsMultiResultSet<T1, T2, T3>()
+        public (IReadOnlyCollection<T1>, IReadOnlyCollection<T2>, IReadOnlyCollection<T3>) AsMultiResultSet<T1, T2, T3>()
         {
             using (var reader = Execute.Reader())
             {
-                return MultiResultSet.Create(reader.GetResultSet<T1>(_config, out _), reader.GetResultSet<T2>(_config, out _), reader.GetResultSet<T3>(_config, out _));
+                return (reader.GetResultSet<T1>(_config, out _), reader.GetResultSet<T2>(_config, out _), reader.GetResultSet<T3>(_config, out _));
             }
         }
 
         /// <summary>
         /// Executes the query and returns the result as a tuple of lists
         /// </summary>
-        public MultiResultSet<T1, T2, T3, T4> AsMultiResultSet<T1, T2, T3, T4>()
+        public (IReadOnlyCollection<T1>, IReadOnlyCollection<T2>, IReadOnlyCollection<T3>, IReadOnlyCollection<T4>) AsMultiResultSet<T1, T2, T3, T4>()
         {
             using (var reader = Execute.Reader())
             {
-                return MultiResultSet.Create(reader.GetResultSet<T1>(_config, out _), reader.GetResultSet<T2>(_config, out _), reader.GetResultSet<T3>(_config, out _), reader.GetResultSet<T4>(_config, out _));
+                return (reader.GetResultSet<T1>(_config, out _), reader.GetResultSet<T2>(_config, out _), reader.GetResultSet<T3>(_config, out _), reader.GetResultSet<T4>(_config, out _));
             }
         }
 
         /// <summary>
         /// Executes the query and returns the result as a tuple of lists
         /// </summary>
-        public MultiResultSet<T1, T2, T3, T4, T5> AsMultiResultSet<T1, T2, T3, T4, T5>()
+        public (IReadOnlyCollection<T1>, IReadOnlyCollection<T2>, IReadOnlyCollection<T3>, IReadOnlyCollection<T4>, IReadOnlyCollection<T5>) AsMultiResultSet<T1, T2, T3, T4, T5>()
         {
             using (var reader = Execute.Reader())
             {
-                return MultiResultSet.Create(reader.GetResultSet<T1>(_config, out _), reader.GetResultSet<T2>(_config, out _), reader.GetResultSet<T3>(_config, out _), reader.GetResultSet<T4>(_config, out _), reader.GetResultSet<T5>(_config, out _));
+                return (reader.GetResultSet<T1>(_config, out _), reader.GetResultSet<T2>(_config, out _), reader.GetResultSet<T3>(_config, out _), reader.GetResultSet<T4>(_config, out _), reader.GetResultSet<T5>(_config, out _));
             }
         }
 
@@ -381,11 +381,11 @@ namespace Net.Code.ADONet
         // ReSharper disable once UnusedMember.Local
         // (used via reflection!)
         private static TElem? ConvertNullableValueType<TElem>(object value)
-            where TElem : struct => DBNullHelper.IsNull(value) ? (TElem? )null : ConvertPrivate<TElem>(value);
-        private static T ConvertRefType(object value) => DBNullHelper.IsNull(value) ? default(T) : ConvertPrivate<T>(value);
+            where TElem : struct => IsNull(value) ? default(TElem? ) : ConvertPrivate<TElem>(value);
+        private static T ConvertRefType(object value) => IsNull(value) ? default : ConvertPrivate<T>(value);
         private static T ConvertValueType(object value)
         {
-            if (DBNullHelper.IsNull(value))
+            if (IsNull(value))
             {
                 throw new NullReferenceException("Value is DbNull");
             }
@@ -508,7 +508,7 @@ namespace Net.Code.ADONet
             foreach (var item in setterMap)
             {
                 var val = DBNullHelper.FromDb(record.GetValue(item.FieldIndex));
-                Action<T, object> setter = item.Action;
+                var setter = item.Action;
                 setter(result, val);
             }
 
@@ -1070,141 +1070,6 @@ namespace Net.Code.ADONet
         public string FromDb(string s) => _toDb(s);
         public string ToDb(string s) => _fromDb(s);
         public string Parameter(string s) => $"{_escape}{s}";
-    }
-
-    public static class MultiResultSet
-    {
-        public static MultiResultSet<T1, T2> Create<T1, T2>(IReadOnlyCollection<T1> set1, IReadOnlyCollection<T2> set2)
-        {
-            return new MultiResultSet<T1, T2>(set1, set2);
-        }
-
-        public static MultiResultSet<T1, T2, T3> Create<T1, T2, T3>(IReadOnlyCollection<T1> set1, IReadOnlyCollection<T2> set2, IReadOnlyCollection<T3> set3)
-        {
-            return new MultiResultSet<T1, T2, T3>(set1, set2, set3);
-        }
-
-        public static MultiResultSet<T1, T2, T3, T4> Create<T1, T2, T3, T4>(IReadOnlyCollection<T1> set1, IReadOnlyCollection<T2> set2, IReadOnlyCollection<T3> set3, IReadOnlyCollection<T4> set4)
-        {
-            return new MultiResultSet<T1, T2, T3, T4>(set1, set2, set3, set4);
-        }
-
-        public static MultiResultSet<T1, T2, T3, T4, T5> Create<T1, T2, T3, T4, T5>(IReadOnlyCollection<T1> set1, IReadOnlyCollection<T2> set2, IReadOnlyCollection<T3> set3, IReadOnlyCollection<T4> set4, IReadOnlyCollection<T5> set5)
-        {
-            return new MultiResultSet<T1, T2, T3, T4, T5>(set1, set2, set3, set4, set5);
-        }
-    }
-
-    public sealed class MultiResultSet<T1, T2>
-    {
-        public MultiResultSet(IReadOnlyCollection<T1> set1, IReadOnlyCollection<T2> set2)
-        {
-            Set1 = set1;
-            Set2 = set2;
-        }
-
-        public IReadOnlyCollection<T1> Set1
-        {
-            get;
-        }
-
-        public IReadOnlyCollection<T2> Set2
-        {
-            get;
-        }
-    }
-
-    public sealed class MultiResultSet<T1, T2, T3>
-    {
-        public MultiResultSet(IReadOnlyCollection<T1> set1, IReadOnlyCollection<T2> set2, IReadOnlyCollection<T3> set3)
-        {
-            Set1 = set1;
-            Set2 = set2;
-            Set3 = set3;
-        }
-
-        public IReadOnlyCollection<T1> Set1
-        {
-            get;
-        }
-
-        public IReadOnlyCollection<T2> Set2
-        {
-            get;
-        }
-
-        public IReadOnlyCollection<T3> Set3
-        {
-            get;
-        }
-    }
-
-    public sealed class MultiResultSet<T1, T2, T3, T4>
-    {
-        public MultiResultSet(IReadOnlyCollection<T1> set1, IReadOnlyCollection<T2> set2, IReadOnlyCollection<T3> set3, IReadOnlyCollection<T4> set4)
-        {
-            Set1 = set1;
-            Set2 = set2;
-            Set3 = set3;
-            Set4 = set4;
-        }
-
-        public IReadOnlyCollection<T1> Set1
-        {
-            get;
-        }
-
-        public IReadOnlyCollection<T2> Set2
-        {
-            get;
-        }
-
-        public IReadOnlyCollection<T3> Set3
-        {
-            get;
-        }
-
-        public IReadOnlyCollection<T4> Set4
-        {
-            get;
-        }
-    }
-
-    public sealed class MultiResultSet<T1, T2, T3, T4, T5>
-    {
-        public MultiResultSet(IReadOnlyCollection<T1> set1, IReadOnlyCollection<T2> set2, IReadOnlyCollection<T3> set3, IReadOnlyCollection<T4> set4, IReadOnlyCollection<T5> set5)
-        {
-            Set1 = set1;
-            Set2 = set2;
-            Set3 = set3;
-            Set4 = set4;
-            Set5 = set5;
-        }
-
-        public IReadOnlyCollection<T1> Set1
-        {
-            get;
-        }
-
-        public IReadOnlyCollection<T2> Set2
-        {
-            get;
-        }
-
-        public IReadOnlyCollection<T3> Set3
-        {
-            get;
-        }
-
-        public IReadOnlyCollection<T4> Set4
-        {
-            get;
-        }
-
-        public IReadOnlyCollection<T5> Set5
-        {
-            get;
-        }
     }
 
     public static class StringExtensions
