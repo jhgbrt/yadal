@@ -30,3 +30,8 @@ steps:
     packagesToPack: 'Net.Code.ADONet/**/*.csproj'
     includesymbols: true
     versioningScheme: 'off'
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)/**/*.nupkg'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
