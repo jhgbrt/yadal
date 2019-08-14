@@ -28,6 +28,7 @@ steps:
   displayName: pack
   inputs:
     command: 'pack'
+    arguments: ' -p:PackageVersion=$(Version)'
     packagesToPack: 'Net.Code.ADONet/**/*.csproj'
     includesymbols: true
     versioningScheme: 'off'
