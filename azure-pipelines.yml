@@ -19,6 +19,7 @@ steps:
   displayName: build
   inputs:
     command: 'build'
+    arguments: '-p:Version=$(Version)'
 - task: DotNetCoreCLI@2
   displayName: test
   inputs:
