@@ -1,13 +1,28 @@
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data.Common;
 using Net.Code.ADONet.Extensions.Experimental;
 using Net.Code.ADONet.Tests.Integration.Data;
+using System;
+using System.Collections.Generic;
+using System.Data.Common;
 
 namespace Net.Code.ADONet.Tests.Integration.Databases
 {
-    public abstract class BaseDb : IDatabaseImpl
+    public abstract class BaseDb<T> : IDatabaseImpl where T : BaseDb<T>, new()
     {
+        public BaseDb(DbProviderFactory factory)
+        {
+            Factory = factory;
+        }
+        static Lazy<bool> _available;
+        static BaseDb()
+        {
+            _available = new Lazy<bool>(() => new T().CanConnect());
+            if (_available.Value)
+            {
+                new T().DropAndRecreate();
+            }
+        }
+        public bool IsAvailable() => _available.Value;
+
         private string DefaultCreatePersonTable() => 
             $"CREATE TABLE {ToDb(nameof(Person))} (" +
             $"   {ToDb(nameof(Person.Id))} int not null, " +
@@ -35,22 +50,17 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
         protected string MasterName => $"{Name}Master";
         public virtual string CreatePersonTable => DefaultCreatePersonTable();
         public virtual string DropPersonTable => $"DROP TABLE {ToDb(nameof(Person))}";
-
-        private string ToDb(string name)
-        {
-            return Config.MappingConvention.ToDb(name);
-        }
-
+        private string ToDb(string name) => Config.MappingConvention.ToDb(name);
         public virtual string CreateAddressTable => DefaultCreateAddressTable();
         public virtual string DropAddressTable => $"DROP TABLE {ToDb(nameof(Address))}";
         public virtual string InsertPerson => Query<Person>().Insert;
         public virtual bool SupportsMultipleResultSets => true;
-        public string ProviderName => ConfigurationManager.ConnectionStrings[Name].ProviderName;
         public virtual bool SupportsTableValuedParameters => false;
         public abstract void DropAndRecreate();
-        public string ConnectionString => ConfigurationManager.ConnectionStrings[Name].ConnectionString;
-        string MasterConnectionString => ConfigurationManager.ConnectionStrings[MasterName].ConnectionString;
+        public string ConnectionString => Configuration.ConnectionStrings[Name];
+        string MasterConnectionString => Configuration.ConnectionStrings[MasterName];
         public IDb CreateDb() => new Db(ConnectionString, Config, Factory);
+        public IDb MasterDb() => new Db(MasterConnectionString, Config, Factory);
         public virtual Person Project(dynamic d) => new Person
         {
             Id = d[ToDb(nameof(Person.Id))],
@@ -59,17 +69,31 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
             OptionalNumber = d[ToDb(nameof(Person.OptionalNumber))],
             RequiredNumber = d[ToDb(nameof(Person.RequiredNumber))]
         };
-        public IQuery Query<T>() => Extensions.Experimental.Query<T>.Create(Config.MappingConvention);
-        private DbConfig Config => DbConfig.FromProviderName(ProviderName);
-        private DbProviderFactory Factory => DbProviderFactories.GetFactory(ProviderName);
-        public bool EstablishConnection()
-        {
-            using (var db = new Db(MasterConnectionString, Config, Factory))
-            {
-                db.Connect();
-            }
+        public IQuery Query<TItem>() => Extensions.Experimental.Query<TItem>.Create(Config.MappingConvention);
+        private DbConfig Config => DbConfig.FromProviderFactory(Factory);
+        public DbProviderFactory Factory { get; private set; }
 
-            return true;
+        protected bool CanConnect()
+        {
+            try
+            {
+                using var connection = Factory.CreateConnection(MasterConnectionString);
+                connection.Open();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        protected string GetConnectionStringProperty(string keyword)
+        {
+            var connectionString = ConnectionString;
+            var connectionStringBuilder = Factory.CreateConnectionStringBuilder();
+            connectionStringBuilder.ConnectionString = connectionString;
+            var databaseName = (string)connectionStringBuilder[keyword];
+            return databaseName;
         }
     }
 }

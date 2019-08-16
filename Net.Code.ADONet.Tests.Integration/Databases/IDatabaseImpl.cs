@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Data.Common;
 using Net.Code.ADONet.Extensions.Experimental;
 using Net.Code.ADONet.Tests.Integration.Data;
 
@@ -6,15 +7,16 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
 {
     public interface IDatabaseImpl
     {
-        bool EstablishConnection();
+        bool IsAvailable();
         string CreatePersonTable { get; }
         string DropPersonTable { get; }
         string CreateAddressTable { get; }
         string DropAddressTable { get; }
         string InsertPerson { get; }
         bool SupportsMultipleResultSets { get; }
-        string ProviderName { get; }
         bool SupportsTableValuedParameters { get; }
+        DbProviderFactory Factory { get; }
+
         void DropAndRecreate();
         IDb CreateDb();
         Person Project(dynamic d);

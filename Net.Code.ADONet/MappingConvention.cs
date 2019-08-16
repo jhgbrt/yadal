@@ -15,7 +15,7 @@ namespace Net.Code.ADONet
         private readonly Func<string, string> _toDb;
         private readonly char _escape;
 
-        private MappingConvention(
+        internal MappingConvention(
             Func<string, string> todb,
             Func<string, string> fromdb,
             char escape)
@@ -35,16 +35,18 @@ namespace Net.Code.ADONet
         /// Maps column names to property names based on case insensitive match, ignoring underscores. Database artefacts are named using
         /// UPPER_CASE_AND_UNDERSCORES
         /// </summary>
-        public static readonly IMappingConvention OracleStyle = new MappingConvention(s => s.ToPascalCase(), s => s.ToUpperWithUnderscores(), ':');
+        public static readonly IMappingConvention OracleStyle 
+            = new MappingConvention(s => s.ToUpperWithUnderscores(), s => s.ToPascalCase(), ':');
 
         /// <summary>
         /// Maps column names to property names based on case insensitive match, ignoring underscores. Database artefacts are named using
         /// lower_case_and_underscores
         /// </summary>
-        public static readonly IMappingConvention UnderScores = new MappingConvention(s => s.ToPascalCase(), s => s.ToLowerWithUnderscores(), '@');
+        public static readonly IMappingConvention UnderScores 
+            = new MappingConvention(s => s.ToLowerWithUnderscores(), s => s.ToPascalCase(), '@');
 
-        public string FromDb(string s) => _toDb(s);
-        public string ToDb(string s) => _fromDb(s);
+        public string FromDb(string s) => _fromDb(s);
+        public string ToDb(string s) => _toDb(s);
         public string Parameter(string s) => $"{_escape}{s}";
 
     }

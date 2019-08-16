@@ -1,5 +1,6 @@
 using System;
 using System.Data;
+using System.Data.Common;
 
 namespace Net.Code.ADONet
 {
@@ -22,9 +23,20 @@ namespace Net.Code.ADONet
         {
             if (!string.IsNullOrEmpty(providerName) && providerName.StartsWith("Oracle"))
                 return Oracle(providerName);
-            if (string.Equals(providerName, "Npgsql"))
+            if (!string.IsNullOrEmpty(providerName) && providerName.StartsWith("Npgsql"))
                 return PostGreSQL(providerName);
+            if (!string.IsNullOrEmpty(providerName) && providerName.StartsWith("IBM"))
+                return DB2(providerName);
             return Create(providerName);
+        }
+        public static DbConfig FromProviderFactory(DbProviderFactory factory) 
+        {
+            return FromProviderName(factory.GetType().Name);
+        }
+
+        public static DbConfig FromProviderFactoryType<T>() where T: DbProviderFactory
+        {
+            return FromProviderName(typeof(T).Name);
         }
 
         // By default, the Oracle driver does not support binding parameters by name;
@@ -32,6 +44,7 @@ namespace Net.Code.ADONet
         // Mapping: 
         // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
         private static DbConfig Oracle(string providerName) => new DbConfig(SetBindByName, ADONet.MappingConvention.OracleStyle, providerName);
+        private static DbConfig DB2(string providerName) => new DbConfig(NoOp, ADONet.MappingConvention.OracleStyle, providerName);
         private static DbConfig PostGreSQL(string providerName) => new DbConfig(NoOp, ADONet.MappingConvention.UnderScores, providerName);
         private static DbConfig Create(string providerName) => new DbConfig(NoOp, ADONet.MappingConvention.Default, providerName);
 

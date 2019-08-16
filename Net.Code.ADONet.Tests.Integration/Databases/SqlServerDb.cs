@@ -1,23 +1,21 @@
-using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Data.SqlClient;
 using Net.Code.ADONet.Extensions.SqlClient;
 using Net.Code.ADONet.Tests.Integration.Data;
 
 namespace Net.Code.ADONet.Tests.Integration.Databases
 {
-    public class SqlServerDb : BaseDb
+    public class SqlServerDb : BaseDb<SqlServerDb>
     {
+
+        public SqlServerDb() : 
+            base(SqlClientFactory.Instance)
+        {
+        }
 
         public override void DropAndRecreate()
         {
-            var connectionString = ConfigurationManager.ConnectionStrings[Name].ConnectionString;
-            var connectionStringBuilder = new SqlConnectionStringBuilder
-            {
-                ConnectionString = connectionString
-            };
-            var databaseName = connectionStringBuilder.InitialCatalog;
+            var databaseName = GetConnectionStringProperty("Initial Catalog");
 
             var ddl = string.Format("if exists (SELECT * FROM sys.databases WHERE Name = \'{0}\') \r\n" +
                                     "begin\r\n" +
@@ -27,12 +25,12 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
                                     "end\r\n" +
                                     "create database {0}\r\n", databaseName);
 
-            using (var db = Db.FromConfig(MasterName))
+            using (var db = MasterDb())
             {
                 db.Execute(ddl);
             }
 
-            using (var db = Db.FromConfig(Name))
+            using (var db = CreateDb())
             {
                 db.Execute("CREATE TYPE IdSet AS TABLE (Id int)");
             }

@@ -1,24 +1,19 @@
-using System;
-using System.Configuration;
 using System.Linq;
-using MySql.Data.MySqlClient;
-using Net.Code.ADONet.Tests.Integration.Data;
+using Npgsql;
 
 namespace Net.Code.ADONet.Tests.Integration.Databases
 {
-    public class PostgreSqlDb : BaseDb
+    public class PostgreSqlDb : BaseDb<PostgreSqlDb>
     {
+        public PostgreSqlDb() : base(NpgsqlFactory.Instance)
+        {
+        }
+
         public override void DropAndRecreate()
         {
-            var connectionString = ConfigurationManager.ConnectionStrings[Name].ConnectionString;
-            var connectionStringBuilder = new Npgsql.NpgsqlConnectionStringBuilder
-            {
-                ConnectionString = connectionString
-            };
-            var databaseName = connectionStringBuilder.Database;
+            var databaseName = GetConnectionStringProperty("Database");
 
-
-            using (var db = Db.FromConfig(MasterName))
+            using (var db = MasterDb())
             {
                 var dropped = db.Execute($"DROP DATABASE IF EXISTS {databaseName};");
                 var created = db.Execute($"CREATE DATABASE {databaseName};");
@@ -27,7 +22,17 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
             }
 
         }
+        public override Data.Person Project(dynamic d)
+        {
+            return new Data.Person
+            {
+                Id = d.id,
+                Email = d.email,
+                Name = d.name,
+                OptionalNumber = d.optional_number,
+                RequiredNumber = d.required_number
+            };
+        }
 
-        
     }
 }

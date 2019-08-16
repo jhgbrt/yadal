@@ -14,7 +14,6 @@ namespace IntegrationTests
 {
     [CollectionDefinition("Database collection")]
     public class DatabaseCollection
-        : ICollectionFixture<AssemblyLevelInit>
     {
     }
 
@@ -28,15 +27,15 @@ namespace IntegrationTests
         private readonly DbConfig _config;
 
 
-        protected DatabaseTest(IDatabaseImpl databaseImpl, AssemblyLevelInit init)
+        protected DatabaseTest(IDatabaseImpl databaseImpl)
         {
             _databaseImpl = databaseImpl;
-            var isAvailable = init.IsAvailable(databaseImpl);
+            var isAvailable = databaseImpl.IsAvailable();
 
             Skip.IfNot(isAvailable);
 
             _testHelper = new DbTestHelper(databaseImpl);
-            _config = DbConfig.FromProviderName(databaseImpl.ProviderName);
+            _config = DbConfig.FromProviderFactory(databaseImpl.Factory);
 
             _testHelper.Initialize();
             _people = FakeData.People.List(10).ToArray();
@@ -155,39 +154,41 @@ namespace IntegrationTests
 
         public class SqlServerTest : DatabaseTest
         {
-            public SqlServerTest(AssemblyLevelInit init) : base(new SqlServerDb(), init)
+            public SqlServerTest() : base(new SqlServerDb())
             {
             }
         }
         public class OracleTest : DatabaseTest
         {
-            public OracleTest(AssemblyLevelInit init) : base(new OracleDb(), init)
+            public OracleTest() : base(new OracleDb())
             {
             }
         }
 
-        public class SqlServerCeTest : DatabaseTest
-        {
-            public SqlServerCeTest(AssemblyLevelInit init) : base(new SqlServerCeDb(), init)
-            {
-            }
-        }
         public class SqLiteTest : DatabaseTest
         {
-            public SqLiteTest(AssemblyLevelInit init) : base(new SqLiteDb(), init)
+            public SqLiteTest() : base(new SqLiteDb())
             {
             }
         }
         public class MySqlTest : DatabaseTest
         {
-            public MySqlTest(AssemblyLevelInit init) : base(new MySqlDb(), init)
+            public MySqlTest() : base(new MySqlDb())
             {
             }
         }
         public class PostgreSqlTest : DatabaseTest
         {
-            public PostgreSqlTest(AssemblyLevelInit init) : base(new PostgreSqlDb(), init)
+            public PostgreSqlTest() : base(new PostgreSqlDb())
             {
+            }
+        }
+
+        public class DB2Test:DatabaseTest
+        {
+            public DB2Test() : base(new DB2Db())
+            {
+
             }
         }
     }

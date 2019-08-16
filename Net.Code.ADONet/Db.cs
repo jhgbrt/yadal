@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Data;
 using System.Data.Common;
 #if NETFRAMEWORK
@@ -43,6 +44,7 @@ namespace Net.Code.ADONet
             Config = config ?? DbConfig.Default;
         }
 
+
 #if NETFRAMEWORK
         /// <summary>
         /// Instantiate Db with connectionString and DbProviderName
@@ -77,6 +79,7 @@ namespace Net.Code.ADONet
         }
 #endif
 
+ 
         /// <summary>
         /// Instantiate Db with connectionString and a custom IConnectionFactory
         /// </summary>

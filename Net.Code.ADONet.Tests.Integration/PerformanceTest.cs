@@ -15,10 +15,9 @@ namespace IntegrationTests
     {
         private ITestOutputHelper _output;
         protected PerformanceTest(
-            IDatabaseImpl databaseImpl, 
-            AssemblyLevelInit init, ITestOutputHelper output)
+            IDatabaseImpl databaseImpl, ITestOutputHelper output)
         {
-            var isAvailable = init.IsAvailable(databaseImpl);
+            var isAvailable = databaseImpl.IsAvailable();
             Skip.IfNot(isAvailable);
 
             _output = output;
@@ -45,10 +44,14 @@ namespace IntegrationTests
             _testHelper.GetAllPeopleGenericLegacy();
             
 
-            var fast = Measure(() => _testHelper.GetAllPeopleGeneric());
+            var fast = Measure(
+                () => { for (int i = 0; i < 100; i++) _testHelper.GetAllPeopleGeneric(); }
+                );
             _output.WriteLine(fast.ToString());
 
-            var slow = Measure(() => _testHelper.GetAllPeopleGenericLegacy());
+            var slow = Measure(
+                () => { for (int i = 0; i < 100; i++) _testHelper.GetAllPeopleGenericLegacy(); }
+            );
             _output.WriteLine(slow.ToString());
 
             Assert.True(slow > fast, $"Mapping using cached setters is slower! (old method: {slow}, new method: {fast})");
@@ -63,38 +66,32 @@ namespace IntegrationTests
 
         public class SqlServerTest : PerformanceTest
         {
-            public SqlServerTest(AssemblyLevelInit init, ITestOutputHelper output) : base(new SqlServerDb(), init, output)
+            public SqlServerTest(ITestOutputHelper output) : base(new SqlServerDb(), output)
             {
             }
         }
         public class OracleTest : PerformanceTest
         {
-            public OracleTest(AssemblyLevelInit init, ITestOutputHelper output) : base(new OracleDb(), init, output)
+            public OracleTest(ITestOutputHelper output) : base(new OracleDb(), output)
             {
             }
         }
 
-        public class SqlServerCeTest : PerformanceTest
-        {
-            public SqlServerCeTest(AssemblyLevelInit init, ITestOutputHelper output) : base(new SqlServerCeDb(), init, output)
-            {
-            }
-        }
         public class SqLiteTest : PerformanceTest
         {
-            public SqLiteTest(AssemblyLevelInit init, ITestOutputHelper output) : base(new SqLiteDb(), init, output)
+            public SqLiteTest(ITestOutputHelper output) : base(new SqLiteDb(), output)
             {
             }
         }
         public class MySqlTest : PerformanceTest
         {
-            public MySqlTest(AssemblyLevelInit init, ITestOutputHelper output) : base(new MySqlDb(), init, output)
+            public MySqlTest(ITestOutputHelper output) : base(new MySqlDb(), output)
             {
             }
         }
         public class PostgreSqlTest : PerformanceTest
         {
-            public PostgreSqlTest(AssemblyLevelInit init, ITestOutputHelper output) : base(new PostgreSqlDb(), init, output)
+            public PostgreSqlTest(ITestOutputHelper output) : base(new PostgreSqlDb(), output)
             {
             }
         }

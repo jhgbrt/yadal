@@ -1,14 +1,17 @@
-using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Data;
 using Net.Code.ADONet.Tests.Integration.Data;
 using Oracle.ManagedDataAccess.Client;
 
 namespace Net.Code.ADONet.Tests.Integration.Databases
 {
-    public class OracleDb : BaseDb
+    public class OracleDb : BaseDb<OracleDb>
     {
+
+        public OracleDb() : base(OracleClientFactory.Instance)
+        {
+        }
+
         public override string CreatePersonTable => "CREATE TABLE PERSON (" +
                                                     "    ID NUMBER(8,0) NOT NULL" +
                                                     ",   OPTIONAL_NUMBER NUMBER(8,0) NULL" +
@@ -38,12 +41,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
 
         public override void DropAndRecreate()
         {
-            var connectionString = ConfigurationManager.ConnectionStrings[Name].ConnectionString;
-            var connectionStringBuilder = new OracleConnectionStringBuilder
-            {
-                ConnectionString = connectionString
-            };
-            var databaseName = connectionStringBuilder.UserID;
+            var databaseName = GetConnectionStringProperty("User ID");
             var ddl = string.Format("DECLARE\r\n" +
                                     "\r\n" +
                                     "    c INTEGER := 0;\r\n" +
@@ -65,7 +63,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
                                     "\r\n" +
                                     "END;", databaseName);
 
-            using (var db = Db.FromConfig(MasterName))
+            using (var db = MasterDb())
             {
                 db.Execute(ddl);
             }
