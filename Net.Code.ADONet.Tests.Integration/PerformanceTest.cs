@@ -62,12 +62,17 @@ namespace IntegrationTests
 
     namespace Performance
     {
+        [Trait("Database", "SQLSERVER")]
         public class SqlServer : PerformanceTest<SqlServerDb> { public SqlServer(ITestOutputHelper output) : base(output) { } }
+        [Trait("Database", "ORACLE")]
         public class Oracle : PerformanceTest<OracleDb> { public Oracle(ITestOutputHelper output) : base(output) { } }
+        [Trait("Database", "SQLITE")]
         public class SqLite : PerformanceTest<SqLiteDb> { public SqLite(ITestOutputHelper output) : base(output) { } }
+        [Trait("Database", "MYSQL")]
         public class MySql : PerformanceTest<MySqlDb> { public MySql(ITestOutputHelper output) : base(output) { } }
+        [Trait("Database", "POSTGRES")]
         public class PostgreSql : PerformanceTest<PostgreSqlDb> { public PostgreSql(ITestOutputHelper output) : base(output) { } }
-        //public class DB2 : PerformanceTest<DB2Db> { public DB2(ITestOutputHelper output) : base(output) { } }
-
+        [Trait("Database", "DB2")]
+        public class DB2 : PerformanceTest<DB2Db> { public DB2(ITestOutputHelper output) : base(output) { } }
     }
 }

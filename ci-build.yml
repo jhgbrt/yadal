@@ -22,10 +22,15 @@ steps:
     command: 'build'
     arguments: '-p:Version=$(Version)'
 - task: DotNetCoreCLI@2
-  displayName: test
+  displayName: unit tests
   inputs:
     command: 'test'
     arguments: Net.Code.ADONet.Tests.Unit
+- task: DotNetCoreCLI@2
+  displayName: integration test (SQLITE)
+  inputs:
+    command: 'test'
+    arguments: 'Net.Code.ADONet.Tests.Integration  --filter Database=SQLITE'
 - task: DotNetCoreCLI@2
   displayName: pack
   inputs:

@@ -145,11 +145,18 @@ namespace IntegrationTests
     }
     namespace Database
     {
+        [Trait("Database", "SQLSERVER")]
         public class SqlServer : DatabaseTest<SqlServerDb> { public SqlServer(ITestOutputHelper output) : base(output) { } }
+        [Trait("Database", "ORACLE")]
         public class Oracle : DatabaseTest<OracleDb> { public Oracle(ITestOutputHelper output) : base(output) { } }
+        [Trait("Database", "SQLITE")]
         public class SqLite : DatabaseTest<SqLiteDb> { public SqLite(ITestOutputHelper output) : base(output) { } }
+        [Trait("Database", "MYSQL")]
         public class MySql : DatabaseTest<MySqlDb> { public MySql (ITestOutputHelper output) : base(output) { } }
+        [Trait("Database", "POSTGRES")]
         public class Postgres : DatabaseTest<PostgreSqlDb> { public Postgres(ITestOutputHelper output) : base(output) { } }
-        //public class DB2 : DatabaseTest<DB2Db> { public DB2(ITestOutputHelper output) : base(output) { } }
+
+        [Trait("Database", "DB2")]
+        public class DB2 : DatabaseTest<DB2Db> { public DB2(ITestOutputHelper output) : base(output) { } }
     }
 }
