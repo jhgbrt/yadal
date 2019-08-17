@@ -150,6 +150,6 @@ namespace IntegrationTests
         public class SqLite : DatabaseTest<SqLiteDb> { public SqLite(ITestOutputHelper output) : base(output) { } }
         public class MySql : DatabaseTest<MySqlDb> { public MySql (ITestOutputHelper output) : base(output) { } }
         public class Postgres : DatabaseTest<PostgreSqlDb> { public Postgres(ITestOutputHelper output) : base(output) { } }
-        public class DB2 : DatabaseTest<DB2Db> { public DB2(ITestOutputHelper output) : base(output) { } }
+        //public class DB2 : DatabaseTest<DB2Db> { public DB2(ITestOutputHelper output) : base(output) { } }
     }
 }

@@ -67,7 +67,7 @@ namespace IntegrationTests
         public class SqLite : PerformanceTest<SqLiteDb> { public SqLite(ITestOutputHelper output) : base(output) { } }
         public class MySql : PerformanceTest<MySqlDb> { public MySql(ITestOutputHelper output) : base(output) { } }
         public class PostgreSql : PerformanceTest<PostgreSqlDb> { public PostgreSql(ITestOutputHelper output) : base(output) { } }
-        public class DB2 : PerformanceTest<DB2Db> { public DB2(ITestOutputHelper output) : base(output) { } }
+        //public class DB2 : PerformanceTest<DB2Db> { public DB2(ITestOutputHelper output) : base(output) { } }
 
     }
 }
