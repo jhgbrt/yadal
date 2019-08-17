@@ -24,7 +24,8 @@ steps:
 - task: DotNetCoreCLI@2
   displayName: test
   inputs:
-    command: 'test Net.Code.ADONet.Unit'
+    command: 'test'
+    arguments: Net.Code.ADONet.Tests.Unit
 - task: DotNetCoreCLI@2
   displayName: pack
   inputs:
