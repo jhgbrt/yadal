@@ -25,7 +25,6 @@ namespace Net.Code.ADONet
     {
         internal DbConfig Config { get; }
         internal IMappingConvention MappingConvention => Config.MappingConvention;
-        public string ProviderName => Config.ProviderName;
 
         private readonly string _connectionString;
         private Lazy<IDbConnection> _connection;
@@ -43,8 +42,7 @@ namespace Net.Code.ADONet
             _externalConnection = connection;
             Config = config ?? DbConfig.Default;
         }
-
-
+        
 #if NETFRAMEWORK
         /// <summary>
         /// Instantiate Db with connectionString and DbProviderName
@@ -86,8 +84,9 @@ namespace Net.Code.ADONet
         /// <param name="connectionString">the connection string</param>
         /// <param name="config"></param>
         /// <param name="connectionFactory">the connection factory</param>
-        internal Db(string connectionString, DbConfig config, DbProviderFactory connectionFactory)
+        public Db(string connectionString, DbConfig config, DbProviderFactory connectionFactory)
         {
+            Logger.Log("Db ctor");
             _connectionString = connectionString;
             _connectionFactory = connectionFactory;
             _connection = new Lazy<IDbConnection>(CreateConnection);
@@ -96,6 +95,7 @@ namespace Net.Code.ADONet
 
         public void Connect()
         {
+            Logger.Log("Db connect");
             var connection = _externalConnection ?? _connection.Value;
             if (connection.State != ConnectionState.Open)
                 connection.Open();
@@ -119,6 +119,7 @@ namespace Net.Code.ADONet
 
         public void Dispose()
         {
+            Logger.Log("Db dispose");
             if (_connection == null || !_connection.IsValueCreated) return;
             _connection.Value.Dispose();
             _connection = null;

@@ -7,7 +7,7 @@ namespace Net.Code.ADONet
     /// <summary>
     /// To enable logging, set the Log property of the Logger class
     /// </summary>
-    class Logger
+    public class Logger
     {
 #if DEBUG
         public static Action<string> Log = s => { Debug.WriteLine(s); };

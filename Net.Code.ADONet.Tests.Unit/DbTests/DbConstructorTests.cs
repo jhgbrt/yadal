@@ -17,12 +17,6 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             db.Connect();
             connection.Received(1).Open();
         }
-        [Fact]
-        public void ProviderName_WhenCalled_ReturnsProviderName()
-        {
-            var db = new Db(Substitute.For<IDbConnection>(), DbConfig.FromProviderName("TEST"));
-            Assert.Equal("TEST", db.ProviderName);
-        }
     }
     public class DbConstructorTests
     {

@@ -46,7 +46,7 @@ In classic ADO.Net, we typically all write code like this:
 
 With YaDal, the same code looks like this:
 
-      using (var db = Db.FromConfig()) 
+      using (var db = new Db.FromConfig()) 
       {
          var sproc = db.StoredProcedure("MySproc")
            .WithParameter("myParameter1", myValue1)
@@ -77,3 +77,8 @@ That's all there is to it really. There's some stuff to aid in mapping to object
 ## Running a stored procedure
 
 Running a stored procedure is very similar to running an inline sql statement. One simply replaces the `.Sql()` call with `.StoredProcedure()`.
+
+## .Net Core
+
+In .Net Core, instantiating a Db instance is typically done in a totally different way, mainly because there is no more machine-wide DbProviderFactory registration system. You could manually register your db provider factory, but the more idiomatic way would be to 
+instantiate the IDb interface through the DI system. See the samples for an example on how this can be done for the .Net Core Generic Host.

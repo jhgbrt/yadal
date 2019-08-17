@@ -9,7 +9,7 @@ namespace Net.Code.ADONet
         string Parameter(string s);
     }
 
-    internal class MappingConvention : IMappingConvention
+    public class MappingConvention : IMappingConvention
     {
         private readonly Func<string, string> _fromDb;
         private readonly Func<string, string> _toDb;

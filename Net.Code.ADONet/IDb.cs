@@ -18,11 +18,6 @@ namespace Net.Code.ADONet
         /// The ADO.Net connection string
         /// </summary>
         string ConnectionString { get; }
-
-        /// <summary>
-        /// The ADO.Net ProviderName for this connection
-        /// </summary>
-        string ProviderName { get; }
         
         /// <summary>
         /// Create a SQL query command builder

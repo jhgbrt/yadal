@@ -16,8 +16,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Net.Code.ADONet.Tests.Integration")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Net.Code.ADONet.Tests.Unit")]
 namespace Net.Code.ADONet
 {
     using static DBNullHelper;
@@ -570,7 +568,6 @@ namespace Net.Code.ADONet
         }
 
         internal IMappingConvention MappingConvention => Config.MappingConvention;
-        public string ProviderName => Config.ProviderName;
         private readonly string _connectionString;
         private Lazy<IDbConnection> _connection;
         private readonly DbProviderFactory _connectionFactory;
@@ -593,8 +590,9 @@ namespace Net.Code.ADONet
         /// <param name = "connectionString">the connection string</param>
         /// <param name = "config"></param>
         /// <param name = "connectionFactory">the connection factory</param>
-        internal Db(string connectionString, DbConfig config, DbProviderFactory connectionFactory)
+        public Db(string connectionString, DbConfig config, DbProviderFactory connectionFactory)
         {
+            Logger.Log("Db ctor");
             _connectionString = connectionString;
             _connectionFactory = connectionFactory;
             _connection = new Lazy<IDbConnection>(CreateConnection);
@@ -603,6 +601,7 @@ namespace Net.Code.ADONet
 
         public void Connect()
         {
+            Logger.Log("Db connect");
             var connection = _externalConnection ?? _connection.Value;
             if (connection.State != ConnectionState.Open)
                 connection.Open();
@@ -624,6 +623,7 @@ namespace Net.Code.ADONet
         private IDbConnection CreateConnection() => _connectionFactory.CreateConnection(_connectionString);
         public void Dispose()
         {
+            Logger.Log("Db dispose");
             if (_connection == null || !_connection.IsValueCreated)
                 return;
             _connection.Value.Dispose();
@@ -656,9 +656,19 @@ namespace Net.Code.ADONet
         public int Execute(string command) => Sql(command).AsNonQuery();
     }
 
+    /// <summary>
+    /// The DbConfig class allows to configure database specific behaviour at runtime, without a direct 
+    /// dependency on the underlying ADO.Net provider. It does 2 things
+    /// 
+    /// - provides a hook to configure a DbCommand in case some specific configuration is required. For example,
+    ///   Oracle requires the BindByName property to be set to true for named parameters to work.
+    /// - Sets the way database naming conventions are mapped to .Net naming conventions. For example, in Oracle, 
+    ///   database and column names are upper case and separated by underscores. Postgres defaults to lower case.
+    ///   This includes also the escape character that indicates parameter names in queries with named parameters.
+    /// </summary>
     public class DbConfig
     {
-        internal DbConfig(Action<IDbCommand> prepareCommand, IMappingConvention convention, string providerName)
+        public DbConfig(Action<IDbCommand> prepareCommand, IMappingConvention convention, string providerName)
         {
             PrepareCommand = prepareCommand;
             MappingConvention = convention;
@@ -701,10 +711,11 @@ namespace Net.Code.ADONet
         // one has to set the BindByName property on the OracleDbCommand.
         // Mapping: 
         // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
-        private static DbConfig Oracle(string providerName) => new DbConfig(SetBindByName, new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, ':'), providerName);
-        private static DbConfig DB2(string providerName) => new DbConfig(NoOp, new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, '@'), providerName);
-        private static DbConfig PostGreSQL(string providerName) => new DbConfig(NoOp, new MappingConvention(StringExtensions.ToLowerWithUnderscores, StringExtensions.ToPascalCase, '@'), providerName);
-        private static DbConfig Create(string providerName) => new DbConfig(NoOp, new MappingConvention(StringExtensions.NoOp, StringExtensions.NoOp, '@'), providerName);
+        public static DbConfig Oracle(string providerName) => new DbConfig(SetBindByName, new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, ':'), providerName);
+        public static DbConfig DB2(string providerName) => new DbConfig(NoOp, new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, '@'), providerName);
+        public static DbConfig PostGreSQL(string providerName) => new DbConfig(NoOp, new MappingConvention(StringExtensions.ToLowerWithUnderscores, StringExtensions.ToPascalCase, '@'), providerName);
+        public static DbConfig Create(string providerName) => new DbConfig(NoOp, new MappingConvention(StringExtensions.NoOp, StringExtensions.NoOp, '@'), providerName);
+        public static DbConfig Create(Action<IDbCommand> prepareCommand, MappingConvention mappingConvention, string providerName) => new DbConfig(prepareCommand, mappingConvention, providerName);
         private static void SetBindByName(dynamic c) => c.BindByName = true;
         private static void NoOp(dynamic c)
         {
@@ -970,14 +981,6 @@ namespace Net.Code.ADONet
         }
 
         /// <summary>
-        /// The ADO.Net ProviderName for this connection
-        /// </summary>
-        string ProviderName
-        {
-            get;
-        }
-
-        /// <summary>
         /// Create a SQL query command builder
         /// </summary>
         /// <param name = "sqlQuery"></param>
@@ -999,7 +1002,7 @@ namespace Net.Code.ADONet
     /// <summary>
     /// To enable logging, set the Log property of the Logger class
     /// </summary>
-    class Logger
+    public class Logger
     {
         public static Action<string> Log;
         internal static void LogCommand(IDbCommand command)
@@ -1021,7 +1024,7 @@ namespace Net.Code.ADONet
         string Parameter(string s);
     }
 
-    internal class MappingConvention : IMappingConvention
+    public class MappingConvention : IMappingConvention
     {
         private readonly Func<string, string> _fromDb;
         private readonly Func<string, string> _toDb;
