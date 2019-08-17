@@ -8,6 +8,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
 using System.Data.Common;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.Dynamic;
 using System.Linq;
 using System.Reflection;
@@ -15,6 +16,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Net.Code.ADONet.Tests.Integration")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Net.Code.ADONet.Tests.Unit")]
 namespace Net.Code.ADONet
 {
     using static DBNullHelper;
@@ -677,23 +680,31 @@ namespace Net.Code.ADONet
             get;
         }
 
-        public static readonly DbConfig Default = Create("System.Data.SqlClient");
+        public static readonly DbConfig Default = Create(string.Empty);
         public static DbConfig FromProviderName(string providerName)
         {
             if (!string.IsNullOrEmpty(providerName) && providerName.StartsWith("Oracle"))
                 return Oracle(providerName);
-            if (string.Equals(providerName, "Npgsql"))
+            if (!string.IsNullOrEmpty(providerName) && providerName.StartsWith("Npgsql"))
                 return PostGreSQL(providerName);
+            if (!string.IsNullOrEmpty(providerName) && providerName.StartsWith("IBM"))
+                return DB2(providerName);
             return Create(providerName);
+        }
+
+        public static DbConfig FromProviderFactory(DbProviderFactory factory)
+        {
+            return FromProviderName(factory.GetType().FullName);
         }
 
         // By default, the Oracle driver does not support binding parameters by name;
         // one has to set the BindByName property on the OracleDbCommand.
         // Mapping: 
         // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
-        private static DbConfig Oracle(string providerName) => new DbConfig(SetBindByName, ADONet.MappingConvention.OracleStyle, providerName);
-        private static DbConfig PostGreSQL(string providerName) => new DbConfig(NoOp, ADONet.MappingConvention.UnderScores, providerName);
-        private static DbConfig Create(string providerName) => new DbConfig(NoOp, ADONet.MappingConvention.Default, providerName);
+        private static DbConfig Oracle(string providerName) => new DbConfig(SetBindByName, new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, ':'), providerName);
+        private static DbConfig DB2(string providerName) => new DbConfig(NoOp, new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, '@'), providerName);
+        private static DbConfig PostGreSQL(string providerName) => new DbConfig(NoOp, new MappingConvention(StringExtensions.ToLowerWithUnderscores, StringExtensions.ToPascalCase, '@'), providerName);
+        private static DbConfig Create(string providerName) => new DbConfig(NoOp, new MappingConvention(StringExtensions.NoOp, StringExtensions.NoOp, '@'), providerName);
         private static void SetBindByName(dynamic c) => c.BindByName = true;
         private static void NoOp(dynamic c)
         {
@@ -1015,7 +1026,7 @@ namespace Net.Code.ADONet
         private readonly Func<string, string> _fromDb;
         private readonly Func<string, string> _toDb;
         private readonly char _escape;
-        private MappingConvention(Func<string, string> todb, Func<string, string> fromdb, char escape)
+        internal MappingConvention(Func<string, string> todb, Func<string, string> fromdb, char escape)
         {
             _toDb = todb;
             _fromDb = fromdb;
@@ -1026,19 +1037,10 @@ namespace Net.Code.ADONet
         /// Maps column names to property names based on exact, case sensitive match. Database artefacts are named exactly
         /// like the .Net objects.
         /// </summary>
-        public static readonly IMappingConvention Default = new MappingConvention(s => s, s => s, '@');
-        /// <summary>
-        /// Maps column names to property names based on case insensitive match, ignoring underscores. Database artefacts are named using
-        /// UPPER_CASE_AND_UNDERSCORES
-        /// </summary>
-        public static readonly IMappingConvention OracleStyle = new MappingConvention(s => s.ToPascalCase(), s => s.ToUpperWithUnderscores(), ':');
-        /// <summary>
-        /// Maps column names to property names based on case insensitive match, ignoring underscores. Database artefacts are named using
-        /// lower_case_and_underscores
-        /// </summary>
-        public static readonly IMappingConvention UnderScores = new MappingConvention(s => s.ToPascalCase(), s => s.ToLowerWithUnderscores(), '@');
-        public string FromDb(string s) => _toDb(s);
-        public string ToDb(string s) => _fromDb(s);
+        public static readonly IMappingConvention Default = new MappingConvention(NoOp, NoOp, '@');
+        static string NoOp(string s) => s;
+        public string FromDb(string s) => _fromDb(s);
+        public string ToDb(string s) => _toDb(s);
         public string Parameter(string s) => $"{_escape}{s}";
     }
 
@@ -1082,6 +1084,7 @@ namespace Net.Code.ADONet
             return string.Join("_", SplitUpperCase(source).Select(s => s.ToLowerInvariant()));
         }
 
+        public static string NoOp(this string source) => source;
         static IEnumerable<string> SplitUpperCase(string source)
         {
             var wordStart = 0;

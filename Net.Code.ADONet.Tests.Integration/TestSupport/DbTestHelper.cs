@@ -7,17 +7,20 @@ using Net.Code.ADONet.Extensions.SqlClient;
 using Net.Code.ADONet.Tests.Integration.Data;
 using Net.Code.ADONet.Tests.Integration.Databases;
 using Xunit.Abstractions;
+using Xunit;
 
 namespace Net.Code.ADONet.Tests.Integration.TestSupport
 {
-    public class DbTestHelper
+    public class DbTestHelper<T> where T : IDatabaseImpl, new()
     {
         private readonly IDatabaseImpl _target;
         private readonly IDb _db;
         private readonly ITestOutputHelper _output;
-        public DbTestHelper(IDatabaseImpl target, ITestOutputHelper output)
+        public DbTestHelper(ITestOutputHelper output)
         {
-            _target = target;
+            _target = new T();
+            var isAvailable = _target.IsAvailable();
+            Skip.IfNot(isAvailable);
             _output = output;
             Logger.Log = _output.WriteLine;
             _db = _target.CreateDb();
@@ -111,6 +114,8 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
 
         public (IReadOnlyCollection<Person>, IReadOnlyCollection<Address>) AsMultiResultSet()
         {
+            if (!_target.SupportsMultipleResultSets)
+                throw new SkipException($"{_target.GetType().Name} does not support multiple result sets");
             var result = _target.SelectPersonAndAddress(_db);
             return result;
         }
@@ -123,18 +128,21 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
                 .Single<Person>();
         }
 
-        public Person[] GetPeopleById(IEnumerable<int> ids)
+        public (int[], Person[]) GetByIdList()
         {
-            return _db
+            if (!_target.SupportsTableValuedParameters)
+                throw new SkipException($"{_target.GetType().Name} does not support table valued parameters");
+
+            var ids = _db
+                .Sql($"SELECT TOP 3 Id FROM {nameof(Person)}")
+                .Select(d => (int)d.Id)
+                .ToArray();
+
+            return (ids, _db
                 .Sql("SELECT * FROM Person JOIN @IDs IdSet ON Person.Id = IdSet.Id")
                 .WithParameter("@IDs", ids.Select(id => new {Id = id}), "IdSet")
                 .AsEnumerable<Person>()
-                .ToArray();
-        }
-
-        public List<int> GetSomeIds(int n)
-        {
-            return _db.Sql($"SELECT TOP {n} Id FROM {nameof(Person)}").Select(d => (int) d.Id).ToList();
+                .ToArray());
         }
 
         public int GetCountOfPeople()

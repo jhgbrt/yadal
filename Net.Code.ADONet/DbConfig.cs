@@ -17,7 +17,7 @@ namespace Net.Code.ADONet
         internal IMappingConvention MappingConvention { get; }
         public string ProviderName { get; }
 
-        public static readonly DbConfig Default = Create("System.Data.SqlClient");
+        public static readonly DbConfig Default = Create(string.Empty);
 
         public static DbConfig FromProviderName(string providerName)
         {
@@ -32,11 +32,6 @@ namespace Net.Code.ADONet
         public static DbConfig FromProviderFactory(DbProviderFactory factory) 
         {
             return FromProviderName(factory.GetType().FullName);
-        }
-
-        public static DbConfig FromProviderFactoryType<T>() where T: DbProviderFactory
-        {
-            return FromProviderName(typeof(T).Name);
         }
 
         // By default, the Oracle driver does not support binding parameters by name;

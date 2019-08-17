@@ -11,14 +11,6 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
 
         public override void DropAndRecreate()
         {
-            var ddl1 = "DROP TABLE PERSON IF EXISTS; \n" +
-                " DROP TABLE ADDRESS IF EXISTS;";
-
-            using (var db = MasterDb())
-            {
-                db.Execute(ddl1);
-            }
-
         }
     }
 }

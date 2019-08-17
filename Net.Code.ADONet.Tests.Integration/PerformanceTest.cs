@@ -16,17 +16,14 @@ namespace IntegrationTests
         private ITestOutputHelper _output;
         protected PerformanceTest(ITestOutputHelper output)
         {
-            _output.WriteLine($"{GetType()} - initialize");
-            var databaseImpl = new T();
-            var isAvailable = databaseImpl.IsAvailable();
-            Skip.IfNot(isAvailable);
             _output = output;
-            _testHelper = new DbTestHelper(databaseImpl, output);
+            _output.WriteLine($"{GetType()} - initialize");
+            _testHelper = new DbTestHelper<T>(output);
             _testHelper.Initialize();
             _testHelper.BulkInsert(FakeData.People.List(1000));
         }
 
-        private readonly DbTestHelper _testHelper;
+        private readonly DbTestHelper<T> _testHelper;
 
         public void Dispose()
         {

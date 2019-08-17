@@ -21,8 +21,7 @@ namespace IntegrationTests
     [Collection("Database collection")]
     public abstract class DatabaseTest<T> : IDisposable where T : IDatabaseImpl, new()
     {
-        private readonly IDatabaseImpl _databaseImpl;
-        private readonly DbTestHelper _testHelper;
+        private readonly DbTestHelper<T> _testHelper;
         private readonly Person[] _people;
         private readonly Address[] _addresses;
         private readonly ITestOutputHelper _output;
@@ -32,13 +31,10 @@ namespace IntegrationTests
         {
             _output = output;
             _output.WriteLine($"{GetType()} - initialize");
-            _databaseImpl = new T();
-            var isAvailable = _databaseImpl.IsAvailable();
-            Skip.IfNot(isAvailable);
-            _testHelper = new DbTestHelper(_databaseImpl, output);
-            _testHelper.Initialize();
             _people = FakeData.People.List(10).ToArray();
             _addresses = FakeData.Addresses.List(10);
+            _testHelper = new DbTestHelper<T>(output);
+            _testHelper.Initialize();
             _testHelper.Insert(_people.Take(5), _addresses);
             _testHelper.InsertAsync(_people.Skip(5)).Wait();
         }
@@ -109,8 +105,6 @@ namespace IntegrationTests
         [SkippableFact]
         public void MultiResultSet()
         {
-            if (!_databaseImpl.SupportsMultipleResultSets)
-                throw new SkipException($"{_databaseImpl.GetType().Name} does not support multiple result sets");
             var result = _testHelper.AsMultiResultSet();
             Assert.Equal(_people, result.Item1.ToArray());
             Assert.Equal(_addresses, result.Item2.ToArray());
@@ -138,10 +132,7 @@ namespace IntegrationTests
         [SkippableFact]
         public void GetByIdList()
         {
-            if (!_databaseImpl.SupportsTableValuedParameters)
-                throw new SkipException($"{_databaseImpl.GetType().Name} does not support table valued parameters");
-            var ids = _testHelper.GetSomeIds(3);
-            var result = _testHelper.GetPeopleById(ids);
+            var (ids, result) = _testHelper.GetByIdList();
             Assert.Equal(ids, result.Select(p => p.Id).ToList());
         }
 
