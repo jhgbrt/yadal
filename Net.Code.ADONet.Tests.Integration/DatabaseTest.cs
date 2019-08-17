@@ -6,6 +6,7 @@ using Net.Code.ADONet.Tests.Integration.Data;
 using Net.Code.ADONet.Tests.Integration.Databases;
 using Net.Code.ADONet.Tests.Integration.TestSupport;
 using Xunit;
+using Xunit.Abstractions;
 using Net.Code.ADONet;
 
 // ReSharper disable UnusedMember.Local
@@ -18,25 +19,23 @@ namespace IntegrationTests
     }
 
     [Collection("Database collection")]
-    public abstract class DatabaseTest : IDisposable
+    public abstract class DatabaseTest<T> : IDisposable where T : IDatabaseImpl, new()
     {
         private readonly IDatabaseImpl _databaseImpl;
         private readonly DbTestHelper _testHelper;
         private readonly Person[] _people;
         private readonly Address[] _addresses;
-        private readonly DbConfig _config;
+        private readonly ITestOutputHelper _output;
 
 
-        protected DatabaseTest(IDatabaseImpl databaseImpl)
+        protected DatabaseTest(ITestOutputHelper output)
         {
-            _databaseImpl = databaseImpl;
-            var isAvailable = databaseImpl.IsAvailable();
-
+            _output = output;
+            _output.WriteLine($"{GetType()} - initialize");
+            _databaseImpl = new T();
+            var isAvailable = _databaseImpl.IsAvailable();
             Skip.IfNot(isAvailable);
-
-            _testHelper = new DbTestHelper(databaseImpl);
-            _config = DbConfig.FromProviderFactory(databaseImpl.Factory);
-
+            _testHelper = new DbTestHelper(_databaseImpl, output);
             _testHelper.Initialize();
             _people = FakeData.People.List(10).ToArray();
             _addresses = FakeData.Addresses.List(10);
@@ -152,44 +151,14 @@ namespace IntegrationTests
             _testHelper.BulkInsert(FakeData.People.List(100));
         }
 
-        public class SqlServerTest : DatabaseTest
-        {
-            public SqlServerTest() : base(new SqlServerDb())
-            {
-            }
-        }
-        public class OracleTest : DatabaseTest
-        {
-            public OracleTest() : base(new OracleDb())
-            {
-            }
-        }
-
-        public class SqLiteTest : DatabaseTest
-        {
-            public SqLiteTest() : base(new SqLiteDb())
-            {
-            }
-        }
-        public class MySqlTest : DatabaseTest
-        {
-            public MySqlTest() : base(new MySqlDb())
-            {
-            }
-        }
-        public class PostgreSqlTest : DatabaseTest
-        {
-            public PostgreSqlTest() : base(new PostgreSqlDb())
-            {
-            }
-        }
-
-        public class DB2Test:DatabaseTest
-        {
-            public DB2Test() : base(new DB2Db())
-            {
-
-            }
-        }
+    }
+    namespace Database
+    {
+        public class SqlServer : DatabaseTest<SqlServerDb> { public SqlServer(ITestOutputHelper output) : base(output) { } }
+        public class Oracle : DatabaseTest<OracleDb> { public Oracle(ITestOutputHelper output) : base(output) { } }
+        public class SqLite : DatabaseTest<SqLiteDb> { public SqLite(ITestOutputHelper output) : base(output) { } }
+        public class MySql : DatabaseTest<MySqlDb> { public MySql (ITestOutputHelper output) : base(output) { } }
+        public class Postgres : DatabaseTest<PostgreSqlDb> { public Postgres(ITestOutputHelper output) : base(output) { } }
+        public class DB2 : DatabaseTest<DB2Db> { public DB2(ITestOutputHelper output) : base(output) { } }
     }
 }

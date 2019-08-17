@@ -15,7 +15,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
         string InsertPerson { get; }
         bool SupportsMultipleResultSets { get; }
         bool SupportsTableValuedParameters { get; }
-        DbProviderFactory Factory { get; }
+        DbConfig Config { get; }
 
         void DropAndRecreate();
         IDb CreateDb();

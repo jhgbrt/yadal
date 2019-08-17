@@ -70,8 +70,8 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
             RequiredNumber = d[ToDb(nameof(Person.RequiredNumber))]
         };
         public IQuery Query<TItem>() => Extensions.Experimental.Query<TItem>.Create(Config.MappingConvention);
-        private DbConfig Config => DbConfig.FromProviderFactory(Factory);
-        public DbProviderFactory Factory { get; private set; }
+        public DbConfig Config => DbConfig.FromProviderFactory(Factory);
+        protected DbProviderFactory Factory { get; private set; }
 
         protected bool CanConnect()
         {

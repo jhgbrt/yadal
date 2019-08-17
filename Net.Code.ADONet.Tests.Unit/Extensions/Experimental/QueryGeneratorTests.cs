@@ -75,7 +75,7 @@ namespace Net.Code.ADONet.Tests.Unit.Extensions.Experimental
 
     public class QueryGeneratorTestsForEntityOracleConvention
     {
-        IQuery generator = Query<MyEntity>.Create(MappingConvention.OracleStyle);
+        IQuery generator = Query<MyEntity>.Create(DbConfig.FromProviderName("Oracle").MappingConvention);
 
         [Fact]
         public void Insert()
@@ -117,7 +117,7 @@ namespace Net.Code.ADONet.Tests.Unit.Extensions.Experimental
 
     public class QueryGeneratorTestsForDefaultEntity
     {
-        IQuery generator = Query<MyEntity>.Create(MappingConvention.UnderScores);
+        IQuery generator = Query<MyEntity>.Create(DbConfig.FromProviderName("Npgsql").MappingConvention);
 
         [Fact]
         public void Insert()
@@ -159,7 +159,7 @@ namespace Net.Code.ADONet.Tests.Unit.Extensions.Experimental
 
     public class QueryGeneratorTestsForEntityWithCompositeKey
     {
-        IQuery generator = Query<MyEntityWithCompositeKey>.Create(MappingConvention.OracleStyle);
+        IQuery generator = Query<MyEntityWithCompositeKey>.Create(DbConfig.FromProviderName("Oracle").MappingConvention);
 
         [Fact]
         public void Insert()

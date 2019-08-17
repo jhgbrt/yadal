@@ -6,6 +6,7 @@ using Net.Code.ADONet.Extensions.Experimental;
 using Net.Code.ADONet.Extensions.SqlClient;
 using Net.Code.ADONet.Tests.Integration.Data;
 using Net.Code.ADONet.Tests.Integration.Databases;
+using Xunit.Abstractions;
 
 namespace Net.Code.ADONet.Tests.Integration.TestSupport
 {
@@ -13,9 +14,12 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
     {
         private readonly IDatabaseImpl _target;
         private readonly IDb _db;
-        public DbTestHelper(IDatabaseImpl target)
+        private readonly ITestOutputHelper _output;
+        public DbTestHelper(IDatabaseImpl target, ITestOutputHelper output)
         {
             _target = target;
+            _output = output;
+            Logger.Log = _output.WriteLine;
             _db = _target.CreateDb();
         }
 
@@ -30,6 +34,7 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
         {
             _db.Execute(_target.DropPersonTable);
             _db.Execute(_target.DropAddressTable);
+            Logger.Log = s => { };
         }
 
         public void Insert(IEnumerable<Person> people, IEnumerable<Address> addresses)

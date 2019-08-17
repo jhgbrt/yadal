@@ -31,7 +31,7 @@ namespace Net.Code.ADONet
         }
         public static DbConfig FromProviderFactory(DbProviderFactory factory) 
         {
-            return FromProviderName(factory.GetType().Name);
+            return FromProviderName(factory.GetType().FullName);
         }
 
         public static DbConfig FromProviderFactoryType<T>() where T: DbProviderFactory
@@ -43,10 +43,26 @@ namespace Net.Code.ADONet
         // one has to set the BindByName property on the OracleDbCommand.
         // Mapping: 
         // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
-        private static DbConfig Oracle(string providerName) => new DbConfig(SetBindByName, ADONet.MappingConvention.OracleStyle, providerName);
-        private static DbConfig DB2(string providerName) => new DbConfig(NoOp, ADONet.MappingConvention.OracleStyle, providerName);
-        private static DbConfig PostGreSQL(string providerName) => new DbConfig(NoOp, ADONet.MappingConvention.UnderScores, providerName);
-        private static DbConfig Create(string providerName) => new DbConfig(NoOp, ADONet.MappingConvention.Default, providerName);
+        private static DbConfig Oracle(string providerName) 
+            => new DbConfig(
+                SetBindByName,
+                new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, ':'), 
+                providerName);
+        
+        private static DbConfig DB2(string providerName) 
+            => new DbConfig(
+                NoOp, 
+                new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, '@'),
+                providerName);
+        private static DbConfig PostGreSQL(string providerName) 
+            => new DbConfig(
+                NoOp, 
+                new MappingConvention(StringExtensions.ToLowerWithUnderscores, StringExtensions.ToPascalCase, '@'), 
+                providerName);
+        private static DbConfig Create(string providerName) 
+            => new DbConfig(NoOp, 
+                new MappingConvention(StringExtensions.NoOp, StringExtensions.NoOp, '@'), 
+                providerName);
 
         private static void SetBindByName(dynamic c) => c.BindByName = true;
         private static void NoOp(dynamic c) {}

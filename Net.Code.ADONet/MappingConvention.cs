@@ -29,21 +29,10 @@ namespace Net.Code.ADONet
         /// Maps column names to property names based on exact, case sensitive match. Database artefacts are named exactly
         /// like the .Net objects.
         /// </summary>
-        public static readonly IMappingConvention Default = new MappingConvention(s => s, s => s, '@');
-        
-        /// <summary>
-        /// Maps column names to property names based on case insensitive match, ignoring underscores. Database artefacts are named using
-        /// UPPER_CASE_AND_UNDERSCORES
-        /// </summary>
-        public static readonly IMappingConvention OracleStyle 
-            = new MappingConvention(s => s.ToUpperWithUnderscores(), s => s.ToPascalCase(), ':');
+        public static readonly IMappingConvention Default 
+            = new MappingConvention(NoOp, NoOp, '@');
 
-        /// <summary>
-        /// Maps column names to property names based on case insensitive match, ignoring underscores. Database artefacts are named using
-        /// lower_case_and_underscores
-        /// </summary>
-        public static readonly IMappingConvention UnderScores 
-            = new MappingConvention(s => s.ToLowerWithUnderscores(), s => s.ToPascalCase(), '@');
+        static string NoOp(string s) => s;
 
         public string FromDb(string s) => _fromDb(s);
         public string ToDb(string s) => _toDb(s);

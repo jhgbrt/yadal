@@ -11,28 +11,26 @@ namespace IntegrationTests
     
 
     [Collection("Database collection")]
-    public abstract class PerformanceTest : IDisposable
+    public abstract class PerformanceTest<T> : IDisposable where T: IDatabaseImpl, new()
     {
         private ITestOutputHelper _output;
-        protected PerformanceTest(
-            IDatabaseImpl databaseImpl, ITestOutputHelper output)
+        protected PerformanceTest(ITestOutputHelper output)
         {
+            _output.WriteLine($"{GetType()} - initialize");
+            var databaseImpl = new T();
             var isAvailable = databaseImpl.IsAvailable();
             Skip.IfNot(isAvailable);
-
             _output = output;
-            _testHelper = new DbTestHelper(databaseImpl);
-
-
+            _testHelper = new DbTestHelper(databaseImpl, output);
             _testHelper.Initialize();
             _testHelper.BulkInsert(FakeData.People.List(1000));
         }
 
         private readonly DbTestHelper _testHelper;
 
-
         public void Dispose()
         {
+            _output.WriteLine($"{GetType()} - cleanup");
             _testHelper.Cleanup();
         }
 
@@ -63,37 +61,16 @@ namespace IntegrationTests
             action();
             return sw.Elapsed;
         }
+    }
 
-        public class SqlServerTest : PerformanceTest
-        {
-            public SqlServerTest(ITestOutputHelper output) : base(new SqlServerDb(), output)
-            {
-            }
-        }
-        public class OracleTest : PerformanceTest
-        {
-            public OracleTest(ITestOutputHelper output) : base(new OracleDb(), output)
-            {
-            }
-        }
+    namespace Performance
+    {
+        public class SqlServer : PerformanceTest<SqlServerDb> { public SqlServer(ITestOutputHelper output) : base(output) { } }
+        public class Oracle : PerformanceTest<OracleDb> { public Oracle(ITestOutputHelper output) : base(output) { } }
+        public class SqLite : PerformanceTest<SqLiteDb> { public SqLite(ITestOutputHelper output) : base(output) { } }
+        public class MySql : PerformanceTest<MySqlDb> { public MySql(ITestOutputHelper output) : base(output) { } }
+        public class PostgreSql : PerformanceTest<PostgreSqlDb> { public PostgreSql(ITestOutputHelper output) : base(output) { } }
+        public class DB2 : PerformanceTest<DB2Db> { public DB2(ITestOutputHelper output) : base(output) { } }
 
-        public class SqLiteTest : PerformanceTest
-        {
-            public SqLiteTest(ITestOutputHelper output) : base(new SqLiteDb(), output)
-            {
-            }
-        }
-        public class MySqlTest : PerformanceTest
-        {
-            public MySqlTest(ITestOutputHelper output) : base(new MySqlDb(), output)
-            {
-            }
-        }
-        public class PostgreSqlTest : PerformanceTest
-        {
-            public PostgreSqlTest(ITestOutputHelper output) : base(new PostgreSqlDb(), output)
-            {
-            }
-        }
     }
 }

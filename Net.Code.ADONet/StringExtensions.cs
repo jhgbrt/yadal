@@ -42,6 +42,8 @@ namespace Net.Code.ADONet
             return string.Join("_", SplitUpperCase(source).Select(s => s.ToLowerInvariant()));
         }
 
+        public static string NoOp(this string source) => source;
+
         static IEnumerable<string> SplitUpperCase(string source)
         {
             var wordStart = 0;

@@ -45,11 +45,11 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
         {
             var values = new[]
             {
-                ("UNMAPPED_PROPERTY",  (object)"SomeValue"),
+                ("UnmappedProperty",  (object)"SomeValue"),
             };
 
             var record = values.ToDataReader();
-            var config = new DbConfig(c => { }, MappingConvention.OracleStyle, string.Empty);
+            var config = new DbConfig(c => { }, MappingConvention.Default, string.Empty);
             var map = record.GetSetterMap<SomeEntity>(config);
 
             var entity = record.MapTo(map);
@@ -65,15 +65,15 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
         {
             var values = new[]
             {
-                ("MY_PROPERTY",  "SomeValue"),
-                ("MY_NULLABLE_INT1", DBNull.Value),
-                ("MY_NULLABLE_INT2", 1),
-                ("MY_INT1", (object) 2)
+                ("MyProperty",  "SomeValue"),
+                ("MyNullableInt1", DBNull.Value),
+                ("MyNullableInt2", 1),
+                ("MyInt1", (object) 2)
             };
 
             var reader = values.ToDataReader();
 
-            var config = new DbConfig(c => { }, MappingConvention.OracleStyle, string.Empty);
+            var config = new DbConfig(c => { }, MappingConvention.Default, string.Empty);
             var map = reader.GetSetterMap<MyEntity>(config);
             var entity = reader.MapTo(map);
             

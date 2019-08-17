@@ -56,7 +56,10 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         public void GivenDb_WhenOnPrepareIsConfigured__AndExecuteIsCalled_CommandIsPrepared()
         {
             var fakeConnection = new FakeConnection();
-            var db = new Db(fakeConnection, new DbConfig(c => ((FakeCommand)c).Comment = "PREPARED", MappingConvention.OracleStyle, string.Empty));
+            var db = new Db(fakeConnection, new DbConfig(
+                c => ((FakeCommand)c).Comment = "PREPARED", 
+                MappingConvention.Default, 
+                string.Empty));
             db.Execute("");
             Assert.Equal("PREPARED", fakeConnection.Commands.Single().Comment);
         }
