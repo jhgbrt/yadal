@@ -20,9 +20,8 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         [Fact]
         public void ProviderName_WhenCalled_ReturnsProviderName()
         {
-            //DbProviderFactories.RegisterFactory("Substitute.For.DbProviderFactory", Substitute.For<DbProviderFactory>());
-            var db = new Db(string.Empty, "System.Data.SqlClient");
-            Assert.Equal("System.Data.SqlClient", db.ProviderName);
+            var db = new Db(Substitute.For<IDbConnection>(), DbConfig.FromProviderName("TEST"));
+            Assert.Equal("TEST", db.ProviderName);
         }
     }
     public class DbConstructorTests
