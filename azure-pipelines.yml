@@ -8,7 +8,7 @@ trigger:
 - master
 
 pool:
-  vmImage: 'windows-latest'
+  vmImage: 'ubuntu-latest'
 
 steps:
 - task: DockerInstaller@0
@@ -19,8 +19,9 @@ steps:
     packageType: 'sdk'
     version: '3.0.100-preview8-013656'
     includePreviewVersions: true
-- task: CmdLine@2
+- task: Bash@3
   inputs:
+    targetType: 'inline'
     script: |
       docker run --rm -d -p 3306:3306 --name mysql -e MYSQL_ROOT_PASSWORD=P@ssword1! mysql
       docker run --rm -d -p 5432:5432 --name postgres -e POSTGRES_PASSWORD=P@ssword1! postgres
