@@ -35,10 +35,13 @@ steps:
     command: 'test'
     arguments: 'Net.Code.ADONet.Tests.Integration --filter "(Database=SQLSERVER|Database=SQLITE|Database=MYSQL|Database=POSTGRES)"'
 - task: DotNetCoreCLI@2
-  displayName: pack
   inputs:
     command: 'pack'
-    arguments: '--no-build --include-symbols -c Release -p:PackageVersion=$(Version) Net.Code.ADONet'
+    packagesToPack: 'Net.Code.ADONet/Net.Code.ADONet.csproj'
+    nobuild: true
+    includesymbols: true
+    versioningScheme: 'byEnvVar'
+    versionEnvVar: 'Version'
 - task: PublishBuildArtifacts@1
   inputs:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
