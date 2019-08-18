@@ -38,10 +38,7 @@ steps:
   displayName: pack
   inputs:
     command: 'pack'
-    arguments: ' -p:PackageVersion=$(Version)'
-    packagesToPack: 'Net.Code.ADONet/**/*.csproj'
-    includesymbols: true
-    versioningScheme: 'off'
+    arguments: '--no-build --include-symbols -c Release -p:PackageVersion=$(Version) Net.Code.ADONet'
 - task: PublishBuildArtifacts@1
   inputs:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
