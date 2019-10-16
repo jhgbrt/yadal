@@ -9,12 +9,12 @@ steps:
 - task: DockerInstaller@0
   inputs:
     dockerVersion: '17.09.0-ce'
-- task: Bash@3
-  inputs:
-    targetType: 'inline'
-    script: |
-      docker run --rm -d -p 5432:5432 --name postgres -e POSTGRES_PASSWORD=P@ssword1! postgres
-      docker run --rm -d -p 1433:1433 --name sqlserver -e ACCEPT_EULA=Y -e SA_PASSWORD=P@ssword1! -e MSSQL_PID=Express mcr.microsoft.com/mssql/server:2017-latest-ubuntu
+#- task: Bash@3
+#  inputs:
+#    targetType: 'inline'
+#    script: |
+#      docker run --rm -d -p 5432:5432 --name postgres -e POSTGRES_PASSWORD=P@ssword1! postgres
+#      docker run --rm -d -p 1433:1433 --name sqlserver -e ACCEPT_EULA=Y -e SA_PASSWORD=P@ssword1! -e MSSQL_PID=Express mcr.microsoft.com/mssql/server:2017-latest-ubuntu
 # MySQL already runs on the host, so is not necessary      
 #      docker run --rm -d -p 3306:3306 --name mysql -e MYSQL_ROOT_PASSWORD=P@ssword1! mysql
 # DB2 tests don't work on Azure build agent (due to some xunit incompatibility)
@@ -28,7 +28,8 @@ steps:
   displayName: test
   inputs:
     command: 'test'
-    arguments: 'Net.Code.ADONet.Tests.Integration --filter "(Database=SQLSERVER|Database=SQLITE|Database=MYSQL|Database=POSTGRES)"'
+#    arguments: 'Net.Code.ADONet.Tests.Integration --filter "(Database=SQLSERVER|Database=SQLITE|Database=MYSQL|Database=POSTGRES)"'
+    arguments: 'Net.Code.ADONet.Tests.Integration --filter "(Database=SQLITE)"'
 - task: DotNetCoreCLI@2
   inputs:
     command: 'pack'
