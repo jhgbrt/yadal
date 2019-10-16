@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using Net.Code.ADONet.Extensions.SqlClient;
 using Net.Code.ADONet.Tests.Integration.Data;
 

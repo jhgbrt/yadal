@@ -42,7 +42,7 @@ namespace Net.Code.ADONet
             _externalConnection = connection;
             Config = config ?? DbConfig.Default;
         }
-        
+
 #if NETFRAMEWORK
         /// <summary>
         /// Instantiate Db with connectionString and DbProviderName
@@ -77,14 +77,24 @@ namespace Net.Code.ADONet
         }
 #endif
 
- 
+        /// <summary>
+        /// Instantiate Db with connectionString and a custom IConnectionFactory
+        /// </summary>
+        /// <param name="connectionString">the connection string</param>
+        /// <param name="providerFactory">the connection provider factory</param>
+        public Db(string connectionString, DbProviderFactory providerFactory)
+            : this(connectionString, DbConfig.FromProviderFactory(providerFactory), providerFactory)
+        {
+        }
+
+
         /// <summary>
         /// Instantiate Db with connectionString and a custom IConnectionFactory
         /// </summary>
         /// <param name="connectionString">the connection string</param>
         /// <param name="config"></param>
         /// <param name="connectionFactory">the connection factory</param>
-        public Db(string connectionString, DbConfig config, DbProviderFactory connectionFactory)
+        internal Db(string connectionString, DbConfig config, DbProviderFactory connectionFactory)
         {
             Logger.Log("Db ctor");
             _connectionString = connectionString;

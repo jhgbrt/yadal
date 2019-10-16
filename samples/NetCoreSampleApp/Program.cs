@@ -43,7 +43,6 @@ namespace NetCoreSampleApp
                         .AddScoped<IDb, Db>(
                             serviceProvider => new Db(
                                 context.Configuration.GetSection("Db").Get<DbSettings>().ConnectionString, 
-                                DbConfig.Default, 
                                 SQLiteFactory.Instance)
                             );
                     services.AddTransient<SomeService>();
