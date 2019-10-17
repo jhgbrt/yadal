@@ -17,7 +17,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Db.NetStandard", "Net.Code.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{459081E4-A8C4-4914-8C83-F4EF5BD1F993}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetCoreSampleApp", "samples\NetCoreSampleApp\NetCoreSampleApp.csproj", "{EA8243C9-5108-4272-A6D5-1C74A5CDD504}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetCoreSampleApp", "samples\NetCoreSampleApp\NetCoreSampleApp.csproj", "{EA8243C9-5108-4272-A6D5-1C74A5CDD504}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{73BB3183-A238-4473-AB47-55ED94E72855}"
+	ProjectSection(SolutionItems) = preProject
+		azure-pipelines.yml = azure-pipelines.yml
+		ci-build.yml = ci-build.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
