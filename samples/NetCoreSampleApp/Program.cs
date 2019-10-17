@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using System.Data.SQLite;
 using System.IO;
 
+#pragma warning disable
+
 namespace NetCoreSampleApp
 {
 
@@ -53,7 +55,7 @@ namespace NetCoreSampleApp
         }
     }
 
-    public class SomeDependency
+   public class SomeDependency
     {
         IDb _db;
         public SomeDependency(IDb db)
