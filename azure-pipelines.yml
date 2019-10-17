@@ -25,7 +25,12 @@ steps:
     command: 'build'
     arguments: '-p:Version=$(Version)'
 - task: DotNetCoreCLI@2
-  displayName: test
+  displayName: Run Unit Tests
+  inputs:
+    command: 'test'
+    arguments: Net.Code.ADONet.Tests.Unit
+- task: DotNetCoreCLI@2
+  displayName: Run Integration Tests
   inputs:
     command: 'test'
 #    arguments: 'Net.Code.ADONet.Tests.Integration --filter "(Database=SQLSERVER|Database=SQLITE|Database=MYSQL|Database=POSTGRES)"'
