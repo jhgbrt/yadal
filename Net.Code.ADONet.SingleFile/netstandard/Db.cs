@@ -1,3 +1,4 @@
+using Microsoft.Data.SqlClient;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -7,7 +8,6 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
 using System.Data.Common;
-using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Dynamic;
 using System.Linq;
@@ -550,11 +550,7 @@ namespace Net.Code.ADONet
     /// <summary>
     /// <para> Yet Another Data Access Layer</para>
     /// <para>usage: </para>
-    /// <para>using (var db = new Db()) {};                                 </para>
-    /// <para>using (var db = new Db(connectionString)) {};                 </para>
-    /// <para>using (var db = new Db(connectionString, providerName)) {};   </para>
-    /// <para>using (var db = Db.FromConfig());                             </para>
-    /// <para>using (var db = Db.FromConfig(connectionStringName));         </para>
+    /// <para>using (var db = new Db(connectionString, providerFactory)) {};                 </para>
     /// <para>
     /// from there it should be discoverable.
     /// inline SQL FTW!
@@ -569,9 +565,9 @@ namespace Net.Code.ADONet
 
         internal IMappingConvention MappingConvention => Config.MappingConvention;
         private readonly string _connectionString;
-        private Lazy<IDbConnection> _connection;
+        private IDbConnection _connection;
         private readonly DbProviderFactory _connectionFactory;
-        private readonly IDbConnection _externalConnection;
+        private readonly bool _externalConnection;
         /// <summary>
         /// Instantiate Db with existing connection. The connection is only used for creating commands; 
         /// it should be disposed by the caller when done.
@@ -580,8 +576,18 @@ namespace Net.Code.ADONet
         /// <param name = "config"></param>
         public Db(IDbConnection connection, DbConfig config)
         {
-            _externalConnection = connection;
+            _connection = connection;
+            _externalConnection = true;
             Config = config ?? DbConfig.Default;
+        }
+
+        /// <summary>
+        /// Instantiate Db with connectionString and a custom IConnectionFactory
+        /// </summary>
+        /// <param name = "connectionString">the connection string</param>
+        /// <param name = "providerFactory">the connection provider factory</param>
+        public Db(string connectionString, DbProviderFactory providerFactory): this(connectionString, DbConfig.FromProviderFactory(providerFactory), providerFactory)
+        {
         }
 
         /// <summary>
@@ -590,21 +596,20 @@ namespace Net.Code.ADONet
         /// <param name = "connectionString">the connection string</param>
         /// <param name = "config"></param>
         /// <param name = "connectionFactory">the connection factory</param>
-        public Db(string connectionString, DbConfig config, DbProviderFactory connectionFactory)
+        internal Db(string connectionString, DbConfig config, DbProviderFactory connectionFactory)
         {
             Logger.Log("Db ctor");
             _connectionString = connectionString;
-            _connectionFactory = connectionFactory;
-            _connection = new Lazy<IDbConnection>(CreateConnection);
+            _connection = connectionFactory.CreateConnection();
+            _externalConnection = false;
             Config = config;
         }
 
         public void Connect()
         {
             Logger.Log("Db connect");
-            var connection = _externalConnection ?? _connection.Value;
-            if (connection.State != ConnectionState.Open)
-                connection.Open();
+            if (_connection.State != ConnectionState.Open)
+                _connection.Open();
         }
 
         /// <summary>
@@ -615,7 +620,7 @@ namespace Net.Code.ADONet
             get
             {
                 Connect();
-                return _externalConnection ?? _connection.Value;
+                return _connection;
             }
         }
 
@@ -624,9 +629,9 @@ namespace Net.Code.ADONet
         public void Dispose()
         {
             Logger.Log("Db dispose");
-            if (_connection == null || !_connection.IsValueCreated)
+            if (_connection == null || _externalConnection)
                 return;
-            _connection.Value.Dispose();
+            _connection.Dispose();
             _connection = null;
         }
 

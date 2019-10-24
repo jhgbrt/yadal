@@ -2,20 +2,14 @@
 using System;
 using System.Data;
 using System.Data.Common;
-#if NETFRAMEWORK
-using System.Configuration;
-#endif
 
 namespace Net.Code.ADONet
 {
+
     /// <summary>
-    /// <para> Yet Another Data Access Layer</para>
+    /// <para>Yet Another Data Access Layer</para>
     /// <para>usage: </para>
-    /// <para>using (var db = new Db()) {};                                 </para>
-    /// <para>using (var db = new Db(connectionString)) {};                 </para>
-    /// <para>using (var db = new Db(connectionString, providerName)) {};   </para>
-    /// <para>using (var db = Db.FromConfig());                             </para>
-    /// <para>using (var db = Db.FromConfig(connectionStringName));         </para>
+    /// <para>using (var db = new Db(connectionString, providerFactory)) {};</para>
     /// <para>
     /// from there it should be discoverable.
     /// inline SQL FTW!
@@ -27,9 +21,9 @@ namespace Net.Code.ADONet
         internal IMappingConvention MappingConvention => Config.MappingConvention;
 
         private readonly string _connectionString;
-        private Lazy<IDbConnection> _connection;
+        private IDbConnection _connection;
         private readonly DbProviderFactory _connectionFactory;
-        private readonly IDbConnection _externalConnection;
+        private readonly bool _externalConnection;
 
         /// <summary>
         /// Instantiate Db with existing connection. The connection is only used for creating commands; 
@@ -39,7 +33,8 @@ namespace Net.Code.ADONet
         /// <param name="config"></param>
         public Db(IDbConnection connection, DbConfig config)
         {
-            _externalConnection = connection;
+            _connection = connection;
+            _externalConnection = true;
             Config = config ?? DbConfig.Default;
         }
 
@@ -55,26 +50,11 @@ namespace Net.Code.ADONet
         {
         }
 
-        /// <summary>
-        /// Factory method, instantiating the Db class from the first connectionstring 
-        /// in the app.config or web.config file.
-        /// </summary>
-        /// <returns>Db</returns>
-        public static Db FromConfig() => FromConfig(ConfigurationManager.ConnectionStrings[0]);
-
-        /// <summary>
-        /// Factory method, instantiating the Db class from a named connectionstring 
-        /// in the app.config or web.config file.
-        /// </summary>
+        [Obsolete("Use DbFactory.FromConfig", true)]
+        public static Db FromConfig() => DbFactory.FromConfig();
+        [Obsolete("Use DbFactory.FromConfig", true)]
         public static Db FromConfig(string connectionStringName)
-            => FromConfig(ConfigurationManager.ConnectionStrings[connectionStringName]);
-
-        private static Db FromConfig(ConnectionStringSettings connectionStringSettings)
-        {
-            var connectionString = connectionStringSettings.ConnectionString;
-            var providerName = connectionStringSettings.ProviderName;
-            return new Db(connectionString, providerName);
-        }
+            => DbFactory.FromConfig(connectionStringName);
 #endif
 
         /// <summary>
@@ -98,17 +78,16 @@ namespace Net.Code.ADONet
         {
             Logger.Log("Db ctor");
             _connectionString = connectionString;
-            _connectionFactory = connectionFactory;
-            _connection = new Lazy<IDbConnection>(CreateConnection);
+            _connection = connectionFactory.CreateConnection();
+            _externalConnection = false;
             Config = config;
         }
 
         public void Connect()
         {
             Logger.Log("Db connect");
-            var connection = _externalConnection ?? _connection.Value;
-            if (connection.State != ConnectionState.Open)
-                connection.Open();
+            if (_connection.State != ConnectionState.Open)
+                _connection.Open();
         }
 
         /// <summary>
@@ -119,7 +98,7 @@ namespace Net.Code.ADONet
             get
             {
                 Connect();
-                return _externalConnection ?? _connection.Value;
+                return _connection;
             }
         }
 
@@ -130,8 +109,8 @@ namespace Net.Code.ADONet
         public void Dispose()
         {
             Logger.Log("Db dispose");
-            if (_connection == null || !_connection.IsValueCreated) return;
-            _connection.Value.Dispose();
+            if (_connection == null || _externalConnection) return;
+            _connection.Dispose();
             _connection = null;
         }
 

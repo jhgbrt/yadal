@@ -10,6 +10,9 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Net.Code.ADONet.Tests.Integration", "Net.Code.ADONet.Tests.Integration\Net.Code.ADONet.Tests.Integration.csproj", "{B912550C-A54D-46A9-BC22-A19AA87F2D3B}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SingleFile", "SingleFile", "{7652278A-5E4A-4E5D-8FE4-9BFA988A571E}"
+	ProjectSection(SolutionItems) = preProject
+		Net.Code.ADONet.SingleFile\join.cmd = Net.Code.ADONet.SingleFile\join.cmd
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Db.NetFx", "Net.Code.ADONet.SingleFile\netfx\Db.NetFx.csproj", "{8AC34B5E-F174-4FC3-96BF-092913F5811A}"
 EndProject

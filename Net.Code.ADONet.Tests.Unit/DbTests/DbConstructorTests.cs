@@ -1,5 +1,4 @@
-﻿using System.Configuration;
-using System.Data;
+﻿using System.Data;
 using System.Data.Common;
 using NSubstitute;
 using Xunit;
@@ -51,21 +50,5 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
 
             fakeConnection.Received().Dispose();
         }
-
-
-#if NETFRAMEWORK
-        [Fact]
-        public void FromConfig_ReturnsDbWithFirstConfigurationSetting()
-        {
-            var db = Db.FromConfig();
-            Assert.Equal(ConfigurationManager.ConnectionStrings["firstConnectionString"].ConnectionString, db.ConnectionString);
-        }
-        [Fact]
-        public void FromConfig_ReturnsDbWithNamedConfigurationSetting()
-        {
-            var db = Db.FromConfig("secondConnectionString");
-            Assert.Equal(ConfigurationManager.ConnectionStrings["secondConnectionString"].ConnectionString, db.ConnectionString);
-        }
-#endif
     }
 }
