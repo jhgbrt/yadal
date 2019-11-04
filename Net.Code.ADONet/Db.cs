@@ -20,9 +20,7 @@ namespace Net.Code.ADONet
         internal DbConfig Config { get; }
         internal IMappingConvention MappingConvention => Config.MappingConvention;
 
-        private readonly string _connectionString;
         private IDbConnection _connection;
-        private readonly DbProviderFactory _connectionFactory;
         private readonly bool _externalConnection;
 
         /// <summary>
@@ -77,8 +75,7 @@ namespace Net.Code.ADONet
         internal Db(string connectionString, DbConfig config, DbProviderFactory connectionFactory)
         {
             Logger.Log("Db ctor");
-            _connectionString = connectionString;
-            _connection = connectionFactory.CreateConnection();
+            _connection = connectionFactory.CreateConnection(connectionString);
             _externalConnection = false;
             Config = config;
         }
@@ -102,9 +99,7 @@ namespace Net.Code.ADONet
             }
         }
 
-        public string ConnectionString => _connectionString;
-
-        private IDbConnection CreateConnection() => _connectionFactory.CreateConnection(_connectionString);
+        public string ConnectionString => _connection.ConnectionString;
 
         public void Dispose()
         {

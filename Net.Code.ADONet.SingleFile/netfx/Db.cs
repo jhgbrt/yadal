@@ -381,7 +381,7 @@ namespace Net.Code.ADONet
         // ReSharper disable once UnusedMember.Local
         // (used via reflection!)
         private static TElem? ConvertNullableValueType<TElem>(object value)
-            where TElem : struct => IsNull(value) ? default(TElem?) : ConvertPrivate<TElem>(value);
+            where TElem : struct => IsNull(value) ? default(TElem? ) : ConvertPrivate<TElem>(value);
         private static T ConvertRefType(object value) => IsNull(value) ? default : ConvertPrivate<T>(value);
         private static T ConvertValueType(object value)
         {
@@ -549,9 +549,9 @@ namespace Net.Code.ADONet
     }
 
     /// <summary>
-    /// <para> Yet Another Data Access Layer</para>
+    /// <para>Yet Another Data Access Layer</para>
     /// <para>usage: </para>
-    /// <para>using (var db = new Db(connectionString, providerFactory)) {};                 </para>
+    /// <para>using (var db = new Db(connectionString, providerFactory)) {};</para>
     /// <para>
     /// from there it should be discoverable.
     /// inline SQL FTW!
@@ -565,9 +565,7 @@ namespace Net.Code.ADONet
         }
 
         internal IMappingConvention MappingConvention => Config.MappingConvention;
-        private readonly string _connectionString;
         private IDbConnection _connection;
-        private readonly DbProviderFactory _connectionFactory;
         private readonly bool _externalConnection;
         /// <summary>
         /// Instantiate Db with existing connection. The connection is only used for creating commands; 
@@ -588,7 +586,7 @@ namespace Net.Code.ADONet
         /// <param name = "connectionString">The connection string</param>
         /// <param name = "providerName">The ADO .Net Provider name. When not specified, 
         /// the default value is used (see DefaultProviderName)</param>
-        public Db(string connectionString, string providerName) : this(connectionString, DbConfig.FromProviderName(providerName), DbProviderFactories.GetFactory(providerName))
+        public Db(string connectionString, string providerName): this(connectionString, DbConfig.FromProviderName(providerName), DbProviderFactories.GetFactory(providerName))
         {
         }
 
@@ -601,7 +599,7 @@ namespace Net.Code.ADONet
         /// </summary>
         /// <param name = "connectionString">the connection string</param>
         /// <param name = "providerFactory">the connection provider factory</param>
-        public Db(string connectionString, DbProviderFactory providerFactory) : this(connectionString, DbConfig.FromProviderFactory(providerFactory), providerFactory)
+        public Db(string connectionString, DbProviderFactory providerFactory): this(connectionString, DbConfig.FromProviderFactory(providerFactory), providerFactory)
         {
         }
 
@@ -614,8 +612,7 @@ namespace Net.Code.ADONet
         internal Db(string connectionString, DbConfig config, DbProviderFactory connectionFactory)
         {
             Logger.Log("Db ctor");
-            _connectionString = connectionString;
-            _connection = connectionFactory.CreateConnection();
+            _connection = connectionFactory.CreateConnection(connectionString);
             _externalConnection = false;
             Config = config;
         }
@@ -639,8 +636,7 @@ namespace Net.Code.ADONet
             }
         }
 
-        public string ConnectionString => _connectionString;
-        private IDbConnection CreateConnection() => _connectionFactory.CreateConnection(_connectionString);
+        public string ConnectionString => _connection.ConnectionString;
         public void Dispose()
         {
             Logger.Log("Db dispose");
@@ -839,8 +835,7 @@ namespace Net.Code.ADONet
                 Getters = FastReflection.Instance.GetGettersForType<T>();
                 PropertyIndexesByName = Properties.Select((p, i) => new
                 {
-                    p,
-                    i
+                p, i
                 }
 
                 ).ToDictionary(x => x.p.Name, x => x.i);
@@ -903,22 +898,15 @@ namespace Net.Code.ADONet
                 var q =
                     from x in Properties.Select((p, i) => new
                     {
-                        p,
-                        i
+                    p, i
                     }
 
-                    )
-                    let p = x.p
-                    let nullable = p.PropertyType.IsNullableType()
-                    let dataType = p.PropertyType.GetUnderlyingType()
-                    select new
+                    )let p = x.p
+                    let nullable = p.PropertyType.IsNullableType()let dataType = p.PropertyType.GetUnderlyingType()select new
                     {
-                        ColumnName = p.Name,
-                        ColumnOrdinal = x.i,
-                        ColumnSize = int.MaxValue, // must be filled in and large enough for ToDataTable
-                        AllowDBNull = nullable || !p.PropertyType.IsValueType, // assumes string nullable
-                        DataType = dataType,
-                    }
+                    ColumnName = p.Name, ColumnOrdinal = x.i, ColumnSize = int.MaxValue, // must be filled in and large enough for ToDataTable
+ AllowDBNull = nullable || !p.PropertyType.IsValueType, // assumes string nullable
+ DataType = dataType, }
 
                 ;
                 var dt = q.ToDataTable();
@@ -952,8 +940,7 @@ namespace Net.Code.ADONet
         {
             var setters = _setters.GetOrAdd(new
             {
-                Type = typeof(T)
-            }
+            Type = typeof(T)}
 
             , d => ((Type)d.Type).GetProperties().ToDictionary(p => p.Name, GetSetDelegate<T>));
             return (IReadOnlyDictionary<string, Action<T, object>>)setters;
@@ -965,7 +952,7 @@ namespace Net.Code.ADONet
             var method = p.GetSetMethod();
             var genericHelper = Type.GetMethod(nameof(CreateSetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
             var constructedHelper = genericHelper.MakeGenericMethod(typeof(T), method.GetParameters()[0].ParameterType);
-            return (Action<T, object>)constructedHelper.Invoke(null, new object[] { method });
+            return (Action<T, object>)constructedHelper.Invoke(null, new object[]{method});
         }
 
         // ReSharper disable once UnusedMethodReturnValue.Local
@@ -982,8 +969,7 @@ namespace Net.Code.ADONet
         {
             var setters = _getters.GetOrAdd(new
             {
-                Type = typeof(T)
-            }
+            Type = typeof(T)}
 
             , d => ((Type)d.Type).GetProperties().ToDictionary(p => p.Name, GetGetDelegate<T>));
             return (IReadOnlyDictionary<string, Func<T, object>>)setters;
@@ -995,7 +981,7 @@ namespace Net.Code.ADONet
             var method = p.GetGetMethod();
             var genericHelper = Type.GetMethod(nameof(CreateGetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
             var constructedHelper = genericHelper.MakeGenericMethod(typeof(T), method.ReturnType);
-            return (Func<T, object>)constructedHelper.Invoke(null, new object[] { method });
+            return (Func<T, object>)constructedHelper.Invoke(null, new object[]{method});
         }
 
         // ReSharper disable once UnusedMethodReturnValue.Local
@@ -1148,14 +1134,14 @@ namespace Net.Code.ADONet
             {
                 if (char.IsUpper(letters[i]) && !char.IsWhiteSpace(previous))
                 {
-                    yield return new string(letters, wordStart, i - wordStart);
+                    yield return new string (letters, wordStart, i - wordStart);
                     wordStart = i;
                 }
 
                 previous = letters[i];
             }
 
-            yield return new string(letters, wordStart, letters.Length - wordStart);
+            yield return new string (letters, wordStart, letters.Length - wordStart);
         }
     }
 
@@ -1369,7 +1355,7 @@ namespace Net.Code.ADONet.Extensions.SqlClient
         {
             var dataTable = values.ToDataTable();
             var p = new SqlParameter(name, SqlDbType.Structured)
-            { TypeName = udtTypeName, Value = dataTable };
+            {TypeName = udtTypeName, Value = dataTable};
             return commandBuilder.WithParameter(p);
         }
 

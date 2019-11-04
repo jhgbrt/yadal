@@ -548,9 +548,9 @@ namespace Net.Code.ADONet
     }
 
     /// <summary>
-    /// <para> Yet Another Data Access Layer</para>
+    /// <para>Yet Another Data Access Layer</para>
     /// <para>usage: </para>
-    /// <para>using (var db = new Db(connectionString, providerFactory)) {};                 </para>
+    /// <para>using (var db = new Db(connectionString, providerFactory)) {};</para>
     /// <para>
     /// from there it should be discoverable.
     /// inline SQL FTW!
@@ -564,9 +564,7 @@ namespace Net.Code.ADONet
         }
 
         internal IMappingConvention MappingConvention => Config.MappingConvention;
-        private readonly string _connectionString;
         private IDbConnection _connection;
-        private readonly DbProviderFactory _connectionFactory;
         private readonly bool _externalConnection;
         /// <summary>
         /// Instantiate Db with existing connection. The connection is only used for creating commands; 
@@ -599,8 +597,7 @@ namespace Net.Code.ADONet
         internal Db(string connectionString, DbConfig config, DbProviderFactory connectionFactory)
         {
             Logger.Log("Db ctor");
-            _connectionString = connectionString;
-            _connection = connectionFactory.CreateConnection();
+            _connection = connectionFactory.CreateConnection(connectionString);
             _externalConnection = false;
             Config = config;
         }
@@ -624,8 +621,7 @@ namespace Net.Code.ADONet
             }
         }
 
-        public string ConnectionString => _connectionString;
-        private IDbConnection CreateConnection() => _connectionFactory.CreateConnection(_connectionString);
+        public string ConnectionString => _connection.ConnectionString;
         public void Dispose()
         {
             Logger.Log("Db dispose");
