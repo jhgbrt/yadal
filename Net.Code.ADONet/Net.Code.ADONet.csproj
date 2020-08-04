@@ -15,7 +15,7 @@
     <PackageReleaseNotes></PackageReleaseNotes>
     <AssemblyVersion>3.0.0</AssemblyVersion>
     <FileVersion>3.0.0</FileVersion>
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'net472'">
     <Reference Include="Microsoft.CSharp" />
@@ -27,8 +27,8 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' != 'net472'">
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="1.0.19269.1" />
-    <PackageReference Include="Microsoft.CSharp" Version="4.6.0" />
-    <PackageReference Include="System.ComponentModel.Annotations" Version="4.6.0" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="2.0.0" />
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+    <PackageReference Include="System.ComponentModel.Annotations" Version="4.7.0" />
   </ItemGroup>
 </Project>

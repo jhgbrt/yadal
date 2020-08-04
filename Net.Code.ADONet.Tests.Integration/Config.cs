@@ -9,8 +9,8 @@ namespace Net.Code.ADONet.Tests.Integration
 
         public static readonly IReadOnlyDictionary<string, string> ConnectionStrings = new Dictionary<string, string>
         {
-            ["SqlServer"] = @$"Data Source=localhost;Initial Catalog={DatabaseName};User Id=sa;Password={Password}",
-            ["SqlServerMaster"] = @$"Data Source=localhost;Initial Catalog=master;User Id=sa;Password={Password}",
+            ["SqlServer"] = @$"Data Source=localhost;Initial Catalog={DatabaseName};User Id=sa;Password={Password};Persist Security Info=True",
+            ["SqlServerMaster"] = @$"Data Source=localhost;Initial Catalog=master;User Id=sa;Password={Password};Persist Security Info=True",
             ["Oracle"] = @$"Data Source=localhost:1521/XE;User ID={DatabaseName};Password={Password}",
             ["OracleMaster"] = $@"Data Source=localhost:1521/XE;DBA Privilege=SYSDBA;User Id=sys;Password={Password}",
             ["SqLite"] = @"Data Source=:memory:",
