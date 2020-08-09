@@ -5,7 +5,7 @@ namespace Net.Code.ADONet
 {
     static class DbProviderFactoryEx 
     {
-        public static IDbConnection CreateConnection(this DbProviderFactory factory, string connectionString)
+        public static DbConnection CreateConnection(this DbProviderFactory factory, string connectionString)
         {
             var connection = factory.CreateConnection();
             // ReSharper disable once PossibleNullReferenceException

@@ -2,6 +2,7 @@
 using System;
 using System.Data;
 using System.Data.Common;
+using System.Threading.Tasks;
 
 namespace Net.Code.ADONet
 {
@@ -20,7 +21,7 @@ namespace Net.Code.ADONet
         internal DbConfig Config { get; }
         internal IMappingConvention MappingConvention => Config.MappingConvention;
 
-        private IDbConnection _connection;
+        private DbConnection _connection;
         private readonly bool _externalConnection;
 
         /// <summary>
@@ -29,7 +30,7 @@ namespace Net.Code.ADONet
         /// </summary>
         /// <param name="connection">The existing connection</param>
         /// <param name="config"></param>
-        public Db(IDbConnection connection, DbConfig config)
+        public Db(DbConnection connection, DbConfig config)
         {
             _connection = connection;
             _externalConnection = true;
@@ -87,10 +88,17 @@ namespace Net.Code.ADONet
                 _connection.Open();
         }
 
+        public async Task ConnectAsync()
+        {
+            Logger.Log("Db connect");
+            if (_connection.State != ConnectionState.Open)
+                await _connection.OpenAsync();
+        }
+
         /// <summary>
         /// The actual IDbConnection (which will be open)
         /// </summary>
-        public IDbConnection Connection
+        public DbConnection Connection
         {
             get
             {

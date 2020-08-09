@@ -1,5 +1,8 @@
 using System;
 using System.Data;
+using System.Data.Common;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace Net.Code.ADONet
 {
@@ -9,10 +12,17 @@ namespace Net.Code.ADONet
         /// Open a connection to the database. Not required.
         /// </summary>
         void Connect();
+
+#if NETCOREAPP
         /// <summary>
-        /// The actual IDbConnection (which will be open)
+        /// Open a connection to the database. Not required.
         /// </summary>
-        IDbConnection Connection { get; }
+        Task ConnectAsync() {Connect();return Task.FromResult(false); }
+#endif
+        /// <summary>
+        /// The actual DbConnection (which will be open)
+        /// </summary>
+        DbConnection Connection { get; }
      
         /// <summary>
         /// The ADO.Net connection string

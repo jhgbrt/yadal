@@ -11,7 +11,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         [Fact]
         public void Connect_WhenCalled_OpensConnection()
         {
-            var connection = Substitute.For<IDbConnection>();
+            var connection = Substitute.For<DbConnection>();
             var db = new Db(connection, DbConfig.Default);
             db.Connect();
             connection.Received(1).Open();
@@ -22,7 +22,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         [Fact]
         public void GivenDbWithExternalConnection_WhenDisposed_ConnectionIsNotDisposed()
         {
-            var fakeConnection = Substitute.For<IDbConnection>();
+            var fakeConnection = Substitute.For<DbConnection>();
 
             var db = new Db(fakeConnection, DbConfig.Default);
             db.Dispose();
