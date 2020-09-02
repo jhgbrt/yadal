@@ -1,11 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-#if NETFRAMEWORK
-using System.Data.SqlClient;
-#else
 using Microsoft.Data.SqlClient;
-#endif
+
 namespace Net.Code.ADONet.Extensions.SqlClient
 {
     public static class DbExtensions

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Data.Common;
 using Net.Code.ADONet.Extensions.Experimental;
 using Net.Code.ADONet.Tests.Integration.Data;
 

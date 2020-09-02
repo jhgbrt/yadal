@@ -1,6 +1,4 @@
-﻿
-using System;
-using System.Data;
+﻿using System.Data;
 using System.Data.Common;
 using System.Threading.Tasks;
 
@@ -36,25 +34,6 @@ namespace Net.Code.ADONet
             _externalConnection = true;
             Config = config ?? DbConfig.Default;
         }
-
-#if NETFRAMEWORK
-        /// <summary>
-        /// Instantiate Db with connectionString and DbProviderName
-        /// </summary>
-        /// <param name="connectionString">The connection string</param>
-        /// <param name="providerName">The ADO .Net Provider name. When not specified, 
-        /// the default value is used (see DefaultProviderName)</param>
-        public Db(string connectionString, string providerName)
-            : this(connectionString, DbConfig.FromProviderName(providerName), DbProviderFactories.GetFactory(providerName))
-        {
-        }
-
-        [Obsolete("Use DbFactory.FromConfig", true)]
-        public static Db FromConfig() => DbFactory.FromConfig();
-        [Obsolete("Use DbFactory.FromConfig", true)]
-        public static Db FromConfig(string connectionStringName)
-            => DbFactory.FromConfig(connectionStringName);
-#endif
 
         /// <summary>
         /// Instantiate Db with connectionString and a custom IConnectionFactory
