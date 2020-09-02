@@ -11,7 +11,7 @@ namespace Net.Code.ADONet
     {
         private readonly DbConfig _config;
 
-        public CommandBuilder(IDbCommand command, DbConfig config)
+        public CommandBuilder(DbCommand command, DbConfig config)
         {
             Command = command;
             _config = config;
@@ -72,10 +72,10 @@ namespace Net.Code.ADONet
         public CommandBuilder WithParameter(string name, object value)
         {
 
-            IDataParameter p;
+            IDbDataParameter p;
             if (Command.Parameters.Contains(name))
             {
-                p = (IDbDataParameter)Command.Parameters[name];
+                p = Command.Parameters[name];
                 p.Value = DBNullHelper.ToDb(value);
             }
             else
@@ -94,7 +94,7 @@ namespace Net.Code.ADONet
             return this;
         }
 
-        public CommandBuilder InTransaction(IDbTransaction tx)
+        public CommandBuilder InTransaction(DbTransaction tx)
         {
             Command.Transaction = tx;
             return this;
@@ -103,7 +103,7 @@ namespace Net.Code.ADONet
         /// <summary>
         /// The raw IDbCommand instance
         /// </summary>
-        public IDbCommand Command { get; }
+        public DbCommand Command { get; }
 
         /// <summary>
         /// Executes the query and returns the result as a list of dynamic objects. 
@@ -269,12 +269,12 @@ namespace Net.Code.ADONet
                 return reader.ToMultiResultSet().ToList();
             }
         }
-        private AsyncExecutor ExecuteAsync => new AsyncExecutor((DbCommand)Command);
+        private AsyncExecutor ExecuteAsync => new AsyncExecutor(Command);
 
         class Executor
         {
-            private readonly IDbCommand _command;
-            public Executor(IDbCommand command)
+            private readonly DbCommand _command;
+            public Executor(DbCommand command)
             {
                 _command = command;
             }
@@ -315,7 +315,7 @@ namespace Net.Code.ADONet
             /// <summary>
             /// executes the query as a datareader
             /// </summary>
-            public async Task<IDataReader> Reader()
+            public async Task<DbDataReader> Reader()
             {
                 var command = await PrepareAsync();
                 return await command.ExecuteReaderAsync();

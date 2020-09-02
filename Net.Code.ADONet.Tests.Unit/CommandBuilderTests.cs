@@ -176,7 +176,7 @@ namespace Net.Code.ADONet.Tests.Unit
             Assert.Equal(tx, command.Transaction);
         }
 
-        private static IDbCommand PrepareCommand()
+        private static DbCommand PrepareCommand()
         {
             var command = new FakeCommand(new FakeConnection());
             return command;
