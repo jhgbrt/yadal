@@ -15,7 +15,7 @@ namespace Net.Code.ADONet
         {
             var setters = _setters.GetOrAdd(
                 new { Type = typeof(T) },
-                d => ((Type)d.Type).GetProperties().ToDictionary(p => p.Name, GetSetDelegate<T>)
+                d => ((Type)d.Type).GetProperties().Where(p => p.SetMethod != null).ToDictionary(p => p.Name, GetSetDelegate<T>)
                 );
             return (IReadOnlyDictionary<string, Action<T, object>>)setters;
         }
@@ -39,11 +39,11 @@ namespace Net.Code.ADONet
 
         public IReadOnlyDictionary<string, Func<T, object>> GetGettersForType<T>()
         {
-            var setters = _getters.GetOrAdd(
+            var getters = _getters.GetOrAdd(
                 new { Type = typeof(T) },
-                d => ((Type)d.Type).GetProperties().ToDictionary(p => p.Name, GetGetDelegate<T>)
+                d => ((Type)d.Type).GetProperties().Where(p => p.GetMethod != null).ToDictionary(p => p.Name, GetGetDelegate<T>)
                 );
-            return (IReadOnlyDictionary<string, Func<T, object>>)setters;
+            return (IReadOnlyDictionary<string, Func<T, object>>)getters;
         }
         private readonly ConcurrentDictionary<dynamic, object> _getters = new ConcurrentDictionary<dynamic, object>();
         static Func<T, object> GetGetDelegate<T>(PropertyInfo p)

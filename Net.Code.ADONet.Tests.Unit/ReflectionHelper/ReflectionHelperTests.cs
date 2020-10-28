@@ -12,6 +12,8 @@ namespace Net.Code.ADONet.Tests.Unit.ReflectionHelper
 
         public int IntProperty { get; set; }
         public int? NullableIntProperty { get; set; }
+        public string ReadOnly => "ReadOnlyValue";
+        public string WriteOnly { set { } }
     }
 
 
@@ -22,7 +24,8 @@ namespace Net.Code.ADONet.Tests.Unit.ReflectionHelper
             DbNullValueProperty = DBNull.Value,
             SomeProperty = "Hello World",
             IntProperty = 1,
-            NullableIntProperty = 2
+            NullableIntProperty = 2,
+            WriteOnly = "WriteOnly"
         };
         IReadOnlyDictionary<string, Func<MyTestEntity, object>> getters = FastReflection.Instance.GetGettersForType<MyTestEntity>();
 
@@ -49,6 +52,17 @@ namespace Net.Code.ADONet.Tests.Unit.ReflectionHelper
         {
             var s = getters[nameof(MyTestEntity.IntProperty)](_entity);
             Assert.Equal(_entity.IntProperty, s);
+        }
+        [Fact]
+        public void Getter_ForReadonlyProperty_ReturnsValue()
+        {
+            var s = getters[nameof(MyTestEntity.ReadOnly)](_entity);
+            Assert.Equal(_entity.ReadOnly, s);
+        }
+        [Fact]
+        public void Getter_ForWriteOnlyProperty_DoesNotExist()
+        {
+            Assert.DoesNotContain(nameof(MyTestEntity.WriteOnly), getters);
         }
     }
 
@@ -89,5 +103,17 @@ namespace Net.Code.ADONet.Tests.Unit.ReflectionHelper
             s(_entity, 1);
             Assert.Equal(1, _entity.IntProperty);
         }
+        [Fact]
+        public void Setter_ForWriteOnlyProperty_DoesNotThrow()
+        {
+            var s = setters[nameof(MyTestEntity.WriteOnly)];
+            s(_entity, "asdf");
+        }
+        [Fact]
+        public void Setter_ForReadOnlyProperty_DoesNotExist()
+        {
+            Assert.DoesNotContain(nameof(MyTestEntity.ReadOnly), setters);
+        }
+
     }
 }
