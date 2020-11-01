@@ -93,7 +93,7 @@ namespace Net.Code.ADONet
             Logger.Log("Db dispose");
             if (_connection == null || _externalConnection) return;
             _connection.Dispose();
-            _connection = null;
+            _connection = null!;
         }
 
         /// <summary>

@@ -12,12 +12,11 @@ namespace Net.Code.ADONet
 #if DEBUG
         public static Action<string> Log = s => { Debug.WriteLine(s); };
 #else
-        public static Action<string> Log;
+        public static Action<string> Log = s => { };
 #endif
 
         internal static void LogCommand(IDbCommand command)
         {
-            if (Log == null) return;
             Log(command.CommandText);
             foreach (IDbDataParameter p in command.Parameters)
             {

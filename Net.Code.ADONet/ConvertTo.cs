@@ -18,7 +18,7 @@ namespace Net.Code.ADONet
         /// taking into account null/nullable types and avoiding DBNull issues. This method is set as a delegate 
         /// at runtime (in the static constructor).
         /// </summary>
-        public static readonly Func<object, T> From;
+        public static readonly Func<object?, T?> From;
 
         static ConvertTo()
         {
@@ -26,7 +26,7 @@ namespace Net.Code.ADONet
             From = CreateConvertFunction(typeof(T));
         }
 
-        private static Func<object, T> CreateConvertFunction(Type type)
+        private static Func<object?, T?> CreateConvertFunction(Type type)
         {
             if (!type.IsValueType)
             {
@@ -38,26 +38,26 @@ namespace Net.Code.ADONet
                 return ConvertValueType;
             }
 
-            var delegateType = typeof(Func<object, T>);
+            var delegateType = typeof(Func<object?, T>);
             var methodInfo = typeof(ConvertTo<T>).GetMethod("ConvertNullableValueType", BindingFlags.NonPublic | BindingFlags.Static);
             var genericMethodForElement = methodInfo.MakeGenericMethod(type.GetGenericArguments()[0]);
-            return (Func<object, T>)genericMethodForElement.CreateDelegate(delegateType);
+            return (Func<object?, T>)genericMethodForElement.CreateDelegate(delegateType);
         }
 
-        // ReSharper disable once UnusedMember.Local
-        // (used via reflection!)
-        private static TElem? ConvertNullableValueType<TElem>(object value) where TElem : struct 
+#pragma warning disable IDE0051 // Remove unused private members
+        private static TElem? ConvertNullableValueType<TElem>(object value) where TElem : struct
             => IsNull(value) ? default(TElem?) : ConvertPrivate<TElem>(value);
+#pragma warning restore IDE0051 // Remove unused private members
 
-        private static T ConvertRefType(object value) => IsNull(value) ? default : ConvertPrivate<T>(value);
+        private static T? ConvertRefType(object? value) => IsNull(value) ? default : ConvertPrivate<T>(value!);
 
-        private static T ConvertValueType(object value)
+        private static T ConvertValueType(object? value)
         {
             if (IsNull(value))
             {
                 throw new NullReferenceException("Value is DbNull");
             }
-            return ConvertPrivate<T>(value);
+            return ConvertPrivate<T>(value!);
         }
 
         private static TElem ConvertPrivate<TElem>(object value) => (TElem)(Convert.ChangeType(value, typeof(TElem)));

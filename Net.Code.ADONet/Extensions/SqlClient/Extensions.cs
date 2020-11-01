@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Data;
-using System.Data.Common;
+
 using Microsoft.Data.SqlClient;
 
 namespace Net.Code.ADONet.Extensions.SqlClient
@@ -38,22 +38,21 @@ namespace Net.Code.ADONet.Extensions.SqlClient
         /// <param name="items"></param>
         public static void BulkCopy<T>(this IDb db, IEnumerable<T> items)
         {
-            // NOTE this snippet also works in NETSTANDARD if you take System.Data.SqlClient as a dependency
-            using (var bcp = new SqlBulkCopy(db.ConnectionString))
+            using var bcp = new SqlBulkCopy(db.ConnectionString)
             {
-                bcp.DestinationTableName = typeof(T).Name;
+                DestinationTableName = typeof(T).Name
+            };
 
-                // by default, SqlBulkCopy assumes columns in the database 
-                // are in same order as the columns of the source data reader
-                // => add explicit column mappings by name
-                foreach (var p in typeof(T).GetProperties())
-                {
-                    bcp.ColumnMappings.Add(p.Name, p.Name);
-                }
-
-                var datareader = items.AsDataReader();
-                bcp.WriteToServer(datareader);
+            // by default, SqlBulkCopy assumes columns in the database 
+            // are in same order as the columns of the source data reader
+            // => add explicit column mappings by name
+            foreach (var p in typeof(T).GetProperties())
+            {
+                bcp.ColumnMappings.Add(p.Name, p.Name);
             }
+
+            var datareader = items.AsDataReader();
+            bcp.WriteToServer(datareader);
         }
     }
 }

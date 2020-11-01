@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+#nullable enable
 
 namespace Net.Code.ADONet
 {
@@ -11,13 +12,13 @@ namespace Net.Code.ADONet
         private FastReflection() { }
         private static Type Type = typeof(FastReflection);
         public static FastReflection Instance = new FastReflection();
-        public IReadOnlyDictionary<string, Action<T, object>> GetSettersForType<T>()
+        public IReadOnlyDictionary<string, Action<T, object?>> GetSettersForType<T>()
         {
             var setters = _setters.GetOrAdd(
                 new { Type = typeof(T) },
                 d => ((Type)d.Type).GetProperties().Where(p => p.SetMethod != null).ToDictionary(p => p.Name, GetSetDelegate<T>)
                 );
-            return (IReadOnlyDictionary<string, Action<T, object>>)setters;
+            return (IReadOnlyDictionary<string, Action<T, object?>>)setters;
         }
         private readonly ConcurrentDictionary<dynamic, object> _setters = new ConcurrentDictionary<dynamic, object>();
         static Action<T, object> GetSetDelegate<T>(PropertyInfo p)
@@ -32,7 +33,7 @@ namespace Net.Code.ADONet
         // ReSharper disable once UnusedMember.Local
         static object CreateSetterDelegateHelper<TTarget, TProperty>(MethodInfo method) where TTarget : class
         {
-            var action = (Action<TTarget, TProperty>)method.CreateDelegate(typeof(Action<TTarget, TProperty>));
+            var action = (Action<TTarget, TProperty?>)method.CreateDelegate(typeof(Action<TTarget, TProperty>));
             Action<TTarget, object> ret = (target, param) => action(target, ConvertTo<TProperty>.From(param));
             return ret;
         }
@@ -59,7 +60,7 @@ namespace Net.Code.ADONet
         static object CreateGetterDelegateHelper<TTarget, TProperty>(MethodInfo method) where TTarget : class
         {
             var func = (Func<TTarget, TProperty>)method.CreateDelegate(typeof(Func<TTarget, TProperty>));
-            Func<TTarget, object> ret = target => ConvertTo<TProperty>.From(func(target));
+            Func<TTarget, object?> ret = target => ConvertTo<TProperty>.From(func(target));
             return ret;
         }
 

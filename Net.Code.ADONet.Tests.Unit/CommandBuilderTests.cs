@@ -36,10 +36,6 @@ namespace Net.Code.ADONet.Tests.Unit
         [Fact]
         public void Logger_WhenNull_DoesNotThrow()
         {
-            var logAction = Logger.Log;
-
-            Logger.Log = null;
-
             var command = PrepareCommand();
 
             new CommandBuilder(command, DbConfig.Default)
@@ -47,8 +43,6 @@ namespace Net.Code.ADONet.Tests.Unit
                 .WithParameter("name", "value");
 
             Logger.LogCommand(command);
-
-            Logger.Log = logAction;
         }
 
         [Fact]

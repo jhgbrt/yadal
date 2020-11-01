@@ -56,6 +56,8 @@ namespace Net.Code.ADONet
         /// <param name = "parameters"></param>
         public CommandBuilder WithParameters<T>(T parameters)
         {
+            if (parameters == null)
+                throw new ArgumentNullException(nameof(parameters));
             var getters = FastReflection.Instance.GetGettersForType<T>();
             var props = parameters.GetType().GetProperties();
             foreach (var item in props)
@@ -218,7 +220,7 @@ namespace Net.Code.ADONet
         /// Executes the command, returning the first column of the first result, converted to the type T
         /// </summary>
         /// <typeparam name = "T">return type</typeparam>
-        public T AsScalar<T>() => ConvertTo<T>.From(AsScalar());
+        public T? AsScalar<T>() => ConvertTo<T>.From(AsScalar());
         public object AsScalar() => Execute.Scalar();
         /// <summary>
         /// Executes the command as a SQL statement, returning the number of rows affected
@@ -240,7 +242,7 @@ namespace Net.Code.ADONet
         /// This method is only supported if the underlying provider propertly implements async behaviour.
         /// </summary>
         /// <typeparam name = "T">return type</typeparam>
-        public async Task<T> AsScalarAsync<T>()
+        public async Task<T?> AsScalarAsync<T>()
         {
             var result = await ExecuteAsync.Scalar();
             return ConvertTo<T>.From(result);
@@ -378,14 +380,14 @@ namespace Net.Code.ADONet
         /// taking into account null/nullable types and avoiding DBNull issues. This method is set as a delegate 
         /// at runtime (in the static constructor).
         /// </summary>
-        public static readonly Func<object, T> From;
+        public static readonly Func<object?, T?> From;
         static ConvertTo()
         {
             // Sets the From delegate, depending on whether T is a reference type, a nullable value type or a value type.
             From = CreateConvertFunction(typeof(T));
         }
 
-        private static Func<object, T> CreateConvertFunction(Type type)
+        private static Func<object?, T?> CreateConvertFunction(Type type)
         {
             if (!type.IsValueType)
             {
@@ -397,25 +399,27 @@ namespace Net.Code.ADONet
                 return ConvertValueType;
             }
 
-            var delegateType = typeof(Func<object, T>);
+            var delegateType = typeof(Func<object?, T>);
             var methodInfo = typeof(ConvertTo<T>).GetMethod("ConvertNullableValueType", BindingFlags.NonPublic | BindingFlags.Static);
             var genericMethodForElement = methodInfo.MakeGenericMethod(type.GetGenericArguments()[0]);
-            return (Func<object, T>)genericMethodForElement.CreateDelegate(delegateType);
+            return (Func<object?, T>)genericMethodForElement.CreateDelegate(delegateType);
         }
 
-        // ReSharper disable once UnusedMember.Local
-        // (used via reflection!)
+#pragma warning disable IDE0051 // Remove unused private members
+
         private static TElem? ConvertNullableValueType<TElem>(object value)
             where TElem : struct => IsNull(value) ? default(TElem? ) : ConvertPrivate<TElem>(value);
-        private static T ConvertRefType(object value) => IsNull(value) ? default : ConvertPrivate<T>(value);
-        private static T ConvertValueType(object value)
+#pragma warning restore IDE0051 // Remove unused private members
+
+        private static T? ConvertRefType(object? value) => IsNull(value) ? default : ConvertPrivate<T>(value!);
+        private static T ConvertValueType(object? value)
         {
             if (IsNull(value))
             {
                 throw new NullReferenceException("Value is DbNull");
             }
 
-            return ConvertPrivate<T>(value);
+            return ConvertPrivate<T>(value!);
         }
 
         private static TElem ConvertPrivate<TElem>(object value) => (TElem)(Convert.ChangeType(value, typeof(TElem)));
@@ -438,7 +442,7 @@ namespace Net.Code.ADONet
     {
         internal class Setter<T>
         {
-            public Setter(int fieldIndex, Action<T, object> action)
+            public Setter(int fieldIndex, Action<T, object?> action)
             {
                 FieldIndex = fieldIndex;
                 Action = action;
@@ -450,7 +454,7 @@ namespace Net.Code.ADONet
                 private set;
             }
 
-            public Action<T, object> Action
+            public Action<T, object?> Action
             {
                 get;
                 private set;
@@ -515,13 +519,13 @@ namespace Net.Code.ADONet
         /// as long as the DbType is convertible to the CLR Type passed as a generic argument.
         /// Also handles conversion from DbNull to null, including nullable types.
         /// </summary>
-        public static TResult Get<TResult>(this IDataRecord reader, string name) => reader.Get<TResult>(reader.GetOrdinal(name));
+        public static TResult? Get<TResult>(this IDataRecord reader, string name) => reader.Get<TResult>(reader.GetOrdinal(name));
         /// <summary>
         /// Get a value from an IDataRecord by index. This method supports all types,
         /// as long as the DbType is convertible to the CLR Type passed as a generic argument.
         /// Also handles conversion from DbNull to null, including nullable types.
         /// </summary>
-        public static TResult Get<TResult>(this IDataRecord reader, int c) => ConvertTo<TResult>.From(reader[c]);
+        public static TResult? Get<TResult>(this IDataRecord reader, int c) => ConvertTo<TResult>.From(reader[c]);
     }
 
     /// <summary>
@@ -612,7 +616,7 @@ namespace Net.Code.ADONet
             if (_connection == null || _externalConnection)
                 return;
             _connection.Dispose();
-            _connection = null;
+            _connection = null !;
         }
 
         /// <summary>
@@ -710,14 +714,10 @@ namespace Net.Code.ADONet
     public static class DBNullHelper
     {
         public static Type GetUnderlyingType(this Type type) => type.IsNullableType() ? Nullable.GetUnderlyingType(type) : type;
-        public static bool IsNullableType(this Type type)
-        {
-            return type.IsGenericType && !type.IsGenericTypeDefinition && typeof(Nullable<>) == type.GetGenericTypeDefinition();
-        }
-
-        public static bool IsNull(object o) => o == null || DBNull.Value.Equals(o);
-        public static object FromDb(object o) => IsNull(o) ? null : o;
-        public static object ToDb(object o) => IsNull(o) ? DBNull.Value : o;
+        public static bool IsNullableType(this Type type) => type.IsGenericType && !type.IsGenericTypeDefinition && typeof(Nullable<>) == type.GetGenericTypeDefinition();
+        public static bool IsNull(object? o) => o == null || DBNull.Value.Equals(o);
+        public static object? FromDb(object? o) => IsNull(o) ? null : o;
+        public static object? ToDb(object? o) => IsNull(o) ? DBNull.Value : o;
     }
 
     static class DbProviderFactoryEx
@@ -725,7 +725,6 @@ namespace Net.Code.ADONet
         public static DbConnection CreateConnection(this DbProviderFactory factory, string connectionString)
         {
             var connection = factory.CreateConnection();
-            // ReSharper disable once PossibleNullReferenceException
             connection.ConnectionString = connectionString;
             return connection;
         }
@@ -736,12 +735,12 @@ namespace Net.Code.ADONet
         public static dynamic From(DataRow row) => From(row, (r, s) => r[s]);
         public static dynamic From(IDataRecord record) => From(record, (r, s) => r[s]);
         public static dynamic From<TValue>(IDictionary<string, TValue> dictionary) => From(dictionary, (d, s) => d[s]);
-        static dynamic From<T>(T item, Func<T, string, object> getter) => new DynamicIndexer<T>(item, getter);
+        static dynamic From<T>(T item, Func<T, string, object?> getter) => new DynamicIndexer<T>(item, getter);
         class DynamicIndexer<T> : DynamicObject
         {
             private readonly T _item;
-            private readonly Func<T, string, object> _getter;
-            public DynamicIndexer(T item, Func<T, string, object> getter)
+            private readonly Func<T, string, object?> _getter;
+            public DynamicIndexer(T item, Func<T, string, object?> getter)
             {
                 if (item == null)
                     throw new ArgumentNullException(nameof(item));
@@ -749,9 +748,9 @@ namespace Net.Code.ADONet
                 _getter = getter;
             }
 
-            public override bool TryGetIndex(GetIndexBinder b, object[] i, out object r) => ByMemberName(out r, (string)i[0]);
-            public sealed override bool TryGetMember(GetMemberBinder b, out object r) => ByMemberName(out r, b.Name);
-            private bool ByMemberName(out object result, string memberName)
+            public override bool TryGetIndex(GetIndexBinder b, object[] i, out object? r) => ByMemberName(out r, (string)i[0]);
+            public sealed override bool TryGetMember(GetMemberBinder b, out object? r) => ByMemberName(out r, b.Name);
+            private bool ByMemberName(out object? result, string memberName)
             {
                 var value = _getter(_item, memberName);
                 result = DBNullHelper.FromDb(value);
@@ -797,8 +796,8 @@ namespace Net.Code.ADONet
             public override string GetDataTypeName(int i) => Properties[i].PropertyType.Name;
             public override IEnumerator GetEnumerator() => _enumerator;
             public override Type GetFieldType(int i) => Properties[i].PropertyType;
-            public override object GetValue(int i) => DBNullHelper.ToDb(Getters[Properties[i].Name](_enumerator.Current));
-            public override int GetValues(object[] values)
+            public override object? GetValue(int i) => DBNullHelper.ToDb(Getters[Properties[i].Name](_enumerator.Current));
+            public override int GetValues(object? [] values)
             {
                 var length = Math.Min(values.Length, Properties.Length);
                 for (int i = 0; i < length; i++)
@@ -821,12 +820,14 @@ namespace Net.Code.ADONet
             public override long GetInt64(int i) => this.Get<long>(i);
             public override float GetFloat(int i) => this.Get<float>(i);
             public override double GetDouble(int i) => this.Get<double>(i);
-            public override string GetString(int i) => this.Get<string>(i);
+            public override string? GetString(int i) => this.Get<string>(i);
             public override decimal GetDecimal(int i) => this.Get<decimal>(i);
             public override DateTime GetDateTime(int i) => this.Get<DateTime>(i);
             long Get<TElem>(int i, long dataOffset, TElem[] buffer, int bufferoffset, int length)
             {
                 var data = this.Get<TElem[]>(i);
+                if (data is null)
+                    return 0;
                 var maxLength = Math.Min((long)buffer.Length - bufferoffset, length);
                 maxLength = Math.Min(data.Length - dataOffset, maxLength);
                 Array.Copy(data, (int)dataOffset, buffer, bufferoffset, length);
@@ -836,8 +837,8 @@ namespace Net.Code.ADONet
             public override bool IsDBNull(int i) => DBNull.Value.Equals(GetValue(i));
             public override int FieldCount => Properties.Length;
             public override bool HasRows => _list.Any();
-            public override object this[int i] => GetValue(i);
-            public override object this[string name] => GetValue(GetOrdinal(name));
+            public override object? this[int i] => GetValue(i);
+            public override object? this[string name] => GetValue(GetOrdinal(name));
             public override void Close() => Dispose();
             public override DataTable GetSchemaTable()
             {
@@ -860,7 +861,6 @@ namespace Net.Code.ADONet
             public override bool NextResult()
             {
                 _enumerator?.Dispose();
-                _enumerator = null;
                 return false;
             }
 
@@ -880,14 +880,14 @@ namespace Net.Code.ADONet
 
         private static Type Type = typeof(FastReflection);
         public static FastReflection Instance = new FastReflection();
-        public IReadOnlyDictionary<string, Action<T, object>> GetSettersForType<T>()
+        public IReadOnlyDictionary<string, Action<T, object?>> GetSettersForType<T>()
         {
             var setters = _setters.GetOrAdd(new
             {
             Type = typeof(T)}
 
             , d => ((Type)d.Type).GetProperties().Where(p => p.SetMethod != null).ToDictionary(p => p.Name, GetSetDelegate<T>));
-            return (IReadOnlyDictionary<string, Action<T, object>>)setters;
+            return (IReadOnlyDictionary<string, Action<T, object?>>)setters;
         }
 
         private readonly ConcurrentDictionary<dynamic, object> _setters = new ConcurrentDictionary<dynamic, object>();
@@ -904,7 +904,7 @@ namespace Net.Code.ADONet
         static object CreateSetterDelegateHelper<TTarget, TProperty>(MethodInfo method)
             where TTarget : class
         {
-            var action = (Action<TTarget, TProperty>)method.CreateDelegate(typeof(Action<TTarget, TProperty>));
+            var action = (Action<TTarget, TProperty?>)method.CreateDelegate(typeof(Action<TTarget, TProperty>));
             Action<TTarget, object> ret = (target, param) => action(target, ConvertTo<TProperty>.From(param));
             return ret;
         }
@@ -934,7 +934,7 @@ namespace Net.Code.ADONet
             where TTarget : class
         {
             var func = (Func<TTarget, TProperty>)method.CreateDelegate(typeof(Func<TTarget, TProperty>));
-            Func<TTarget, object> ret = target => ConvertTo<TProperty>.From(func(target));
+            Func<TTarget, object?> ret = target => ConvertTo<TProperty>.From(func(target));
             return ret;
         }
     }
@@ -985,11 +985,11 @@ namespace Net.Code.ADONet
     /// </summary>
     public class Logger
     {
-        public static Action<string> Log;
+        public static Action<string> Log = s =>
+        {
+        };
         internal static void LogCommand(IDbCommand command)
         {
-            if (Log == null)
-                return;
             Log(command.CommandText);
             foreach (IDbDataParameter p in command.Parameters)
             {
@@ -1054,20 +1054,8 @@ namespace Net.Code.ADONet
         }
 
         public static string PascalCaseToSentence(this string source) => string.IsNullOrEmpty(source) ? source : string.Join(" ", SplitUpperCase(source));
-        public static string ToUpperWithUnderscores(this string source)
-        {
-            if (string.IsNullOrEmpty(source))
-                return source;
-            return string.Join("_", SplitUpperCase(source).Select(s => s.ToUpperInvariant()));
-        }
-
-        public static string ToLowerWithUnderscores(this string source)
-        {
-            if (string.IsNullOrEmpty(source))
-                return source;
-            return string.Join("_", SplitUpperCase(source).Select(s => s.ToLowerInvariant()));
-        }
-
+        public static string ToUpperWithUnderscores(this string source) => string.Join("_", SplitUpperCase(source).Select(s => s.ToUpperInvariant()));
+        public static string ToLowerWithUnderscores(this string source) => string.Join("_", SplitUpperCase(source).Select(s => s.ToLowerInvariant()));
         public static string NoOp(this string source) => source;
         static IEnumerable<string> SplitUpperCase(string source)
         {
@@ -1349,21 +1337,18 @@ namespace Net.Code.ADONet.Extensions.SqlClient
         /// <param name = "items"></param>
         public static void BulkCopy<T>(this IDb db, IEnumerable<T> items)
         {
-            // NOTE this snippet also works in NETSTANDARD if you take System.Data.SqlClient as a dependency
-            using (var bcp = new SqlBulkCopy(db.ConnectionString))
+            using var bcp = new SqlBulkCopy(db.ConnectionString)
+            {DestinationTableName = typeof(T).Name};
+            // by default, SqlBulkCopy assumes columns in the database 
+            // are in same order as the columns of the source data reader
+            // => add explicit column mappings by name
+            foreach (var p in typeof(T).GetProperties())
             {
-                bcp.DestinationTableName = typeof(T).Name;
-                // by default, SqlBulkCopy assumes columns in the database 
-                // are in same order as the columns of the source data reader
-                // => add explicit column mappings by name
-                foreach (var p in typeof(T).GetProperties())
-                {
-                    bcp.ColumnMappings.Add(p.Name, p.Name);
-                }
-
-                var datareader = items.AsDataReader();
-                bcp.WriteToServer(datareader);
+                bcp.ColumnMappings.Add(p.Name, p.Name);
             }
+
+            var datareader = items.AsDataReader();
+            bcp.WriteToServer(datareader);
         }
     }
 }

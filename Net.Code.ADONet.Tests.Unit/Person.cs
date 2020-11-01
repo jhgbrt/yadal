@@ -11,7 +11,7 @@ namespace Net.Code.ADONet.Tests.Unit
         // ReSharper disable UnusedAutoPropertyAccessor.Local
         public string FirstName { get; set; }
         public string LastName { get; set; }
-
+        public static IEnumerable<Person> GetList() => GetMultiResultSet().SelectMany(p => p);
         public static Person[][] GetMultiResultSet()
         {
             var data = new[]

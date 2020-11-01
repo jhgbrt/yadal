@@ -50,10 +50,10 @@ namespace Net.Code.ADONet
 
             public override Type GetFieldType(int i) => Properties[i].PropertyType;
 
-            public override object GetValue(int i)
+            public override object? GetValue(int i)
                 => DBNullHelper.ToDb(Getters[Properties[i].Name](_enumerator.Current));
 
-            public override int GetValues(object[] values)
+            public override int GetValues(object?[] values)
             {
                 var length = Math.Min(values.Length, Properties.Length);
                 for (int i = 0; i < length; i++)
@@ -78,13 +78,14 @@ namespace Net.Code.ADONet
             public override long GetInt64(int i) => this.Get<long>(i);
             public override float GetFloat(int i) => this.Get<float>(i);
             public override double GetDouble(int i) => this.Get<double>(i);
-            public override string GetString(int i) => this.Get<string>(i);
+            public override string? GetString(int i) => this.Get<string>(i);
             public override decimal GetDecimal(int i) => this.Get<decimal>(i);
             public override DateTime GetDateTime(int i) => this.Get<DateTime>(i);
 
             long Get<TElem>(int i, long dataOffset, TElem[] buffer, int bufferoffset, int length)
             {
                 var data = this.Get<TElem[]>(i);
+                if (data is null) return 0;
                 var maxLength = Math.Min((long) buffer.Length - bufferoffset, length);
                 maxLength = Math.Min(data.Length - dataOffset, maxLength);
                 Array.Copy(data, (int)dataOffset, buffer, bufferoffset, length);
@@ -97,9 +98,9 @@ namespace Net.Code.ADONet
 
             public override bool HasRows => _list.Any();
 
-            public override object this[int i] => GetValue(i);
+            public override object? this[int i] => GetValue(i);
 
-            public override object this[string name] => GetValue(GetOrdinal(name));
+            public override object? this[string name] => GetValue(GetOrdinal(name));
 
             public override void Close() => Dispose();
             public override DataTable GetSchemaTable()
@@ -124,7 +125,6 @@ namespace Net.Code.ADONet
             public override bool NextResult()
             {
                 _enumerator?.Dispose();
-                _enumerator = null;
                 return false;
             }
 

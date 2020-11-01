@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+#nullable enable
 
 namespace Net.Code.ADONet.Extensions.Experimental
 {

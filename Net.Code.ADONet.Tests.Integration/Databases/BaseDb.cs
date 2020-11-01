@@ -1,11 +1,9 @@
 using Net.Code.ADONet.Extensions.Experimental;
 using Net.Code.ADONet.Tests.Integration.Data;
+
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Data.Common;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Net.Code.ADONet.Tests.Integration.Databases
 {

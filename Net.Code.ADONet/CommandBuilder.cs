@@ -45,6 +45,8 @@ namespace Net.Code.ADONet
         /// <param name="parameters"></param>
         public CommandBuilder WithParameters<T>(T parameters)
         {
+            if (parameters == null)
+                throw new ArgumentNullException(nameof(parameters));
             var getters = FastReflection.Instance.GetGettersForType<T>();
             var props = parameters.GetType().GetProperties();
             foreach (var item in props)
@@ -72,7 +74,6 @@ namespace Net.Code.ADONet
         /// <returns>the same CommandBuilder instance</returns>
         public CommandBuilder WithParameter(string name, object value)
         {
-
             IDbDataParameter p;
             if (Command.Parameters.Contains(name))
             {
@@ -214,7 +215,7 @@ namespace Net.Code.ADONet
         /// Executes the command, returning the first column of the first result, converted to the type T
         /// </summary>
         /// <typeparam name="T">return type</typeparam>
-        public T AsScalar<T>() => ConvertTo<T>.From(AsScalar());
+        public T? AsScalar<T>() => ConvertTo<T>.From(AsScalar());
 
         public object AsScalar() => Execute.Scalar();
 
@@ -243,7 +244,7 @@ namespace Net.Code.ADONet
         /// This method is only supported if the underlying provider propertly implements async behaviour.
         /// </summary>
         /// <typeparam name="T">return type</typeparam>
-        public async Task<T> AsScalarAsync<T>()
+        public async Task<T?> AsScalarAsync<T>()
         {
             var result = await ExecuteAsync.Scalar();
             return ConvertTo<T>.From(result);
@@ -292,7 +293,6 @@ namespace Net.Code.ADONet
         }
 
         public ValueTask<T> SingleAsync<T>() => AsEnumerableAsync<T>().SingleAsync();
-
 
         private AsyncExecutor ExecuteAsync => new AsyncExecutor(Command);
 

@@ -8,14 +8,14 @@ namespace Net.Code.ADONet
     {
         internal class Setter<T>
         {
-            public Setter(int fieldIndex, Action<T, object> action)
+            public Setter(int fieldIndex, Action<T, object?> action)
             {
                 FieldIndex = fieldIndex;
                 Action = action;
             }
 
             public int FieldIndex { get; private set; }
-            public Action<T,object> Action { get; private set; }
+            public Action<T, object?> Action { get; private set; }
         }
 
         internal class SetterMap<T> : List<Setter<T>> { }
@@ -70,13 +70,13 @@ namespace Net.Code.ADONet
         /// as long as the DbType is convertible to the CLR Type passed as a generic argument.
         /// Also handles conversion from DbNull to null, including nullable types.
         /// </summary>
-        public static TResult Get<TResult>(this IDataRecord reader, string name) => reader.Get<TResult>(reader.GetOrdinal(name));
+        public static TResult? Get<TResult>(this IDataRecord reader, string name) => reader.Get<TResult>(reader.GetOrdinal(name));
 
         /// <summary>
         /// Get a value from an IDataRecord by index. This method supports all types,
         /// as long as the DbType is convertible to the CLR Type passed as a generic argument.
         /// Also handles conversion from DbNull to null, including nullable types.
         /// </summary>
-        public static TResult Get<TResult>(this IDataRecord reader, int c) => ConvertTo<TResult>.From(reader[c]);
+        public static TResult? Get<TResult>(this IDataRecord reader, int c) => ConvertTo<TResult>.From(reader[c]);
     }
 }

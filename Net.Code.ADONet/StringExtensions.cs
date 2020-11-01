@@ -9,6 +9,7 @@ namespace Net.Code.ADONet
     {
         public static string ToUpperRemoveSpecialChars(this string str) 
             => string.IsNullOrEmpty(str) ? str : Regex.Replace(str, @"([^\w]|_)", "").ToUpperInvariant();
+
         public static string ToPascalCase(this string str)
         {
             if (string.IsNullOrEmpty(str)) return str;
@@ -28,21 +29,18 @@ namespace Net.Code.ADONet
             }
             return sb.ToString();
         }
+
         public static string PascalCaseToSentence(this string source) 
             => string.IsNullOrEmpty(source) ? source : string.Join(" ", SplitUpperCase(source));
 
         public static string ToUpperWithUnderscores(this string source)
-        {
-            if (string.IsNullOrEmpty(source)) return source;
-            return string.Join("_", SplitUpperCase(source).Select(s => s.ToUpperInvariant()));
-        }
-        public static string ToLowerWithUnderscores(this string source)
-        {
-            if (string.IsNullOrEmpty(source)) return source;
-            return string.Join("_", SplitUpperCase(source).Select(s => s.ToLowerInvariant()));
-        }
+            => string.Join("_", SplitUpperCase(source).Select(s => s.ToUpperInvariant()));
 
-        public static string NoOp(this string source) => source;
+        public static string ToLowerWithUnderscores(this string source)
+            => string.Join("_", SplitUpperCase(source).Select(s => s.ToLowerInvariant()));
+
+        public static string NoOp(this string source)
+            => source;
 
         static IEnumerable<string> SplitUpperCase(string source)
         {

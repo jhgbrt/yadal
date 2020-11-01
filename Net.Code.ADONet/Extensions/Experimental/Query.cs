@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Reflection;
+#nullable enable
 
 namespace Net.Code.ADONet.Extensions.Experimental
 {
