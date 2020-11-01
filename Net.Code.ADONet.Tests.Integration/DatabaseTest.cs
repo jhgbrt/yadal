@@ -130,6 +130,15 @@ namespace IntegrationTests
         }
 
         [SkippableFact]
+        public async Task InsertAndGetAsync()
+        {
+            var person = FakeData.People.One();
+            await _testHelper.InsertAsync(new[] { person }, Enumerable.Empty<Address>());
+            var result = await _testHelper.GetAsync(person.Id);
+            Assert.Equal(person, result);
+        }
+
+        [SkippableFact]
         public void GetByIdList()
         {
             var (ids, result) = _testHelper.GetByIdList();

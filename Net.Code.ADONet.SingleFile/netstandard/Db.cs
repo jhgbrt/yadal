@@ -8,6 +8,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics;
 using System.Dynamic;
 using System.Linq;
 using System.Reflection;
@@ -22,7 +23,7 @@ namespace Net.Code.ADONet
     public class CommandBuilder
     {
         private readonly DbConfig _config;
-        public CommandBuilder(IDbCommand command, DbConfig config)
+        public CommandBuilder(DbCommand command, DbConfig config)
         {
             Command = command;
             _config = config;
@@ -83,10 +84,10 @@ namespace Net.Code.ADONet
         /// <returns>the same CommandBuilder instance</returns>
         public CommandBuilder WithParameter(string name, object value)
         {
-            IDataParameter p;
+            IDbDataParameter p;
             if (Command.Parameters.Contains(name))
             {
-                p = (IDbDataParameter)Command.Parameters[name];
+                p = Command.Parameters[name];
                 p.Value = DBNullHelper.ToDb(value);
             }
             else
@@ -107,7 +108,7 @@ namespace Net.Code.ADONet
             return this;
         }
 
-        public CommandBuilder InTransaction(IDbTransaction tx)
+        public CommandBuilder InTransaction(DbTransaction tx)
         {
             Command.Transaction = tx;
             return this;
@@ -116,7 +117,7 @@ namespace Net.Code.ADONet
         /// <summary>
         /// The raw IDbCommand instance
         /// </summary>
-        public IDbCommand Command
+        public DbCommand Command
         {
             get;
         }
@@ -124,7 +125,13 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Executes the query and returns the result as a list of dynamic objects. 
         /// </summary>
-        public IEnumerable<dynamic> AsEnumerable() => Execute.Reader().ToExpandoList();
+        public IEnumerable<dynamic> AsEnumerable()
+        {
+            using var reader = AsReader();
+            while (reader.Read())
+                yield return reader.ToExpando();
+        }
+
         /// <summary>
         /// Executes the query and returns the result as a list of [T]. This method is slightly faster. 
         /// than doing AsEnumerable().Select(selector). The selector is required to map objects as the 
@@ -137,19 +144,36 @@ namespace Net.Code.ADONet
         /// Executes the query and returns the result as a list of [T] using the 'case-insensitive, underscore-agnostic column name to property mapping convention.' 
         /// </summary>
         /// <typeparam name = "T"></typeparam>
-        public IEnumerable<T> AsEnumerable<T>() => AsReader().AsEnumerable<T>(_config);
+        public IEnumerable<T> AsEnumerable<T>()
+        {
+            using var reader = AsReader();
+            var setterMap = reader.GetSetterMap<T>(_config);
+            while (reader.Read())
+                yield return reader.MapTo(setterMap);
+        }
+
         // enables linq 'select' syntax
-        public IEnumerable<T> Select<T>(Func<dynamic, T> selector) => Execute.Reader().ToDynamicDataRecord().Select(selector);
+        public IEnumerable<T> Select<T>(Func<dynamic, T> selector)
+        {
+            using var reader = AsReader();
+            while (reader.Read())
+                yield return selector(Dynamic.From(reader));
+        }
+
         /// <summary>
         /// Executes the query and returns the result as a list of lists
         /// </summary>
         public IEnumerable<IReadOnlyCollection<dynamic>> AsMultiResultSet()
         {
-            using (var reader = Execute.Reader())
+            using var reader = AsReader();
+            do
             {
-                foreach (var item in reader.ToMultiResultSet())
-                    yield return item;
+                var list = new Collection<dynamic>();
+                while (reader.Read())
+                    list.Add(reader.ToExpando());
+                yield return list;
             }
+            while (reader.NextResult());
         }
 
         /// <summary>
@@ -157,10 +181,8 @@ namespace Net.Code.ADONet
         /// </summary>
         public (IReadOnlyCollection<T1>, IReadOnlyCollection<T2>) AsMultiResultSet<T1, T2>()
         {
-            using (var reader = Execute.Reader())
-            {
-                return (reader.GetResultSet<T1>(_config, out _), reader.GetResultSet<T2>(_config, out _));
-            }
+            using var reader = AsReader();
+            return (reader.GetResultSet<T1>(_config, out _), reader.GetResultSet<T2>(_config, out _));
         }
 
         /// <summary>
@@ -168,7 +190,7 @@ namespace Net.Code.ADONet
         /// </summary>
         public (IReadOnlyCollection<T1>, IReadOnlyCollection<T2>, IReadOnlyCollection<T3>) AsMultiResultSet<T1, T2, T3>()
         {
-            using (var reader = Execute.Reader())
+            using (var reader = AsReader())
             {
                 return (reader.GetResultSet<T1>(_config, out _), reader.GetResultSet<T2>(_config, out _), reader.GetResultSet<T3>(_config, out _));
             }
@@ -179,10 +201,8 @@ namespace Net.Code.ADONet
         /// </summary>
         public (IReadOnlyCollection<T1>, IReadOnlyCollection<T2>, IReadOnlyCollection<T3>, IReadOnlyCollection<T4>) AsMultiResultSet<T1, T2, T3, T4>()
         {
-            using (var reader = Execute.Reader())
-            {
-                return (reader.GetResultSet<T1>(_config, out _), reader.GetResultSet<T2>(_config, out _), reader.GetResultSet<T3>(_config, out _), reader.GetResultSet<T4>(_config, out _));
-            }
+            using var reader = AsReader();
+            return (reader.GetResultSet<T1>(_config, out _), reader.GetResultSet<T2>(_config, out _), reader.GetResultSet<T3>(_config, out _), reader.GetResultSet<T4>(_config, out _));
         }
 
         /// <summary>
@@ -190,10 +210,8 @@ namespace Net.Code.ADONet
         /// </summary>
         public (IReadOnlyCollection<T1>, IReadOnlyCollection<T2>, IReadOnlyCollection<T3>, IReadOnlyCollection<T4>, IReadOnlyCollection<T5>) AsMultiResultSet<T1, T2, T3, T4, T5>()
         {
-            using (var reader = Execute.Reader())
-            {
-                return (reader.GetResultSet<T1>(_config, out _), reader.GetResultSet<T2>(_config, out _), reader.GetResultSet<T3>(_config, out _), reader.GetResultSet<T4>(_config, out _), reader.GetResultSet<T5>(_config, out _));
-            }
+            using var reader = AsReader();
+            return (reader.GetResultSet<T1>(_config, out _), reader.GetResultSet<T2>(_config, out _), reader.GetResultSet<T3>(_config, out _), reader.GetResultSet<T4>(_config, out _), reader.GetResultSet<T5>(_config, out _));
         }
 
         /// <summary>
@@ -232,10 +250,11 @@ namespace Net.Code.ADONet
         /// Executes the query and returns the result as a list of dynamic objects asynchronously
         /// This method is only supported if the underlying provider propertly implements async behaviour.
         /// </summary>
-        public async Task<IEnumerable<dynamic>> AsEnumerableAsync()
+        public async IAsyncEnumerable<dynamic> AsEnumerableAsync()
         {
-            var reader = await ExecuteAsync.Reader();
-            return reader.ToExpandoList();
+            using var reader = await ExecuteAsync.Reader();
+            while (await reader.ReadAsync())
+                yield return reader.ToExpando();
         }
 
         /// <summary>
@@ -244,29 +263,37 @@ namespace Net.Code.ADONet
         /// </summary>
         /// <typeparam name = "T"></typeparam>
         /// <param name = "selector">mapping function that transforms a datarecord (wrapped as a dynamic object) to an instance of type [T]</param>
-        public async Task<IEnumerable<T>> AsEnumerableAsync<T>(Func<dynamic, T> selector)
+        public async IAsyncEnumerable<T> AsEnumerableAsync<T>(Func<dynamic, T> selector)
         {
-            var reader = await ExecuteAsync.Reader();
-            return reader.ToDynamicDataRecord().Select(selector);
-        }
-
-        /// <summary>
-        /// Executes the query and returns the result as a list of lists asynchronously
-        /// This method is only supported if the underlying provider propertly implements async behaviour.
-        /// </summary>
-        public async Task<IEnumerable<IReadOnlyCollection<dynamic>>> AsMultiResultSetAsync()
-        {
-            using (var reader = await ExecuteAsync.Reader())
+            using var reader = await ExecuteAsync.Reader();
+            while (await reader.ReadAsync())
             {
-                return reader.ToMultiResultSet().ToList();
+                var d = Dynamic.From(reader);
+                var item = selector(d);
+                yield return item;
             }
         }
 
-        private AsyncExecutor ExecuteAsync => new AsyncExecutor((DbCommand)Command);
+        /// <summary>
+        /// Executes the query and returns the result as a list of [T] asynchronously
+        /// This method is only supported if the underlying provider propertly implements async behaviour.
+        /// </summary>
+        /// <typeparam name = "T"></typeparam>
+        /// <param name = "selector">mapping function that transforms a datarecord (wrapped as a dynamic object) to an instance of type [T]</param>
+        public async IAsyncEnumerable<T> AsEnumerableAsync<T>()
+        {
+            using var reader = await ExecuteAsync.Reader();
+            var setterMap = reader.GetSetterMap<T>(_config);
+            while (await reader.ReadAsync())
+                yield return reader.MapTo(setterMap);
+        }
+
+        public ValueTask<T> SingleAsync<T>() => AsEnumerableAsync<T>().SingleAsync();
+        private AsyncExecutor ExecuteAsync => new AsyncExecutor(Command);
         class Executor
         {
-            private readonly IDbCommand _command;
-            public Executor(IDbCommand command)
+            private readonly DbCommand _command;
+            public Executor(DbCommand command)
             {
                 _command = command;
             }
@@ -274,7 +301,7 @@ namespace Net.Code.ADONet
             /// <summary>
             /// executes the query as a datareader
             /// </summary>
-            public IDataReader Reader() => Prepare().ExecuteReader();
+            public DbDataReader Reader() => Prepare().ExecuteReader();
             /// <summary>
             /// Executes the command, returning the first column of the first result as a scalar value
             /// </summary>
@@ -283,7 +310,7 @@ namespace Net.Code.ADONet
             /// Executes the command as a SQL statement, returning the number of rows affected
             /// </summary>
             public int NonQuery() => Prepare().ExecuteNonQuery();
-            private IDbCommand Prepare()
+            private DbCommand Prepare()
             {
                 Logger.LogCommand(_command);
                 if (_command.Connection.State == ConnectionState.Closed)
@@ -303,7 +330,7 @@ namespace Net.Code.ADONet
             /// <summary>
             /// executes the query as a datareader
             /// </summary>
-            public async Task<IDataReader> Reader()
+            public async Task<DbDataReader> Reader()
             {
                 var command = await PrepareAsync();
                 return await command.ExecuteReaderAsync();
@@ -396,55 +423,6 @@ namespace Net.Code.ADONet
 
     static class DataReaderExtensions
     {
-        public static IEnumerable<IDataRecord> AsEnumerable(this IDataReader reader)
-        {
-            using (reader)
-            {
-                while (reader.Read())
-                    yield return reader;
-            }
-        }
-
-        public static IEnumerable<T> AsEnumerable<T>(this IDataReader reader, DbConfig config)
-        {
-            var setterMap = reader.GetSetterMap<T>(config);
-            using (reader)
-            {
-                while (reader.Read())
-                    yield return reader.MapTo(setterMap);
-            }
-        }
-
-        internal static IEnumerable<dynamic> ToExpandoList(this IDataReader reader)
-        {
-            using (reader)
-            {
-                while (reader.Read())
-                    yield return reader.ToExpando();
-            }
-        }
-
-        internal static IEnumerable<dynamic> ToDynamicDataRecord(this IDataReader reader)
-        {
-            using (reader)
-            {
-                while (reader.Read())
-                    yield return Dynamic.From(reader);
-            }
-        }
-
-        internal static IEnumerable<IReadOnlyCollection<dynamic>> ToMultiResultSet(this IDataReader reader)
-        {
-            do
-            {
-                var list = new Collection<dynamic>();
-                while (reader.Read())
-                    list.Add(reader.ToExpando());
-                yield return list;
-            }
-            while (reader.NextResult());
-        }
-
         internal static IReadOnlyCollection<T> GetResultSet<T>(this IDataReader reader, DbConfig config, out bool moreResults)
         {
             var list = new List<T>();
@@ -563,7 +541,7 @@ namespace Net.Code.ADONet
         }
 
         internal IMappingConvention MappingConvention => Config.MappingConvention;
-        private IDbConnection _connection;
+        private DbConnection _connection;
         private readonly bool _externalConnection;
         /// <summary>
         /// Instantiate Db with existing connection. The connection is only used for creating commands; 
@@ -571,7 +549,7 @@ namespace Net.Code.ADONet
         /// </summary>
         /// <param name = "connection">The existing connection</param>
         /// <param name = "config"></param>
-        public Db(IDbConnection connection, DbConfig config)
+        public Db(DbConnection connection, DbConfig config)
         {
             _connection = connection;
             _externalConnection = true;
@@ -608,10 +586,17 @@ namespace Net.Code.ADONet
                 _connection.Open();
         }
 
+        public async Task ConnectAsync()
+        {
+            Logger.Log("Db connect");
+            if (_connection.State != ConnectionState.Open)
+                await _connection.OpenAsync();
+        }
+
         /// <summary>
         /// The actual IDbConnection (which will be open)
         /// </summary>
-        public IDbConnection Connection
+        public DbConnection Connection
         {
             get
             {
@@ -737,7 +722,7 @@ namespace Net.Code.ADONet
 
     static class DbProviderFactoryEx
     {
-        public static IDbConnection CreateConnection(this DbProviderFactory factory, string connectionString)
+        public static DbConnection CreateConnection(this DbProviderFactory factory, string connectionString)
         {
             var connection = factory.CreateConnection();
             // ReSharper disable once PossibleNullReferenceException
@@ -780,7 +765,7 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Adapter from IEnumerable[T] to IDataReader
         /// </summary>
-        public static IDataReader AsDataReader<T>(this IEnumerable<T> input) => new EnumerableDataReaderImpl<T>(input);
+        public static DbDataReader AsDataReader<T>(this IEnumerable<T> input) => new EnumerableDataReaderImpl<T>(input);
         private class EnumerableDataReaderImpl<T> : DbDataReader
         {
             private readonly IEnumerable<T> _list;
@@ -799,9 +784,7 @@ namespace Net.Code.ADONet
                 PropertyIndexesByName = Properties.Select((p, i) => new
                 {
                 p, i
-                }
-
-                ).ToDictionary(x => x.p.Name, x => x.i);
+                }).ToDictionary(x => x.p.Name, x => x.i);
             }
 
             public EnumerableDataReaderImpl(IEnumerable<T> list)
@@ -862,9 +845,7 @@ namespace Net.Code.ADONet
                     from x in Properties.Select((p, i) => new
                     {
                     p, i
-                    }
-
-                    )let p = x.p
+                    })let p = x.p
                     let nullable = p.PropertyType.IsNullableType()let dataType = p.PropertyType.GetUnderlyingType()select new
                     {
                     ColumnName = p.Name, ColumnOrdinal = x.i, ColumnSize = int.MaxValue, // must be filled in and large enough for ToDataTable
@@ -905,7 +886,7 @@ namespace Net.Code.ADONet
             {
             Type = typeof(T)}
 
-            , d => ((Type)d.Type).GetProperties().ToDictionary(p => p.Name, GetSetDelegate<T>));
+            , d => ((Type)d.Type).GetProperties().Where(p => p.SetMethod != null).ToDictionary(p => p.Name, GetSetDelegate<T>));
             return (IReadOnlyDictionary<string, Action<T, object>>)setters;
         }
 
@@ -930,12 +911,12 @@ namespace Net.Code.ADONet
 
         public IReadOnlyDictionary<string, Func<T, object>> GetGettersForType<T>()
         {
-            var setters = _getters.GetOrAdd(new
+            var getters = _getters.GetOrAdd(new
             {
             Type = typeof(T)}
 
-            , d => ((Type)d.Type).GetProperties().ToDictionary(p => p.Name, GetGetDelegate<T>));
-            return (IReadOnlyDictionary<string, Func<T, object>>)setters;
+            , d => ((Type)d.Type).GetProperties().Where(p => p.GetMethod != null).ToDictionary(p => p.Name, GetGetDelegate<T>));
+            return (IReadOnlyDictionary<string, Func<T, object>>)getters;
         }
 
         private readonly ConcurrentDictionary<dynamic, object> _getters = new ConcurrentDictionary<dynamic, object>();
@@ -965,9 +946,9 @@ namespace Net.Code.ADONet
         /// </summary>
         void Connect();
         /// <summary>
-        /// The actual IDbConnection (which will be open)
+        /// The actual DbConnection (which will be open)
         /// </summary>
-        IDbConnection Connection
+        DbConnection Connection
         {
             get;
         }
@@ -1166,10 +1147,28 @@ namespace Net.Code.ADONet.Extensions.Experimental
         /// <summary>
         /// Please note: this is an experimental feature, API may change or be removed in future versions"
         /// </summary>
+        public static async Task InsertAsync<T>(this IDb db, IEnumerable<T> items)
+        {
+            var query = Query<T>.Create(((Db)db).MappingConvention).Insert;
+            await DoAsync(db, items, query);
+        }
+
+        /// <summary>
+        /// Please note: this is an experimental feature, API may change or be removed in future versions"
+        /// </summary>
         public static void Update<T>(this IDb db, IEnumerable<T> items)
         {
             var query = Query<T>.Create(((Db)db).MappingConvention).Update;
             Do(db, items, query);
+        }
+
+        /// <summary>
+        /// Please note: this is an experimental feature, API may change or be removed in future versions"
+        /// </summary>
+        public static async Task UpdateAsync<T>(this IDb db, IEnumerable<T> items)
+        {
+            var query = Query<T>.Create(((Db)db).MappingConvention).Update;
+            await DoAsync(db, items, query);
         }
 
         /// <summary>
@@ -1181,12 +1180,30 @@ namespace Net.Code.ADONet.Extensions.Experimental
             Do(db, items, query);
         }
 
+        /// <summary>
+        /// Please note: this is an experimental feature, API may change or be removed in future versions"
+        /// </summary>
+        public static async Task DeleteAsync<T>(this IDb db, IEnumerable<T> items)
+        {
+            var query = Query<T>.Create(((Db)db).MappingConvention).Delete;
+            await DoAsync(db, items, query);
+        }
+
         private static void Do<T>(IDb db, IEnumerable<T> items, string query)
         {
             var commandBuilder = db.Sql(query);
             foreach (var item in items)
             {
                 commandBuilder.WithParameters(item).AsNonQuery();
+            }
+        }
+
+        private static async Task DoAsync<T>(IDb db, IEnumerable<T> items, string query)
+        {
+            var commandBuilder = db.Sql(query);
+            foreach (var item in items)
+            {
+                await commandBuilder.WithParameters(item).AsNonQueryAsync();
             }
         }
     }
@@ -1345,7 +1362,7 @@ namespace Net.Code.ADONet.Extensions.SqlClient
                 }
 
                 var datareader = items.AsDataReader();
-                bcp.WriteToServer((DbDataReader)datareader);
+                bcp.WriteToServer(datareader);
             }
         }
     }

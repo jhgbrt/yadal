@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
@@ -43,6 +44,19 @@ namespace Net.Code.ADONet.Tests.Unit
             command.SetResultSet(Person.GetSingleResultSet());
 
             var result = commandBuilder.Single<Person>();
+
+            Person.VerifyResult(result);
+        }
+        [Fact]
+        public async Task SingleAsync_WhenCalled_ReturnsSingleItem()
+        {
+            var command = PrepareCommand();
+
+            var commandBuilder = new CommandBuilder(command, DbConfig.Default);
+
+            command.SetResultSet(Person.GetSingleResultSet());
+
+            var result = await commandBuilder.SingleAsync<Person>();
 
             Person.VerifyResult(result);
         }
@@ -191,9 +205,11 @@ namespace Net.Code.ADONet.Tests.Unit
             var commandBuilder = new CommandBuilder(command, DbConfig.Default);
             command.SetResultSet(Person.GetSingleResultSet());
 
-            var result = (await commandBuilder.AsEnumerableAsync()).ToList();
+            var list = new List<dynamic>();
+            await foreach (var item in commandBuilder.AsEnumerableAsync())
+                list.Add(item);
 
-            Person.VerifySingleResultSet(result);
+            Person.VerifySingleResultSet(list);
         }
 
         [Fact]
@@ -203,7 +219,22 @@ namespace Net.Code.ADONet.Tests.Unit
             var commandBuilder = new CommandBuilder(command, DbConfig.Default);
             command.SetResultSet(Person.GetSingleResultSet());
 
-            var result = (await commandBuilder.AsEnumerableAsync(d => (Person)Person.From(d))).ToList();
+            var result = new List<Person>();
+            await foreach (var p in commandBuilder.AsEnumerableAsync(d => (Person)Person.From(d)))
+                result.Add(p);
+
+            Person.VerifySingleResultSet(result);
+        }
+        [Fact]
+        public async Task AsEnumerableAsyncForType_WhenCalledAndAwaited_ReturnsResultSet()
+        {
+            var command = PrepareCommand();
+            var commandBuilder = new CommandBuilder(command, DbConfig.Default);
+            command.SetResultSet(Person.GetSingleResultSet());
+
+            var result = new List<Person>();
+            await foreach (var p in commandBuilder.AsEnumerableAsync<Person>())
+                result.Add(p);
 
             Person.VerifySingleResultSet(result);
         }
@@ -230,18 +261,6 @@ namespace Net.Code.ADONet.Tests.Unit
             var result = await commandBuilder.AsNonQueryAsync();
             
             Assert.Equal(1, result);
-        }
-
-        [Fact]
-        public async Task AsMultipleResultSetAsync_WhenCalledAndAwaited_ReturnsMultiResultSet()
-        {
-            var command = PrepareCommand();
-            command.SetMultiResultSet(Person.GetMultiResultSet());
-            var commandBuilder = new CommandBuilder(command, DbConfig.Default);
-            
-            var result = (await commandBuilder.AsMultiResultSetAsync()).ToList();
-
-            Person.VerifyMultiResultSet(result);
         }
 
         private static FakeCommand PrepareCommand()

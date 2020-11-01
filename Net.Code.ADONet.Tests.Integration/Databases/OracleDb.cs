@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Data;
+
 using Net.Code.ADONet.Tests.Integration.Data;
+
 using Oracle.ManagedDataAccess.Client;
 
 namespace Net.Code.ADONet.Tests.Integration.Databases
@@ -30,7 +32,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
         public override (IReadOnlyCollection<Person>, IReadOnlyCollection<Address>) SelectPersonAndAddress(IDb db)
         {
             var query = "BEGIN\r\n" +
-            $" OPEN :Cur1 FOR {SelectPeople}" +
+            $" OPEN :Cur1 FOR {SelectPeople};" +
             $" OPEN :Cur2 FOR {SelectAddresses};" +
             "END;";
             return db.Sql(query)
@@ -38,35 +40,28 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
                 .WithParameter(new OracleParameter("Cur2", OracleDbType.RefCursor, ParameterDirection.Output))
                 .AsMultiResultSet<Person, Address>();
         }
-
+        
         public override void DropAndRecreate()
         {
-            var databaseName = GetConnectionStringProperty("User ID");
-            var ddl = string.Format("DECLARE\r\n" +
-                                    "\r\n" +
-                                    "    c INTEGER := 0;\r\n" +
-                                    "\r\n" +
-                                    "BEGIN\r\n" +
-                                    "    SELECT count(*) INTO c FROM sys.dba_users WHERE USERNAME = \'{0}\';\r\n" +
-                                    "    IF c = 1 THEN\r\n" +
-                                    "            execute immediate (\'drop user {0} cascade\');\r\n" +
-                                    "            execute immediate (\'drop tablespace {0}_TS\');\r\n" +
-                                    "            execute immediate (\'drop tablespace {0}_TS_TMP\');\r\n" +
-                                    "    END IF;\r\n" +
-                                    "    \r\n" +
-                                    "    execute immediate (\'create tablespace {0}_TS datafile \'\'{0}.dat\'\' size 10M reuse autoextend on\');\r\n" +
-                                    "    execute immediate (\'create temporary tablespace {0}_TS_TMP tempfile \'\'{0}_TMP.dat\'\' size 10M reuse autoextend on\');\r\n" +
-                                    "    execute immediate (\'create user {0} identified by pass default tablespace {0}_TS temporary tablespace {0}_TS_TMP\');\r\n" +
-                                    "    execute immediate (\'grant create session to {0}\');\r\n" +
-                                    "    execute immediate (\'grant create table to {0}\');\r\n" +
-                                    "    execute immediate (\'GRANT UNLIMITED TABLESPACE TO {0}\');\r\n" +
-                                    "\r\n" +
-                                    "END;", databaseName);
+            var user = GetConnectionStringProperty("User ID");
+            var tmpts = $"{user}_TS_TMP";
+            var ts = $"{user}_TS";
+            var password = GetConnectionStringProperty("Password");
 
-            using (var db = MasterDb())
-            {
-                db.Execute(ddl);
-            }
+            using var db = MasterDb();
+            db.Execute(@"ALTER SESSION SET ""_ORACLE_SCRIPT""=TRUE");
+            if (db.Sql($"SELECT COUNT(*) FROM SYS.DBA_USERS WHERE USERNAME = '{user}'").AsScalar<bool>())
+                db.Execute($"DROP USER {user}");
+            if (db.Sql($"SELECT COUNT(*) FROM SYS.DBA_TABLESPACES WHERE TABLESPACE_NAME = '{ts}'").AsScalar<bool>())
+                db.Execute($"DROP TABLESPACE {ts}");
+            if (db.Sql($"SELECT COUNT(*) FROM SYS.DBA_TABLESPACES WHERE TABLESPACE_NAME = '{tmpts}'").AsScalar<bool>())
+                db.Execute($"DROP TABLESPACE {tmpts}");
+            db.Execute($"CREATE TABLESPACE {ts} DATAFILE '{ts}.DAT' SIZE 10M REUSE AUTOEXTEND ON");
+            db.Execute($"CREATE TEMPORARY TABLESPACE {tmpts} TEMPFILE '{tmpts}.DAT' SIZE 10M REUSE AUTOEXTEND ON");
+            db.Execute($"CREATE USER {user} IDENTIFIED BY {password} DEFAULT TABLESPACE {ts} TEMPORARY TABLESPACE {tmpts}");
+            db.Execute($"GRANT CREATE SESSION TO {user}");
+            db.Execute($"GRANT CREATE TABLE TO {user}");
+            db.Execute($"GRANT UNLIMITED TABLESPACE TO {user}");
 
         }
 

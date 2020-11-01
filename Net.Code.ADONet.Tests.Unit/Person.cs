@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Net.Code.ADONet.Tests.Unit
 {
-    class Person
+    public class Person
     {
         public int Id { get; set; }
         // ReSharper disable UnusedAutoPropertyAccessor.Local

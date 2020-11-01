@@ -1,2 +1,2 @@
-joincs ..\Net.Code.ADONet .\netfx\Db.cs NETFRAMEWORK
-joincs ..\Net.Code.ADONet .\netstandard\Db.cs NETSTANDARD
+joincs --input=..\Net.Code.ADONet --output=.\netfx\Db.cs --preprocessor-directives=NETFRAMEWORK
+joincs --input=..\Net.Code.ADONet --output=.\netstandard\Db.cs --preprocessor-directives=NETSTANDARD

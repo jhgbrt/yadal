@@ -1,0 +1,20 @@
+DECLARE
+
+    c INTEGER := 0;
+
+BEGIN
+    execute immediate ('alter session set "_ORACLE_SCRIPT"=true');
+    SELECT count(*) INTO c FROM sys.dba_users WHERE USERNAME = 'TESTDB';
+    IF c = 1 THEN
+            execute immediate ('drop user TESTDB cascade');
+    END IF;
+    SELECT count(*) INTO c FROM sys.dba_tablespaces WHERE TABLESPACE_NAME = 'TESTDB_TS';
+    IF c = 1 THEN
+            execute immediate ('drop tablespace TESTDB_TS');
+    END IF;
+    SELECT count(*) INTO c FROM sys.dba_tablespaces WHERE TABLESPACE_NAME = 'TESTDB_TS_TMP';
+    IF c = 1 THEN
+            execute immediate ('drop tablespace TESTDB_TS_TMP');
+    END IF;
+
+END;

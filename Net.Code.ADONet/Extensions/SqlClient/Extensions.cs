@@ -52,7 +52,7 @@ namespace Net.Code.ADONet.Extensions.SqlClient
                 }
 
                 var datareader = items.AsDataReader();
-                bcp.WriteToServer((DbDataReader)datareader);
+                bcp.WriteToServer(datareader);
             }
         }
     }

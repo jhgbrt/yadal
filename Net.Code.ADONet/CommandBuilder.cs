@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
@@ -108,7 +109,11 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Executes the query and returns the result as a list of dynamic objects. 
         /// </summary>
-        public IEnumerable<dynamic> AsEnumerable() => Execute.Reader().ToExpandoList();
+        public IEnumerable<dynamic> AsEnumerable()
+        {
+            using var reader = AsReader();
+            while (reader.Read()) yield return reader.ToExpando();
+        }
 
         /// <summary>
         /// Executes the query and returns the result as a list of [T]. This method is slightly faster. 
@@ -123,41 +128,53 @@ namespace Net.Code.ADONet
         /// Executes the query and returns the result as a list of [T] using the 'case-insensitive, underscore-agnostic column name to property mapping convention.' 
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        public IEnumerable<T> AsEnumerable<T>() => AsReader().AsEnumerable<T>(_config);
+        public IEnumerable<T> AsEnumerable<T>()
+        {
+            using var reader = AsReader();
+            var setterMap = reader.GetSetterMap<T>(_config);
+            while (reader.Read())
+                yield return reader.MapTo(setterMap);
+        }
 
         // enables linq 'select' syntax
-        public IEnumerable<T> Select<T>(Func<dynamic, T> selector) 
-            => Execute.Reader().ToDynamicDataRecord().Select(selector);
+        public IEnumerable<T> Select<T>(Func<dynamic, T> selector)
+        {
+            using var reader = AsReader();
+            while (reader.Read())
+                yield return selector(Dynamic.From(reader));
+        }
 
         /// <summary>
         /// Executes the query and returns the result as a list of lists
         /// </summary>
         public IEnumerable<IReadOnlyCollection<dynamic>> AsMultiResultSet()
         {
-            using (var reader = Execute.Reader())
+            using var reader = AsReader();
+            do
             {
-                foreach (var item in reader.ToMultiResultSet()) yield return item;
-            }
+                var list = new Collection<dynamic>();
+                while (reader.Read()) list.Add(reader.ToExpando());
+                yield return list;
+            } while (reader.NextResult());
         }
         /// <summary>
         /// Executes the query and returns the result as a tuple of lists
         /// </summary>
         public (IReadOnlyCollection<T1>, IReadOnlyCollection<T2>) AsMultiResultSet<T1, T2>()
         {
-            using (var reader = Execute.Reader())
-            {
-                return (
-                    reader.GetResultSet<T1>(_config, out _),
-                    reader.GetResultSet<T2>(_config, out _)
-                    );
-            }
+            using var reader = AsReader();
+            return (
+                reader.GetResultSet<T1>(_config, out _),
+                reader.GetResultSet<T2>(_config, out _)
+                );
         }
+
         /// <summary>
         /// Executes the query and returns the result as a tuple of lists
         /// </summary>
         public (IReadOnlyCollection<T1>, IReadOnlyCollection<T2>, IReadOnlyCollection<T3>) AsMultiResultSet<T1, T2, T3>() 
         {
-            using (var reader = Execute.Reader())
+            using (var reader = AsReader())
             {
                 return (
                     reader.GetResultSet<T1>(_config, out _),
@@ -171,31 +188,27 @@ namespace Net.Code.ADONet
         /// </summary>
         public (IReadOnlyCollection<T1>, IReadOnlyCollection<T2>, IReadOnlyCollection<T3>, IReadOnlyCollection<T4>) AsMultiResultSet<T1, T2, T3, T4>()
         {
-            using (var reader = Execute.Reader())
-            {
-                return (
-                    reader.GetResultSet<T1>(_config, out _),
-                    reader.GetResultSet<T2>(_config, out _),
-                    reader.GetResultSet<T3>(_config, out _),
-                    reader.GetResultSet<T4>(_config, out _)
-                    );
-            }
+            using var reader = AsReader();
+            return (
+                reader.GetResultSet<T1>(_config, out _),
+                reader.GetResultSet<T2>(_config, out _),
+                reader.GetResultSet<T3>(_config, out _),
+                reader.GetResultSet<T4>(_config, out _)
+                );
         }
         /// <summary>
         /// Executes the query and returns the result as a tuple of lists
         /// </summary>
         public (IReadOnlyCollection<T1>, IReadOnlyCollection<T2>, IReadOnlyCollection<T3>, IReadOnlyCollection<T4>, IReadOnlyCollection<T5>) AsMultiResultSet<T1, T2, T3, T4, T5>()
         {
-            using (var reader = Execute.Reader())
-            {
-                return (
-                    reader.GetResultSet<T1>(_config, out _),
-                    reader.GetResultSet<T2>(_config, out _),
-                    reader.GetResultSet<T3>(_config, out _),
-                    reader.GetResultSet<T4>(_config, out _),
-                    reader.GetResultSet<T5>(_config, out _)
-                    );
-            }
+            using var reader = AsReader();
+            return (
+                reader.GetResultSet<T1>(_config, out _),
+                reader.GetResultSet<T2>(_config, out _),
+                reader.GetResultSet<T3>(_config, out _),
+                reader.GetResultSet<T4>(_config, out _),
+                reader.GetResultSet<T5>(_config, out _)
+                );
         }
         /// <summary>
         /// Executes the command, returning the first column of the first result, converted to the type T
@@ -240,10 +253,11 @@ namespace Net.Code.ADONet
         /// Executes the query and returns the result as a list of dynamic objects asynchronously
         /// This method is only supported if the underlying provider propertly implements async behaviour.
         /// </summary>
-        public async Task<IEnumerable<dynamic>> AsEnumerableAsync()
+        public async IAsyncEnumerable<dynamic> AsEnumerableAsync()
         {
-            var reader = await ExecuteAsync.Reader();
-            return reader.ToExpandoList();
+            using var reader = await ExecuteAsync.Reader();
+            while (await reader.ReadAsync())
+                yield return reader.ToExpando();
         }
 
         /// <summary>
@@ -252,23 +266,34 @@ namespace Net.Code.ADONet
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="selector">mapping function that transforms a datarecord (wrapped as a dynamic object) to an instance of type [T]</param>
-        public async Task<IEnumerable<T>> AsEnumerableAsync<T>(Func<dynamic, T> selector)
+        public async IAsyncEnumerable<T> AsEnumerableAsync<T>(Func<dynamic, T> selector)
         {
-            var reader = await ExecuteAsync.Reader();
-            return reader.ToDynamicDataRecord().Select(selector);
+            using var reader = await ExecuteAsync.Reader();
+            while (await reader.ReadAsync())
+            {
+                var d = Dynamic.From(reader);
+                var item = selector(d);
+                yield return item;
+            }
         }
 
         /// <summary>
-        /// Executes the query and returns the result as a list of lists asynchronously
+        /// Executes the query and returns the result as a list of [T] asynchronously
         /// This method is only supported if the underlying provider propertly implements async behaviour.
         /// </summary>
-        public async Task<IEnumerable<IReadOnlyCollection<dynamic>>> AsMultiResultSetAsync()
+        /// <typeparam name="T"></typeparam>
+        /// <param name="selector">mapping function that transforms a datarecord (wrapped as a dynamic object) to an instance of type [T]</param>
+        public async IAsyncEnumerable<T> AsEnumerableAsync<T>()
         {
-            using (var reader = await ExecuteAsync.Reader())
-            {
-                return reader.ToMultiResultSet().ToList();
-            }
+            using var reader = await ExecuteAsync.Reader();
+            var setterMap = reader.GetSetterMap<T>(_config);
+            while (await reader.ReadAsync())
+                yield return reader.MapTo(setterMap);
         }
+
+        public ValueTask<T> SingleAsync<T>() => AsEnumerableAsync<T>().SingleAsync();
+
+
         private AsyncExecutor ExecuteAsync => new AsyncExecutor(Command);
 
         class Executor
@@ -282,7 +307,7 @@ namespace Net.Code.ADONet
             /// <summary>
             /// executes the query as a datareader
             /// </summary>
-            public IDataReader Reader() => Prepare().ExecuteReader();
+            public DbDataReader Reader() => Prepare().ExecuteReader();
 
             /// <summary>
             /// Executes the command, returning the first column of the first result as a scalar value
@@ -294,7 +319,7 @@ namespace Net.Code.ADONet
             /// </summary>
             public int NonQuery() => Prepare().ExecuteNonQuery();
 
-            private IDbCommand Prepare()
+            private DbCommand Prepare()
             {
                 Logger.LogCommand(_command);
                 if (_command.Connection.State == ConnectionState.Closed)

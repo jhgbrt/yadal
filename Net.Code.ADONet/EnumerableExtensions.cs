@@ -13,7 +13,7 @@ namespace Net.Code.ADONet
         /// <summary>
         /// Adapter from IEnumerable[T] to IDataReader
         /// </summary>
-        public static IDataReader AsDataReader<T>(this IEnumerable<T> input) => new EnumerableDataReaderImpl<T>(input);
+        public static DbDataReader AsDataReader<T>(this IEnumerable<T> input) => new EnumerableDataReaderImpl<T>(input);
 
         private class EnumerableDataReaderImpl<T> : DbDataReader
         {

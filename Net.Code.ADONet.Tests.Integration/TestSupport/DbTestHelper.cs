@@ -45,6 +45,13 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
             _db.Insert(people);
             _db.Insert(addresses);
         }
+        public async Task InsertAsync(IEnumerable<Person> people, IEnumerable<Address> addresses)
+        {
+            await Task.WhenAll(
+                _db.InsertAsync(people),
+                _db.InsertAsync(addresses)
+                );
+        }
 
         public void Update(IEnumerable<Person> items)
         {
@@ -97,12 +104,10 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
 
         public async Task<List<Person>> GetAllPeopleAsDynamicAsync()
         {
-            var people = await _db
-                .Sql(_target.Query<Person>().SelectAll)
-                .AsEnumerableAsync();
-            return people
-                .Select(d => (Person) _target.Project(d))
-                .ToList();
+            return await _db.Sql(_target.Query<Person>().SelectAll)
+                        .AsEnumerableAsync()
+                        .Select(d => (Person)_target.Project(d))
+                        .ToListAsync();
         }
 
         public DataTable PeopleAsDataTable()
@@ -124,8 +129,16 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
         {
             return _db
                 .Sql(_target.Query<Person>().Select)
-                .WithParameters(new {Id = id})
+                .WithParameters(new { Id = id })
                 .Single<Person>();
+        }
+
+        public async Task<Person> GetAsync(int id)
+        {
+            return await _db
+                .Sql(_target.Query<Person>().Select)
+                .WithParameters(new { Id = id })
+                .SingleAsync<Person>();
         }
 
         public (int[], Person[]) GetByIdList()

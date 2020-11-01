@@ -11,8 +11,8 @@ namespace Net.Code.ADONet.Tests.Integration
         {
             ["SqlServer"] = @$"Data Source=localhost;Initial Catalog={DatabaseName};User Id=sa;Password={Password};Persist Security Info=True",
             ["SqlServerMaster"] = @$"Data Source=localhost;Initial Catalog=master;User Id=sa;Password={Password};Persist Security Info=True",
-            ["Oracle"] = @$"Data Source=localhost:1521/XE;User ID={DatabaseName};Password={Password}",
-            ["OracleMaster"] = $@"Data Source=localhost:1521/XE;DBA Privilege=SYSDBA;User Id=sys;Password={Password}",
+            ["Oracle"] = @$"Data Source=localhost:1521/ORCLCDB;User ID={DatabaseName};Password=P_ssw0rd_1",
+            ["OracleMaster"] = $@"Data Source=localhost:1521/ORCLCDB;DBA Privilege=SYSDBA;User Id=SYS;Password={Password}",
             ["SqLite"] = @"Data Source=:memory:",
             ["SqLiteMaster"] = @"Data Source=:memory:",
             ["MySql"] = $@"Server=localhost;Database={DatabaseName};Uid=root;Pwd=root;",
