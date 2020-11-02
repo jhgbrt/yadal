@@ -37,6 +37,7 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
         {
             _db.Execute(_target.DropPersonTable);
             _db.Execute(_target.DropAddressTable);
+            _db.Disconnect();
             Logger.Log = s => { };
         }
 

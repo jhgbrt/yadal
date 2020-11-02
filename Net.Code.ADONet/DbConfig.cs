@@ -16,60 +16,47 @@ namespace Net.Code.ADONet
     /// </summary>
     public class DbConfig
     {
-        public DbConfig(Action<IDbCommand> prepareCommand, IMappingConvention convention)
+        internal Action<IDbCommand> PrepareCommand { get; }
+        internal IMappingConvention MappingConvention { get; }
+        public DbConfig(Action<IDbCommand> prepareCommand, IMappingConvention mappingConvention)
         {
             PrepareCommand = prepareCommand;
-            MappingConvention = convention;
+            MappingConvention = mappingConvention;
         }
-
-        public Action<IDbCommand> PrepareCommand { get; }
-        internal IMappingConvention MappingConvention { get; }
-
-        public static readonly DbConfig Default = Create();
-
-        public static DbConfig FromProviderName(string providerName)
+        public static DbConfig FromProviderName(string providerName) => providerName switch
         {
-            if (!string.IsNullOrEmpty(providerName) && providerName.StartsWith("Oracle"))
-                return Oracle;
-            if (!string.IsNullOrEmpty(providerName) && providerName.StartsWith("Npgsql"))
-                return PostGreSQL;
-            if (!string.IsNullOrEmpty(providerName) && providerName.StartsWith("IBM"))
-                return DB2;
-            return Create();
-        }
+            string s when s.StartsWith("Oracle") => Oracle,
+            string s when s.StartsWith("Npgsql") => PostGreSQL,
+            string s when s.StartsWith("IBM") => DB2,
+            _ => Default
+        };
+
         public static DbConfig FromProviderFactory(DbProviderFactory factory) 
-        {
-            return FromProviderName(factory.GetType().FullName);
-        }
+            => FromProviderName(factory.GetType().FullName);
 
         // By default, the Oracle driver does not support binding parameters by name;
         // one has to set the BindByName property on the OracleDbCommand.
         // Mapping: 
         // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
-        public static DbConfig Oracle
-            => new DbConfig(
+        public static readonly DbConfig Oracle
+            = new DbConfig(
                 SetBindByName,
                 new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, ':')
                 );
-
-        public static DbConfig DB2
-            => new DbConfig(
+        public static readonly DbConfig DB2
+            = new DbConfig(
                 NoOp, 
                 new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, '@')
                 );
-        public static DbConfig PostGreSQL
-            => new DbConfig(
+        public static readonly DbConfig PostGreSQL
+            = new DbConfig(
                 NoOp, 
                 new MappingConvention(StringExtensions.ToLowerWithUnderscores, StringExtensions.ToPascalCase, '@')
                 );
-        public static DbConfig Create() 
-            => new DbConfig(NoOp, 
+        public static readonly DbConfig Default
+            = new DbConfig(
+                NoOp, 
                 new MappingConvention(StringExtensions.NoOp, StringExtensions.NoOp, '@')
-                );
-        public static DbConfig Create(Action<IDbCommand> prepareCommand,
-            MappingConvention mappingConvention)
-            => new DbConfig(prepareCommand,
-                mappingConvention
                 );
 
         private static void SetBindByName(dynamic c) => c.BindByName = true;

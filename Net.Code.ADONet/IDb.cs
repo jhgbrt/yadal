@@ -1,5 +1,6 @@
 using System;
 using System.Data.Common;
+using System.Threading.Tasks;
 
 namespace Net.Code.ADONet
 {
@@ -10,12 +11,16 @@ namespace Net.Code.ADONet
         /// </summary>
         void Connect();
 
-#if NETCOREAPP
+        /// <summary>
+        /// Disconnect from the database.
+        /// </summary>
+        void Disconnect();
+
         /// <summary>
         /// Open a connection to the database. Not required.
         /// </summary>
-        Task ConnectAsync() {Connect();return Task.FromResult(false); }
-#endif
+        Task ConnectAsync();
+
         /// <summary>
         /// The actual DbConnection (which will be open)
         /// </summary>

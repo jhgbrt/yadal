@@ -66,6 +66,12 @@ namespace Net.Code.ADONet
             if (_connection.State != ConnectionState.Open)
                 _connection.Open();
         }
+        public void Disconnect()
+        {
+            Logger.Log("Db disconnect");
+            if (_connection.State != ConnectionState.Closed)
+                _connection.Close();
+        }
 
         public async Task ConnectAsync()
         {

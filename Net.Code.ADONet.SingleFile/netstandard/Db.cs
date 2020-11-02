@@ -590,6 +590,13 @@ namespace Net.Code.ADONet
                 _connection.Open();
         }
 
+        public void Disconnect()
+        {
+            Logger.Log("Db disconnect");
+            if (_connection.State != ConnectionState.Closed)
+                _connection.Close();
+        }
+
         public async Task ConnectAsync()
         {
             Logger.Log("Db connect");
@@ -657,14 +664,7 @@ namespace Net.Code.ADONet
     /// </summary>
     public class DbConfig
     {
-        public DbConfig(Action<IDbCommand> prepareCommand, IMappingConvention convention, string providerName)
-        {
-            PrepareCommand = prepareCommand;
-            MappingConvention = convention;
-            ProviderName = providerName;
-        }
-
-        public Action<IDbCommand> PrepareCommand
+        internal Action<IDbCommand> PrepareCommand
         {
             get;
         }
@@ -674,37 +674,27 @@ namespace Net.Code.ADONet
             get;
         }
 
-        public string ProviderName
+        public DbConfig(Action<IDbCommand> prepareCommand, IMappingConvention mappingConvention)
         {
-            get;
+            PrepareCommand = prepareCommand;
+            MappingConvention = mappingConvention;
         }
 
-        public static readonly DbConfig Default = Create(string.Empty);
-        public static DbConfig FromProviderName(string providerName)
+        public static DbConfig FromProviderName(string providerName) => providerName switch
         {
-            if (!string.IsNullOrEmpty(providerName) && providerName.StartsWith("Oracle"))
-                return Oracle(providerName);
-            if (!string.IsNullOrEmpty(providerName) && providerName.StartsWith("Npgsql"))
-                return PostGreSQL(providerName);
-            if (!string.IsNullOrEmpty(providerName) && providerName.StartsWith("IBM"))
-                return DB2(providerName);
-            return Create(providerName);
+        string s when s.StartsWith("Oracle") => Oracle, string s when s.StartsWith("Npgsql") => PostGreSQL, string s when s.StartsWith("IBM") => DB2, _ => Default
         }
 
-        public static DbConfig FromProviderFactory(DbProviderFactory factory)
-        {
-            return FromProviderName(factory.GetType().FullName);
-        }
-
+        ;
+        public static DbConfig FromProviderFactory(DbProviderFactory factory) => FromProviderName(factory.GetType().FullName);
         // By default, the Oracle driver does not support binding parameters by name;
         // one has to set the BindByName property on the OracleDbCommand.
         // Mapping: 
         // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
-        public static DbConfig Oracle(string providerName) => new DbConfig(SetBindByName, new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, ':'), providerName);
-        public static DbConfig DB2(string providerName) => new DbConfig(NoOp, new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, '@'), providerName);
-        public static DbConfig PostGreSQL(string providerName) => new DbConfig(NoOp, new MappingConvention(StringExtensions.ToLowerWithUnderscores, StringExtensions.ToPascalCase, '@'), providerName);
-        public static DbConfig Create(string providerName) => new DbConfig(NoOp, new MappingConvention(StringExtensions.NoOp, StringExtensions.NoOp, '@'), providerName);
-        public static DbConfig Create(Action<IDbCommand> prepareCommand, MappingConvention mappingConvention, string providerName) => new DbConfig(prepareCommand, mappingConvention, providerName);
+        public static readonly DbConfig Oracle = new DbConfig(SetBindByName, new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, ':'));
+        public static readonly DbConfig DB2 = new DbConfig(NoOp, new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, '@'));
+        public static readonly DbConfig PostGreSQL = new DbConfig(NoOp, new MappingConvention(StringExtensions.ToLowerWithUnderscores, StringExtensions.ToPascalCase, '@'));
+        public static readonly DbConfig Default = new DbConfig(NoOp, new MappingConvention(StringExtensions.NoOp, StringExtensions.NoOp, '@'));
         private static void SetBindByName(dynamic c) => c.BindByName = true;
         private static void NoOp(dynamic c)
         {
@@ -945,6 +935,14 @@ namespace Net.Code.ADONet
         /// Open a connection to the database. Not required.
         /// </summary>
         void Connect();
+        /// <summary>
+        /// Disconnect from the database.
+        /// </summary>
+        void Disconnect();
+        /// <summary>
+        /// Open a connection to the database. Not required.
+        /// </summary>
+        Task ConnectAsync();
         /// <summary>
         /// The actual DbConnection (which will be open)
         /// </summary>
