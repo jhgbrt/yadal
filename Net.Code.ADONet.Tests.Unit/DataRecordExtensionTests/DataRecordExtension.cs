@@ -49,7 +49,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
             };
 
             var record = values.ToDataReader();
-            var config = new DbConfig(c => { }, MappingConvention.Default, string.Empty);
+            var config = new DbConfig(c => { }, MappingConvention.Default);
             var map = record.GetSetterMap<SomeEntity>(config);
 
             var entity = record.MapTo(map);
@@ -73,7 +73,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
 
             var reader = values.ToDataReader();
 
-            var config = new DbConfig(c => { }, MappingConvention.Default, string.Empty);
+            var config = new DbConfig(c => { }, MappingConvention.Default);
             var map = reader.GetSetterMap<MyEntity>(config);
             var entity = reader.MapTo(map);
             

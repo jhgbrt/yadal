@@ -16,28 +16,26 @@ namespace Net.Code.ADONet
     /// </summary>
     public class DbConfig
     {
-        public DbConfig(Action<IDbCommand> prepareCommand, IMappingConvention convention, string providerName)
+        public DbConfig(Action<IDbCommand> prepareCommand, IMappingConvention convention)
         {
             PrepareCommand = prepareCommand;
             MappingConvention = convention;
-            ProviderName = providerName;
         }
 
         public Action<IDbCommand> PrepareCommand { get; }
         internal IMappingConvention MappingConvention { get; }
-        public string ProviderName { get; }
 
-        public static readonly DbConfig Default = Create(string.Empty);
+        public static readonly DbConfig Default = Create();
 
         public static DbConfig FromProviderName(string providerName)
         {
             if (!string.IsNullOrEmpty(providerName) && providerName.StartsWith("Oracle"))
-                return Oracle(providerName);
+                return Oracle;
             if (!string.IsNullOrEmpty(providerName) && providerName.StartsWith("Npgsql"))
-                return PostGreSQL(providerName);
+                return PostGreSQL;
             if (!string.IsNullOrEmpty(providerName) && providerName.StartsWith("IBM"))
-                return DB2(providerName);
-            return Create(providerName);
+                return DB2;
+            return Create();
         }
         public static DbConfig FromProviderFactory(DbProviderFactory factory) 
         {
@@ -48,32 +46,31 @@ namespace Net.Code.ADONet
         // one has to set the BindByName property on the OracleDbCommand.
         // Mapping: 
         // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
-        public static DbConfig Oracle(string providerName) 
+        public static DbConfig Oracle
             => new DbConfig(
                 SetBindByName,
-                new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, ':'), 
-                providerName);
+                new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, ':')
+                );
 
-        public static DbConfig DB2(string providerName) 
+        public static DbConfig DB2
             => new DbConfig(
                 NoOp, 
-                new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, '@'),
-                providerName);
-        public static DbConfig PostGreSQL(string providerName) 
+                new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, '@')
+                );
+        public static DbConfig PostGreSQL
             => new DbConfig(
                 NoOp, 
-                new MappingConvention(StringExtensions.ToLowerWithUnderscores, StringExtensions.ToPascalCase, '@'), 
-                providerName);
-        public static DbConfig Create(string providerName) 
+                new MappingConvention(StringExtensions.ToLowerWithUnderscores, StringExtensions.ToPascalCase, '@')
+                );
+        public static DbConfig Create() 
             => new DbConfig(NoOp, 
-                new MappingConvention(StringExtensions.NoOp, StringExtensions.NoOp, '@'), 
-                providerName);
+                new MappingConvention(StringExtensions.NoOp, StringExtensions.NoOp, '@')
+                );
         public static DbConfig Create(Action<IDbCommand> prepareCommand,
-            MappingConvention mappingConvention,
-            string providerName)
+            MappingConvention mappingConvention)
             => new DbConfig(prepareCommand,
-                mappingConvention,
-                providerName);
+                mappingConvention
+                );
 
         private static void SetBindByName(dynamic c) => c.BindByName = true;
         private static void NoOp(dynamic c) {}

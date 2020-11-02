@@ -58,8 +58,8 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             var fakeConnection = new FakeConnection();
             var db = new Db(fakeConnection, new DbConfig(
                 c => ((FakeCommand)c).Comment = "PREPARED", 
-                MappingConvention.Default, 
-                string.Empty));
+                MappingConvention.Default)
+                );
             db.Execute("");
             Assert.Equal("PREPARED", fakeConnection.Commands.Single().Comment);
         }
