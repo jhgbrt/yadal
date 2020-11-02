@@ -160,6 +160,8 @@ namespace IntegrationTests
         public class Oracle : DatabaseTest<OracleDb> { public Oracle(ITestOutputHelper output) : base(output) { } }
         [Trait("Database", "SQLITE")]
         public class SqLite : DatabaseTest<SqLiteDb> { public SqLite(ITestOutputHelper output) : base(output) { } }
+        [Trait("Database", "MSSQLITE")]
+        public class MSSqLite : DatabaseTest<SqLiteDb> { public MSSqLite(ITestOutputHelper output) : base(output) { } }
         [Trait("Database", "MYSQL")]
         public class MySql : DatabaseTest<MySqlDb> { public MySql (ITestOutputHelper output) : base(output) { } }
         [Trait("Database", "POSTGRES")]

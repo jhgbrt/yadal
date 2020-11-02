@@ -17,5 +17,3 @@ jobs:
       run: dotnet build --configuration Release
     - name: test
       run: dotnet test --no-build --configuration Release Net.Code.ADONet.Tests.Unit
-    - name: test
-      run: dotnet test --no-build --configuration Release Net.Code.ADONet.Tests.Integration  --filter Database=SQLITE
