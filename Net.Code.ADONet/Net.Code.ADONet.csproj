@@ -13,9 +13,9 @@
     <RepositoryUrl>https://github.com/jhgbrt/yadal</RepositoryUrl>
     <PackageTags>ado.net</PackageTags>
     <PackageReleaseNotes></PackageReleaseNotes>
-    <Version>4.0.0-preview.2</Version>
-    <AssemblyVersion>4.0.0</AssemblyVersion>
-    <FileVersion>4.0.0</FileVersion>
+    <Version>5.0.0-preview.1</Version>
+    <AssemblyVersion>5.0.0</AssemblyVersion>
+    <FileVersion>5.0.0</FileVersion>
     <LangVersion>preview</LangVersion>
     <Nullable>enable</Nullable>
   </PropertyGroup>

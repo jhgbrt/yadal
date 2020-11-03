@@ -103,19 +103,19 @@ namespace Net.Code.ADONet
             public override object? this[string name] => GetValue(GetOrdinal(name));
 
             public override void Close() => Dispose();
+
+            (PropertyInfo p, int i) deconstruct(PropertyInfo p, int i) => (p, i);
             public override DataTable GetSchemaTable()
             {
-                var q = from x in Properties.Select((p, i) => new {p, i})
+                var q = from x in Properties.Select((p, i) => (p, i))
                     let p = x.p
-                    let nullable = p.PropertyType.IsNullableType()
-                    let dataType = p.PropertyType.GetUnderlyingType()
                     select new
                     {
                         ColumnName = p.Name,
                         ColumnOrdinal = x.i,
                         ColumnSize = int.MaxValue, // must be filled in and large enough for ToDataTable
-                        AllowDBNull = nullable || !p.PropertyType.IsValueType, // assumes string nullable
-                        DataType = dataType,
+                        AllowDBNull = p.PropertyType.IsNullableType() || !p.PropertyType.IsValueType, // assumes string nullable
+                        DataType = p.PropertyType.GetUnderlyingType(),
                     };
 
                 var dt = q.ToDataTable();
