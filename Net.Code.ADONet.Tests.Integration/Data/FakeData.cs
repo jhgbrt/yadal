@@ -35,7 +35,6 @@ namespace Net.Code.ADONet.Tests.Integration.Data
                     OptionalNumber = optionalNumber % 2 == 0 ? optionalNumber : null
                 };
             }
-
         }
 
         public static class Addresses
@@ -56,6 +55,5 @@ namespace Net.Code.ADONet.Tests.Integration.Data
                 };
             }
         }
-
     }
 }

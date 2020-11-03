@@ -8,8 +8,11 @@ namespace Net.Code.ADONet
         string ToDb(string s);
         string Parameter(string s);
     }
+}
 
-    public class MappingConvention : IMappingConvention
+namespace Net.Code.ADONet.Extensions.Mapping
+{
+    internal class MappingConvention : IMappingConvention
     {
         private readonly Func<string, string> _fromDb;
         private readonly Func<string, string> _toDb;
@@ -29,7 +32,7 @@ namespace Net.Code.ADONet
         /// Maps column names to property names based on exact, case sensitive match. Database artefacts are named exactly
         /// like the .Net objects.
         /// </summary>
-        public static readonly IMappingConvention Default 
+        public static readonly IMappingConvention Default
             = new MappingConvention(NoOp, NoOp, '@');
 
         static string NoOp(string s) => s;
@@ -37,6 +40,5 @@ namespace Net.Code.ADONet
         public string FromDb(string s) => _fromDb(s);
         public string ToDb(string s) => _toDb(s);
         public string Parameter(string s) => $"{_escape}{s}";
-
     }
 }

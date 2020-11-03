@@ -19,11 +19,11 @@ namespace Net.Code.ADONet.Tests.Unit
             var sb = new StringBuilder();
             Logger.Log = s => sb.AppendLine(s);
             var command = PrepareCommand();
-            
+
             new CommandBuilder(command, DbConfig.Default)
                 .WithCommandText("commandtext")
                 .WithParameter("name", "value");
-            
+
             Logger.LogCommand(command);
             var loggedText = sb.ToString();
 
@@ -66,7 +66,7 @@ namespace Net.Code.ADONet.Tests.Unit
             var b = new CommandBuilder(command, DbConfig.Default)
                 .WithParameter("name", "value1")
                 .WithParameter("name", "value2");
-            
+
             var result = (IDbDataParameter)b.Command.Parameters[0];
 
             Assert.Equal("name", result.ParameterName);
@@ -130,7 +130,6 @@ namespace Net.Code.ADONet.Tests.Unit
             var param3 = parameters.OfType<IDbDataParameter>().FirstOrDefault(p => p.ParameterName == "Param3_DateTime");
             Assert.NotNull(param3);
             Assert.Equal(DateTime.MaxValue, param3.Value);
-
         }
 
         [Fact]

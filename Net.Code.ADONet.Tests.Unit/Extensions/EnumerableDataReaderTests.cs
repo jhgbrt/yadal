@@ -43,7 +43,6 @@ namespace Net.Code.ADONet.Tests.Unit.Extensions
             reader.GetChars(reader.GetOrdinal("CharArray"), 2, buffer, 0, 5);
 
             Assert.Equal("23456", new string(buffer));
-            
         }
     }
 }

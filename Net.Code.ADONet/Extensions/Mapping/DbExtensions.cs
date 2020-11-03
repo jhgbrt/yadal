@@ -1,8 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-#nullable enable
 
-namespace Net.Code.ADONet.Extensions.Experimental
+namespace Net.Code.ADONet.Extensions.Mapping
 {
     public static class DbExtensions
     {
@@ -21,7 +20,7 @@ namespace Net.Code.ADONet.Extensions.Experimental
         public static async Task InsertAsync<T>(this IDb db, IEnumerable<T> items)
         {
             var query = Query<T>.Create(((Db)db).MappingConvention).Insert;
-            await DoAsync(db, items, query);
+            await DoAsync(db, items, query).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -38,7 +37,7 @@ namespace Net.Code.ADONet.Extensions.Experimental
         public static async Task UpdateAsync<T>(this IDb db, IEnumerable<T> items)
         {
             var query = Query<T>.Create(((Db)db).MappingConvention).Update;
-            await DoAsync(db, items, query);
+            await DoAsync(db, items, query).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -55,7 +54,7 @@ namespace Net.Code.ADONet.Extensions.Experimental
         public static async Task DeleteAsync<T>(this IDb db, IEnumerable<T> items)
         {
             var query = Query<T>.Create(((Db)db).MappingConvention).Delete;
-            await DoAsync(db, items, query);
+            await DoAsync(db, items, query).ConfigureAwait(false);
         }
 
         private static void Do<T>(IDb db, IEnumerable<T> items, string query)
@@ -71,9 +70,8 @@ namespace Net.Code.ADONet.Extensions.Experimental
             var commandBuilder = db.Sql(query);
             foreach (var item in items)
             {
-                await commandBuilder.WithParameters(item).AsNonQueryAsync();
+                await commandBuilder.WithParameters(item).AsNonQueryAsync().ConfigureAwait(false);
             }
         }
-
     }
 }

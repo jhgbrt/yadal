@@ -29,8 +29,8 @@ namespace Net.Code.ADONet.Extensions.SqlClient
         }
 
         /// <summary>
-        /// Assumes one to one mapping between 
-        /// - tablename and typename 
+        /// Assumes one to one mapping between
+        /// - tablename and typename
         /// - property names and column names
         /// </summary>
         /// <typeparam name="T"></typeparam>

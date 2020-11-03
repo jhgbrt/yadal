@@ -74,7 +74,7 @@ namespace Net.Code.ADONet.Tests.Unit
         }
 
         public static void VerifyMultiResultSet(
-            IReadOnlyCollection<Person> result1, 
+            IReadOnlyCollection<Person> result1,
             IReadOnlyCollection<Person> result2
             )
         {
@@ -83,7 +83,7 @@ namespace Net.Code.ADONet.Tests.Unit
                 result1,
                 result2
             };
-            
+
             VerifyIds(from list in lists from item in list select item.Id);
         }
 

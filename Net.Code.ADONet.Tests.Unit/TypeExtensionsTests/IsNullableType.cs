@@ -4,7 +4,6 @@ using Xunit;
 
 namespace Net.Code.ADONet.Tests.Unit.TypeExtensionsTests
 {
-
     public class DBNullHelperTests
     {
         [Fact]
@@ -142,6 +141,5 @@ namespace Net.Code.ADONet.Tests.Unit.TypeExtensionsTests
             // ReSharper enable ExpressionIsAlwaysNull
             Assert.Equal(DBNull.Value, o);
         }
-
     }
 }

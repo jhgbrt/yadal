@@ -20,7 +20,6 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
                 var ok = db.Execute($"SELECT 1 from pg_database WHERE datname='{databaseName}';");
                 var dbs = db.Sql("SELECT datname FROM pg_database").AsEnumerable().Select(d => (string)d.datname).ToList();
             }
-
         }
         public override Data.Person Project(dynamic d)
         {
@@ -33,6 +32,5 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
                 RequiredNumber = d.required_number
             };
         }
-
     }
 }

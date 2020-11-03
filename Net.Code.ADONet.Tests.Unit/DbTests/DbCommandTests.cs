@@ -8,7 +8,6 @@ using Xunit;
 
 namespace Net.Code.ADONet.Tests.Unit.DbTests
 {
-
     public class DbCommandTests
     {
         private IDb _db;
@@ -87,7 +86,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         {
             _builder.WithParameters(new
                                     {
-                                        myparam1 = "myvalue", 
+                                        myparam1 = "myvalue",
                                         myparam2 = 999
                                     });
             Assert.Equal(2, _sqlCommand.Parameters.Count);
@@ -131,5 +130,4 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
             Assert.Equal(text, _sqlCommand.CommandText);
         }
     }
-
 }

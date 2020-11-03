@@ -1,4 +1,4 @@
-using Net.Code.ADONet.Extensions.Experimental;
+using Net.Code.ADONet.Extensions.Mapping;
 using Net.Code.ADONet.Tests.Integration.Data;
 
 using System;
@@ -24,7 +24,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
         }
         public bool IsAvailable() => _available.Value;
 
-        private string DefaultCreatePersonTable() => 
+        private string DefaultCreatePersonTable() =>
             $"CREATE TABLE {ToDb(nameof(Person))} (" +
             $"   {ToDb(nameof(Person.Id))} int not null, " +
             $"   {ToDb(nameof(Person.OptionalNumber))} int, " +
@@ -33,7 +33,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
             $"   {ToDb(nameof(Person.Email))} varchar(100)" +
             ");";
 
-        private string DefaultCreateAddressTable() => 
+        private string DefaultCreateAddressTable() =>
             $"CREATE TABLE {ToDb(nameof(Address))} (" +
             $"   {ToDb(nameof(Address.Id))} int not null, " +
             $"   {ToDb(nameof(Address.Street))} varchar(100), " +
@@ -70,15 +70,16 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
             OptionalNumber = d[ToDb(nameof(Person.OptionalNumber))],
             RequiredNumber = d[ToDb(nameof(Person.RequiredNumber))]
         };
-        public IQuery Query<TItem>() => Extensions.Experimental.Query<TItem>.Create(Config.MappingConvention);
+        public IQuery Query<TItem>() => Extensions.Mapping.Query<TItem>.Create(Config.MappingConvention);
         public DbConfig Config => DbConfig.FromProviderFactory(Factory);
-        protected DbProviderFactory Factory { get; private set; }
+        protected DbProviderFactory Factory { get; }
 
         protected bool CanConnect()
         {
             try
             {
-                using var connection = Factory.CreateConnection(MasterConnectionString);
+                using var connection = Factory.CreateConnection();
+                connection.ConnectionString = MasterConnectionString;
                 connection.Open();
                 return true;
             }

@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Net.Code.ADONet.Tests.Integration.TestSupport
 {
-    static class ExtensionsForLegacyComparison
+    internal static class ExtensionsForLegacyComparison
     {
         private static IEnumerable<IDataRecord> AsEnumerable(this IDataReader reader)
         {
@@ -15,7 +15,7 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
         private static T MapTo<T>(this IDataRecord record, DbConfig config)
         {
             var convention = config.MappingConvention;
-            var setters = FastReflection.Instance.GetSettersForType<T>();
+            var setters = FastReflection<T>.Instance.GetSettersForType();
             var result = Activator.CreateInstance<T>();
             for (var i = 0; i < record.FieldCount; i++)
             {

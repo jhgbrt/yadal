@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 
 namespace Net.Code.ADONet
 {
-
     /// <summary>
     /// <para>Yet Another Data Access Layer</para>
     /// <para>usage: </para>
@@ -23,7 +22,7 @@ namespace Net.Code.ADONet
         private readonly bool _externalConnection;
 
         /// <summary>
-        /// Instantiate Db with existing connection. The connection is only used for creating commands; 
+        /// Instantiate Db with existing connection. The connection is only used for creating commands;
         /// it should be disposed by the caller when done.
         /// </summary>
         /// <param name="connection">The existing connection</param>
@@ -45,7 +44,6 @@ namespace Net.Code.ADONet
         {
         }
 
-
         /// <summary>
         /// Instantiate Db with connectionString and a custom IConnectionFactory
         /// </summary>
@@ -55,7 +53,8 @@ namespace Net.Code.ADONet
         internal Db(string connectionString, DbConfig config, DbProviderFactory connectionFactory)
         {
             Logger.Log("Db ctor");
-            _connection = connectionFactory.CreateConnection(connectionString);
+            _connection = connectionFactory.CreateConnection();
+            _connection.ConnectionString = connectionString;
             _externalConnection = false;
             Config = config;
         }
@@ -77,7 +76,7 @@ namespace Net.Code.ADONet
         {
             Logger.Log("Db connect");
             if (_connection.State != ConnectionState.Open)
-                await _connection.OpenAsync();
+                await _connection.OpenAsync().ConfigureAwait(false);
         }
 
         /// <summary>

@@ -6,10 +6,9 @@ using System.Reflection;
 
 namespace Net.Code.ADONet
 {
-    public static class ExtensionsForDataSetRelatedStuff
+    internal static class DataTableExtensions
     {
-        static dynamic ToDynamic(this DataRow dr) => Dynamic.From(dr);
-        public static IEnumerable<dynamic> AsEnumerable(this DataTable dataTable) => dataTable.Rows.OfType<DataRow>().Select(ToDynamic);
+        public static IEnumerable<dynamic> AsEnumerable(this DataTable dataTable) => dataTable.Rows.OfType<DataRow>().Select(Dynamic.From);
         public static IEnumerable<T> Select<T>(this DataTable dt, Func<dynamic, T> selector) => dt.AsEnumerable().Select(selector);
         public static IEnumerable<dynamic> Where(this DataTable dt, Func<dynamic, bool> predicate) => dt.AsEnumerable().Where(predicate);
 
@@ -18,19 +17,16 @@ namespace Net.Code.ADONet
         /// </summary>
         public static DataTable AsDataTable(this CommandBuilder commandBuilder)
         {
-            using (var reader = commandBuilder.AsReader())
-            {
-                var tb = new DataTable();
-                tb.Load(reader);
-                return tb;
-            }
+            using var reader = commandBuilder.AsReader();
+            var tb = new DataTable();
+            tb.Load(reader);
+            return tb;
         }
         public static DataTable ToDataTable<T>(this IEnumerable<T> items)
         {
-            var table = new DataTable(typeof(T).Name);
-
             var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
+            var table = new DataTable(typeof(T).Name);
             foreach (var prop in props)
             {
                 var propType = prop.PropertyType.GetUnderlyingType();

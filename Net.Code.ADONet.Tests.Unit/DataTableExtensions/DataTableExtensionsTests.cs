@@ -7,7 +7,6 @@ using Xunit;
 
 namespace Net.Code.ADONet.Tests.Unit.DataTableExtensions
 {
-
     public class DataTableExtensionsTests
     {
         private DataTable dt;
@@ -37,7 +36,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataTableExtensions
             Assert.Equal("Description 1", item.Description);
             Assert.Equal(1, item.Id);
         }
- 
+
         [Fact]
         public void LinqWhere()
         {
@@ -49,7 +48,6 @@ namespace Net.Code.ADONet.Tests.Unit.DataTableExtensions
             Assert.Equal(1, item.Id);
         }
     }
-
 
     public class ToDataTableTests
     {
@@ -84,7 +82,6 @@ namespace Net.Code.ADONet.Tests.Unit.DataTableExtensions
             sw = Stopwatch.StartNew();
             People.ToDataTable();
             Console.WriteLine(sw.Elapsed);
-
         }
     }
 }

@@ -3,7 +3,6 @@ using Xunit;
 
 namespace Net.Code.ADONet.Tests.Unit.ConvertToTests
 {
-
     public class ConvertToRefType
     {
         [Fact]

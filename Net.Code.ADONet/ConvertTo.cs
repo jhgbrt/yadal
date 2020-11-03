@@ -14,8 +14,8 @@ namespace Net.Code.ADONet
         // ReSharper disable once StaticFieldInGenericType
         // clearly we *want* a static field for each instantiation of this generic class...
         /// <summary>
-        /// The actual conversion method. Converts an object to any type using standard casting functionality, 
-        /// taking into account null/nullable types and avoiding DBNull issues. This method is set as a delegate 
+        /// The actual conversion method. Converts an object to any type using standard casting functionality,
+        /// taking into account null/nullable types and avoiding DBNull issues. This method is set as a delegate
         /// at runtime (in the static constructor).
         /// </summary>
         public static readonly Func<object?, T?> From;
@@ -26,27 +26,26 @@ namespace Net.Code.ADONet
             From = CreateConvertFunction(typeof(T));
         }
 
-        private static Func<object?, T?> CreateConvertFunction(Type type)
+        private static Func<object?, T?> CreateConvertFunction(Type type) => type switch
         {
-            if (!type.IsValueType)
-            {
-                return ConvertRefType;
-            }
+            Type t when !t.IsValueType => ConvertRefType,
+            Type t when !t.IsNullableType() => ConvertValueType,
+            Type t => CreateConvertNullableValueTypeFunc(t)
+        };
 
-            if (!type.IsNullableType())
-            {
-                return ConvertValueType;
-            }
-
-            var delegateType = typeof(Func<object?, T>);
+        private static Func<object?, T?> CreateConvertNullableValueTypeFunc(Type type)
+        {
+            var delegateType = typeof(Func<object?, T?>);
             var methodInfo = typeof(ConvertTo<T>).GetMethod("ConvertNullableValueType", BindingFlags.NonPublic | BindingFlags.Static);
             var genericMethodForElement = methodInfo.MakeGenericMethod(type.GetGenericArguments()[0]);
-            return (Func<object?, T>)genericMethodForElement.CreateDelegate(delegateType);
+            return (Func<object?, T?>)genericMethodForElement.CreateDelegate(delegateType);
         }
 
 #pragma warning disable IDE0051 // Remove unused private members
+#pragma warning disable RCS1213 // Remove unused member declaration.
         private static TElem? ConvertNullableValueType<TElem>(object value) where TElem : struct
             => IsNull(value) ? default(TElem?) : ConvertPrivate<TElem>(value);
+#pragma warning restore RCS1213 // Remove unused member declaration.
 #pragma warning restore IDE0051 // Remove unused private members
 
         private static T? ConvertRefType(object? value) => IsNull(value) ? default : ConvertPrivate<T>(value!);

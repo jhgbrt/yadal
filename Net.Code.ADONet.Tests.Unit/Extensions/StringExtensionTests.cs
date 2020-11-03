@@ -1,14 +1,13 @@
 ﻿using Xunit;
 
-namespace Net.Code.ADONet.Tests.Unit.StringExtensionsTests
+namespace Net.Code.ADONet.Tests.Unit.Extensions
 {
-
     public class StringExtensionTests
     {
         [Fact]
         public void ToUpperRemoveSpecialChars_NullInput_ReturnsNull()
         {
-            string s = null;
+            const string s = null;
             Assert.Null(s.ToUpperRemoveSpecialChars());
         }
         [Fact]
@@ -20,21 +19,21 @@ namespace Net.Code.ADONet.Tests.Unit.StringExtensionsTests
         [Fact]
         public void ToUpperRemoveSpecialChars_SingleWord_ReturnsWordToUpper()
         {
-            string s = "abc";
+            const string s = "abc";
             Assert.Equal("ABC", s.ToUpperRemoveSpecialChars());
         }
 
         [Fact]
         public void ToUpperRemoveSpecialChars_RemovesNonLetterOrDigits()
         {
-            string s = "aBc!@#DeF_012[]";
+            const string s = "aBc!@#DeF_012[]";
             Assert.Equal("ABCDEF012", s.ToUpperRemoveSpecialChars());
         }
         [Fact]
-        public void ToPascalCase_NullInput_ReturnsNull()
+        public void ToPascalCase_NullInput_ReturnsEmpty()
         {
-            string s = null;
-            Assert.Null(s.ToPascalCase());
+            const string s = null;
+            Assert.Empty(s.ToPascalCase());
         }
         [Fact]
         public void ToPascalCase_EmptyInput_ReturnsNull()
@@ -45,52 +44,50 @@ namespace Net.Code.ADONet.Tests.Unit.StringExtensionsTests
         [Fact]
         public void ToPascalCase_SingleWord_ReturnsWordToUpper()
         {
-            string s = "WORD";
+            const string s = "WORD";
             Assert.Equal("Word", s.ToPascalCase());
         }
         [Fact]
         public void ToPascalCase_SingleLowerWord_ReturnsWordToUpper()
         {
-            string s = "word";
+            const string s = "word";
             Assert.Equal("Word", s.ToPascalCase());
         }
 
         [Fact]
         public void ToPascalCase_RemovesNonLetterOrDigits()
         {
-            string s = "SOME_WORD";
+            const string s = "SOME_WORD";
             Assert.Equal("SomeWord", s.ToPascalCase());
         }
         [Fact]
         public void ToPascalCase_LowerCase_RemovesNonLetterOrDigits()
         {
-            string s = "some_word";
+            const string s = "some_word";
             Assert.Equal("SomeWord", s.ToPascalCase());
         }
 
         [Fact]
         public void PascalCaseToSentence()
         {
-            var pascalCase = "SomeSentenceBlah";
+            const string pascalCase = "SomeSentenceBlah";
             Assert.Equal("Some Sentence Blah", pascalCase.PascalCaseToSentence());
         }
         [Fact]
         public void PascalCaseToUpperWithUnderscores()
         {
-            var pascalCase = "SomeSentenceBlah";
+            const string pascalCase = "SomeSentenceBlah";
             Assert.Equal("SOME_SENTENCE_BLAH", pascalCase.ToUpperWithUnderscores());
         }
         [Fact]
         public void PascalCaseToLowerWithUnderscores()
         {
-            var pascalCase = "SomeSentenceBlah";
+            const string pascalCase = "SomeSentenceBlah";
             Assert.Equal("some_sentence_blah", pascalCase.ToLowerWithUnderscores());
         }
     }
 
-
     public static class ExtensionsUnderDevelopment
     {
-
     }
 }

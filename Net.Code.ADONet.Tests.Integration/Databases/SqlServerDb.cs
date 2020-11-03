@@ -7,8 +7,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
 {
     public class SqlServerDb : BaseDb<SqlServerDb>
     {
-
-        public SqlServerDb() : 
+        public SqlServerDb() :
             base(SqlClientFactory.Instance)
         {
         }
@@ -34,7 +33,6 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
             {
                 db.Execute("CREATE TYPE IdSet AS TABLE (Id int)");
             }
-
         }
 
         public override bool SupportsTableValuedParameters => true;

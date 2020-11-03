@@ -9,7 +9,6 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
 {
     public class OracleDb : BaseDb<OracleDb>
     {
-
         public OracleDb() : base(OracleClientFactory.Instance)
         {
         }
@@ -40,7 +39,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
                 .WithParameter(new OracleParameter("Cur2", OracleDbType.RefCursor, ParameterDirection.Output))
                 .AsMultiResultSet<Person, Address>();
         }
-        
+
         public override void DropAndRecreate()
         {
             var user = GetConnectionStringProperty("User ID");
@@ -62,7 +61,6 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
             db.Execute($"GRANT CREATE SESSION TO {user}");
             db.Execute($"GRANT CREATE TABLE TO {user}");
             db.Execute($"GRANT UNLIMITED TABLESPACE TO {user}");
-
         }
 
         public override Person Project(dynamic d)

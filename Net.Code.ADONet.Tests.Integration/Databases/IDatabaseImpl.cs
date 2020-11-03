@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-using Net.Code.ADONet.Extensions.Experimental;
+using Net.Code.ADONet.Extensions.Mapping;
 using Net.Code.ADONet.Tests.Integration.Data;
 
 namespace Net.Code.ADONet.Tests.Integration.Databases

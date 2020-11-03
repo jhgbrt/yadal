@@ -5,7 +5,6 @@ using Xunit;
 
 namespace Net.Code.ADONet.Tests.Unit.TypeExtensionsTests
 {
-
     public class DataRecordExtensionsTests
     {
         private const string DATARECORD_COLUMN_NAME = "x";

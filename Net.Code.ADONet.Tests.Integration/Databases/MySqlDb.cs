@@ -9,7 +9,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
         public MySqlDb() : base(MySqlClientFactory.Instance)
         {
         }
- 
+
         public override void DropAndRecreate()
         {
             var databaseName = GetConnectionStringProperty("Database");
@@ -21,7 +21,6 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
             {
                 db.Execute(ddl);
             }
-
         }
 
         public override void BulkInsert(IDb db, IEnumerable<Person> list)

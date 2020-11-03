@@ -46,7 +46,6 @@ namespace Net.Code.ADONet.Tests.Unit
 
     public static class ListDataReader
     {
-   
         public static DbDataReader AsMultiDataReader<T>(this IEnumerable<IEnumerable<T>> input)
         {
             return new ListDataReader<T>(input);
@@ -156,7 +155,7 @@ namespace Net.Code.ADONet.Tests.Unit
         public override bool IsDBNull(int i) => DBNull.Value.Equals(GetValue(i));
 
         public override int FieldCount => Properties.Length;
-        
+
         public override bool HasRows => _lists.FirstOrDefault()?.Any() ?? false;
 
         public override object this[int i] => GetValue(i);
@@ -211,6 +210,5 @@ namespace Net.Code.ADONet.Tests.Unit
 
         protected override void Dispose(bool disposing) => _disposed = true;
     }
-
 
 }

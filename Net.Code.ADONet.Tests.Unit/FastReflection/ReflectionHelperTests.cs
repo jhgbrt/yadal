@@ -2,24 +2,23 @@
 using System.Collections.Generic;
 using Xunit;
 
-
-namespace Net.Code.ADONet.Tests.Unit.ReflectionHelper
+namespace Net.Code.ADONet.Tests.Unit.FastReflection
 {
     public class MyTestEntity
     {
         public string SomeProperty { get; set; }
         public object DbNullValueProperty { get; set; }
-
         public int IntProperty { get; set; }
         public int? NullableIntProperty { get; set; }
+#pragma warning disable CA1822 // Mark members as static
         public string ReadOnly => "ReadOnlyValue";
         public string WriteOnly { set { } }
+#pragma warning restore CA1822 // Mark members as static
     }
-
 
     public class ReflectionHelperGetterTests
     {
-        private MyTestEntity _entity = new MyTestEntity
+        private readonly MyTestEntity _entity = new MyTestEntity
         {
             DbNullValueProperty = DBNull.Value,
             SomeProperty = "Hello World",
@@ -27,7 +26,8 @@ namespace Net.Code.ADONet.Tests.Unit.ReflectionHelper
             NullableIntProperty = 2,
             WriteOnly = "WriteOnly"
         };
-        IReadOnlyDictionary<string, Func<MyTestEntity, object>> getters = FastReflection.Instance.GetGettersForType<MyTestEntity>();
+        private readonly IReadOnlyDictionary<string, Func<MyTestEntity, object>> getters
+            = FastReflection<MyTestEntity>.Instance.GetGettersForType();
 
         [Fact]
         public void Getter_ForStringProperty_ReturnsCorrectValue()
@@ -68,11 +68,9 @@ namespace Net.Code.ADONet.Tests.Unit.ReflectionHelper
 
     public class ReflectionHelperSetterTests
     {
-        private readonly MyTestEntity _entity = new MyTestEntity
-        {
-        };
+        private readonly MyTestEntity _entity = new MyTestEntity();
 
-        IReadOnlyDictionary<string, Action<MyTestEntity,object>> setters = FastReflection.Instance.GetSettersForType<MyTestEntity>();
+        private readonly IReadOnlyDictionary<string, Action<MyTestEntity,object>> setters = FastReflection<MyTestEntity>.Instance.GetSettersForType();
 
         [Fact]
         public void Setter_ForStringProperty_ReturnsCorrectValue()
@@ -114,6 +112,5 @@ namespace Net.Code.ADONet.Tests.Unit.ReflectionHelper
         {
             Assert.DoesNotContain(nameof(MyTestEntity.ReadOnly), setters);
         }
-
     }
 }

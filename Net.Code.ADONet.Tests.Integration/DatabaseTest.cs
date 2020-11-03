@@ -62,7 +62,6 @@ namespace IntegrationTests
         {
             var count = _testHelper.GetCountOfPeople();
             Assert.Equal(10, count);
-
         }
 
         [SkippableFact]
@@ -150,7 +149,6 @@ namespace IntegrationTests
         {
             _testHelper.BulkInsert(FakeData.People.List(100));
         }
-
     }
     namespace Database
     {

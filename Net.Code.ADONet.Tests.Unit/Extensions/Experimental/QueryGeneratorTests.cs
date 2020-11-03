@@ -1,11 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Net.Code.ADONet.Extensions.Experimental;
+using Net.Code.ADONet.Extensions.Mapping;
 using Xunit;
 
 namespace Net.Code.ADONet.Tests.Unit.Extensions.Experimental
 {
-
     class MyEntityWithGeneratedId
     {
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]

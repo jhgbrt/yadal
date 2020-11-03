@@ -2,7 +2,7 @@
 using System.Data;
 using Xunit;
 
-namespace Net.Code.ADONet.Tests.Unit.ToDatatableTests
+namespace Net.Code.ADONet.Tests.Unit.Extensions
 {
     public class EnumerableToDatatableTests
     {

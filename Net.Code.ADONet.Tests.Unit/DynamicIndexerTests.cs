@@ -6,14 +6,8 @@ using Xunit;
 
 namespace Net.Code.ADONet.Tests.Unit
 {
-
     public class DynamicIndexerTests
     {
-        [Fact]
-        public void DynamicDataRow_NullRow_Throws()
-        {
-            Assert.Throws<ArgumentNullException>(() => Dynamic.From((DataRow)null));
-        }
 
         [Fact]
         public void DynamicDataRow_WithIdAndName_CanGetPropertiesViaIndex()
@@ -48,11 +42,6 @@ namespace Net.Code.ADONet.Tests.Unit
             return dr;
         }
 
-        [Fact]
-        public void DynamicDictionary_NullRow_Throws()
-        {
-            Assert.Throws<ArgumentNullException>(() => Dynamic.From<Dictionary<string, object>>(null));
-        }
 
         [Fact]
         public void DynamicDictionary_WithIdAndName_CanGetPropertiesViaIndex()
@@ -83,13 +72,6 @@ namespace Net.Code.ADONet.Tests.Unit
                 {"Id", 1},
                 {"Name", "Name"}
             };
-        }
-
-        [Fact]
-        public void DynamicDataRecord_NullDataRecord_Throws()
-        {
-            IDataRecord dr = null;
-            Assert.Throws<ArgumentNullException>(() => Dynamic.From(dr));
         }
 
         [Fact]

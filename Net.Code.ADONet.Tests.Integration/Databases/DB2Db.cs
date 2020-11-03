@@ -6,7 +6,6 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
     {
         public DB2Db() : base(DB2Factory.Instance)
         {
-            
         }
 
         public override void DropAndRecreate()

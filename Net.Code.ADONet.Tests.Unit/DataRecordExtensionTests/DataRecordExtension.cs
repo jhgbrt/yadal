@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using Net.Code.ADONet.Extensions.Mapping;
 using NSubstitute;
 using Xunit;
 
@@ -20,7 +21,6 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
         }
     }
 
-
     public class DataRecordExtension
     {
         public class MyEntity
@@ -37,7 +37,6 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
             public int? MyNullableInt1 { get; set; }
             public int? MyNullableInt2 { get; set; }
             public int MyInt1 { get; set; }
-
         }
 
         [Fact]
@@ -76,14 +75,13 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
             var config = new DbConfig(c => { }, MappingConvention.Default);
             var map = reader.GetSetterMap<MyEntity>(config);
             var entity = reader.MapTo(map);
-            
+
             Assert.Equal("SomeValue", entity.MyProperty);
             Assert.Null(entity.MyNullableInt1);
             Assert.Equal(1, entity.MyNullableInt2);
             Assert.Equal(2, entity.MyInt1);
         }
 
-       
         [Fact]
         public void GivenDataReaderMock_WhenGetByNameReturnsDbNull_ResultIsNull()
         {

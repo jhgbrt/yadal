@@ -6,10 +6,8 @@ using Xunit;
 
 namespace Net.Code.ADONet.Tests.Unit.DbTests
 {
-
     public class DbConfigurationBuilderTests
     {
-        
         [Fact]
         public void Default_PrepareCommand_DoesNothing()
         {
@@ -57,7 +55,7 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         {
             var fakeConnection = new FakeConnection();
             var db = new Db(fakeConnection, new DbConfig(
-                c => ((FakeCommand)c).Comment = "PREPARED", 
+                c => ((FakeCommand)c).Comment = "PREPARED",
                 MappingConvention.Default)
                 );
             db.Execute("");

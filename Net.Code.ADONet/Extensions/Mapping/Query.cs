@@ -3,11 +3,10 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Reflection;
-#nullable enable
 
-namespace Net.Code.ADONet.Extensions.Experimental
+namespace Net.Code.ADONet.Extensions.Mapping
 {
-    internal class Query<T> : IQuery
+    internal sealed class Query<T> : IQuery
     {
         // ReSharper disable StaticMemberInGenericType
         private static readonly PropertyInfo[] Properties;
@@ -22,15 +21,15 @@ namespace Net.Code.ADONet.Extensions.Experimental
             Properties = typeof(T).GetProperties();
 
             KeyProperties = Properties.Where(p => p.CustomAttributes.Any(a => a.AttributeType == typeof(KeyAttribute))).ToArray();
-            if (!KeyProperties.Any())
+            if (KeyProperties.Length == 0)
                 KeyProperties = Properties.Where(p => p.Name.Equals("Id", StringComparison.OrdinalIgnoreCase)).ToArray();
-            if (!KeyProperties.Any())
+            if (KeyProperties.Length == 0)
                 KeyProperties = Properties.Where(p => p.Name.Equals($"{typeof(T).Name}Id", StringComparison.OrdinalIgnoreCase)).ToArray();
 
             DbGenerated = KeyProperties.Where(p => p.HasCustomAttribute<DatabaseGeneratedAttribute>(a => a.DatabaseGeneratedOption != DatabaseGeneratedOption.None)).ToArray();
         }
 
-        Query(IMappingConvention convention)
+        private Query(IMappingConvention convention)
         {
             var allPropertyNames = Properties.Select(p => convention.ToDb(p.Name)).ToArray();
             var insertPropertyNames = Properties.Except(DbGenerated).Select(p => p.Name).ToArray();
@@ -38,7 +37,7 @@ namespace Net.Code.ADONet.Extensions.Experimental
             var nonKeyProperties = Properties.Except(KeyProperties).ToArray();
             var nonKeyPropertyNames = nonKeyProperties.Select(p => p.Name).ToArray();
 
-            Func<string, string> assign = s => $"{convention.ToDb(s)} = {convention.Parameter(s)}";
+            string assign(string s) => $"{convention.ToDb(s)} = {convention.Parameter(s)}";
             var insertColumns = string.Join(", ", insertPropertyNames.Select(convention.ToDb));
             var insertValues = string.Join(", ", insertPropertyNames.Select(s => $"{convention.Parameter(s)}"));
             var whereClause = string.Join(" AND ", keyPropertyNames.Select(assign));
@@ -65,11 +64,5 @@ namespace Net.Code.ADONet.Extensions.Experimental
         public string SelectAll { get; }
 
         public string Count { get; }
-    }
-
-    internal static class TypeExtensions
-    {
-        public static bool HasCustomAttribute<TAttribute>(this MemberInfo t, Func<TAttribute, bool> whereClause)
-            => t.GetCustomAttributes(false).OfType<TAttribute>().Where(whereClause).Any();
     }
 }

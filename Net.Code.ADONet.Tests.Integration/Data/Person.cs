@@ -18,10 +18,10 @@ namespace Net.Code.ADONet.Tests.Integration.Data
 
         protected bool Equals(Person other)
         {
-            return Id == other.Id 
-                && string.Equals(Email, other.Email) 
-                && string.Equals(Name, other.Name) 
-                && RequiredNumber == other.RequiredNumber 
+            return Id == other.Id
+                && string.Equals(Email, other.Email)
+                && string.Equals(Name, other.Name)
+                && RequiredNumber == other.RequiredNumber
                 && OptionalNumber == other.OptionalNumber;
         }
 
@@ -73,7 +73,6 @@ namespace Net.Code.ADONet.Tests.Integration.Data
             }
         }
     }
-
 
 
 }

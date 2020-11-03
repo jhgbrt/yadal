@@ -1,4 +1,4 @@
-﻿namespace Net.Code.ADONet.Extensions.Experimental
+﻿namespace Net.Code.ADONet.Extensions.Mapping
 {
     public interface IQuery
     {
@@ -9,5 +9,4 @@
         string SelectAll { get; }
         string Count { get; }
     }
-
 }

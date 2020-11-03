@@ -8,7 +8,6 @@ using Xunit.Abstractions;
 
 namespace IntegrationTests
 {
-    
 
     [Collection("Database collection")]
     public abstract class PerformanceTest<T> : IDisposable where T: IDatabaseImpl, new()
@@ -31,13 +30,12 @@ namespace IntegrationTests
             _testHelper.Cleanup();
         }
 
-
         [SkippableFact]
         public void WhenMappingWithCachedSetterMap_ThenMappingIsFaster()
         {
             _testHelper.GetAllPeopleGeneric();
             _testHelper.GetAllPeopleGenericLegacy();
-            
+
 
             var fast = Measure(
                 () => { for (int i = 0; i < 100; i++) _testHelper.GetAllPeopleGeneric(); }
