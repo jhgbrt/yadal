@@ -3,6 +3,7 @@ using Microsoft.Data.SqlClient;
 using System.Linq;
 using NSubstitute;
 using Xunit;
+using Net.Code.ADONet.Extensions.Mapping;
 
 namespace Net.Code.ADONet.Tests.Unit.DbTests
 {
