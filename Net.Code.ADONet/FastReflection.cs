@@ -20,17 +20,10 @@ namespace Net.Code.ADONet
         private static Action<T, object?> GetSetDelegate(PropertyInfo p)
         {
             var method = p.GetSetMethod();
-            var genericHelper = Type.GetMethod(nameof(CreateSetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
-            var constructedHelper = genericHelper.MakeGenericMethod(typeof(T), method.GetParameters()[0].ParameterType);
-            return (Action<T, object?>)constructedHelper.Invoke(null, new object[] { method });
-        }
-
-        // ReSharper disable once UnusedMethodReturnValue.Local
-        // ReSharper disable once UnusedMember.Local
-        private static Action<TTarget, object> CreateSetterDelegateHelper<TTarget, TProperty>(MethodInfo method)
-        {
-            var action = (Action<TTarget, TProperty?>)method.CreateDelegate(typeof(Action<TTarget, TProperty>));
-            return (target, param) => action(target, ConvertTo<TProperty>.From(param));
+            Type parameterType = method.GetParameters()[0].ParameterType;
+            var delegateType = typeof(Action<,>).MakeGenericType(typeof(T), parameterType);
+            var action = method.CreateDelegate(delegateType);
+            return (target, param) => action.DynamicInvoke(target, ConvertEx.To(param, parameterType));
         }
 
         public IReadOnlyDictionary<string, Func<T, object?>> GetGettersForType()
@@ -42,17 +35,9 @@ namespace Net.Code.ADONet
         private static Func<T, object?> GetGetDelegate(PropertyInfo p)
         {
             var method = p.GetGetMethod();
-            var genericHelper = Type.GetMethod(nameof(CreateGetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
-            var constructedHelper = genericHelper.MakeGenericMethod(typeof(T), method.ReturnType);
-            return (Func<T, object?>)constructedHelper.Invoke(null, new object[] { method });
-        }
-
-        // ReSharper disable once UnusedMethodReturnValue.Local
-        // ReSharper disable once UnusedMember.Local
-        private static Func<TTarget, object?> CreateGetterDelegateHelper<TTarget, TProperty>(MethodInfo method)
-        {
-            var func = (Func<TTarget, TProperty>)method.CreateDelegate(typeof(Func<TTarget, TProperty>));
-            return target => ConvertTo<TProperty>.From(func(target));
+            var delegateType = typeof(Func<,>).MakeGenericType(typeof(T), method.ReturnType);
+            var func = method.CreateDelegate(delegateType);
+            return target => ConvertEx.To(func.DynamicInvoke(target), method.ReturnType);
         }
     }
 }

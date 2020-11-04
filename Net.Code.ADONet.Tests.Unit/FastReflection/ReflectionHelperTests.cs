@@ -86,6 +86,12 @@ namespace Net.Code.ADONet.Tests.Unit.FastReflection
             Assert.NotNull(_entity.DbNullValueProperty);
         }
         [Fact]
+        public void Setter_ForDbNullProperty_WhenSettingDbNull_SetsNull()
+        {
+            setters[nameof(MyTestEntity.DbNullValueProperty)](_entity, DBNull.Value);
+            Assert.Null(_entity.DbNullValueProperty);
+        }
+        [Fact]
         public void Setter_ForNullableProperty_ReturnsValue()
         {
             var s = setters[nameof(MyTestEntity.NullableIntProperty)];

@@ -4,6 +4,15 @@ using System.Reflection;
 namespace Net.Code.ADONet
 {
     using static DBNullHelper;
+
+    public static class ConvertEx
+    {
+        public static object To(object o, Type targetType)
+        {
+            MethodInfo func = typeof(ConvertTo<>).MakeGenericType(targetType).GetMethod("InvokeFrom", BindingFlags.Static|BindingFlags.Public);
+            return func.Invoke(null, new[] { o });
+        }
+    }
     /// <summary>
     /// Class for runtime type conversion, including DBNull.Value to/from null. Supports reference types,
     /// value types and nullable value types
@@ -19,6 +28,8 @@ namespace Net.Code.ADONet
         /// at runtime (in the static constructor).
         /// </summary>
         public static readonly Func<object?, T?> From;
+
+        public static T? InvokeFrom(object? o) => From(o);
 
         static ConvertTo()
         {
