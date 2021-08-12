@@ -21,7 +21,54 @@ namespace Net.Code.ADONet
 {
     using static DBNullHelper;
 
-    public class CommandBuilder
+    public partial class CommandBuilder
+    {
+        private class AsyncExecutor
+        {
+            private readonly DbCommand _command;
+            public AsyncExecutor(DbCommand command)
+            {
+                _command = command;
+            }
+
+            /// <summary>
+            /// executes the query as a datareader
+            /// </summary>
+            public async Task<DbDataReader> Reader()
+            {
+                var command = await PrepareAsync().ConfigureAwait(false);
+                return await command.ExecuteReaderAsync().ConfigureAwait(false);
+            }
+
+            /// <summary>
+            /// Executes the command, returning the first column of the first result as a scalar value
+            /// </summary>
+            public async Task<object> Scalar()
+            {
+                var command = await PrepareAsync().ConfigureAwait(false);
+                return await command.ExecuteScalarAsync().ConfigureAwait(false);
+            }
+
+            /// <summary>
+            /// Executes the command as a SQL statement, returning the number of rows affected
+            /// </summary>
+            public async Task<int> NonQuery()
+            {
+                var command = await PrepareAsync().ConfigureAwait(false);
+                return await command.ExecuteNonQueryAsync().ConfigureAwait(false);
+            }
+
+            private async Task<DbCommand> PrepareAsync()
+            {
+                Logger.LogCommand(_command);
+                if (_command.Connection.State == ConnectionState.Closed)
+                    await _command.Connection.OpenAsync().ConfigureAwait(false);
+                return _command;
+            }
+        }
+    }
+
+    public partial class CommandBuilder
     {
         private readonly DbConfig _config;
         public CommandBuilder(DbCommand command, DbConfig config)
@@ -61,9 +108,9 @@ namespace Net.Code.ADONet
                 throw new ArgumentNullException(nameof(parameters));
             var getters = FastReflection<T>.Instance.GetGettersForType();
             var props = parameters.GetType().GetProperties();
-            foreach (var item in props)
+            foreach (var property in props)
             {
-                WithParameter(item.Name, getters[item.Name](parameters));
+                WithParameter(property.Name, getters[property.Name](parameters));
             }
 
             return this;
@@ -237,7 +284,7 @@ namespace Net.Code.ADONet
         /// </summary>
         public IDataReader AsReader() => Execute.Reader();
         public T Single<T>() => AsEnumerable<T>().Single();
-        private Executor Execute => new Executor(Command);
+        private Executor Execute => new(Command);
         /// <summary>
         /// Executes the command as a statement, returning the number of rows affected asynchronously
         /// This method is only supported if the underlying provider propertly implements async behaviour.
@@ -297,79 +344,7 @@ namespace Net.Code.ADONet
         }
 
         public ValueTask<T> SingleAsync<T>() => AsEnumerableAsync<T>().SingleAsync();
-        private AsyncExecutor ExecuteAsync => new AsyncExecutor(Command);
-        private class Executor
-        {
-            private readonly DbCommand _command;
-            public Executor(DbCommand command)
-            {
-                _command = command;
-            }
-
-            /// <summary>
-            /// executes the query as a datareader
-            /// </summary>
-            public DbDataReader Reader() => Prepare().ExecuteReader();
-            /// <summary>
-            /// Executes the command, returning the first column of the first result as a scalar value
-            /// </summary>
-            public object Scalar() => Prepare().ExecuteScalar();
-            /// <summary>
-            /// Executes the command as a SQL statement, returning the number of rows affected
-            /// </summary>
-            public int NonQuery() => Prepare().ExecuteNonQuery();
-            private DbCommand Prepare()
-            {
-                Logger.LogCommand(_command);
-                if (_command.Connection.State == ConnectionState.Closed)
-                    _command.Connection.Open();
-                return _command;
-            }
-        }
-
-        private class AsyncExecutor
-        {
-            private readonly DbCommand _command;
-            public AsyncExecutor(DbCommand command)
-            {
-                _command = command;
-            }
-
-            /// <summary>
-            /// executes the query as a datareader
-            /// </summary>
-            public async Task<DbDataReader> Reader()
-            {
-                var command = await PrepareAsync().ConfigureAwait(false);
-                return await command.ExecuteReaderAsync().ConfigureAwait(false);
-            }
-
-            /// <summary>
-            /// Executes the command, returning the first column of the first result as a scalar value
-            /// </summary>
-            public async Task<object> Scalar()
-            {
-                var command = await PrepareAsync().ConfigureAwait(false);
-                return await command.ExecuteScalarAsync().ConfigureAwait(false);
-            }
-
-            /// <summary>
-            /// Executes the command as a SQL statement, returning the number of rows affected
-            /// </summary>
-            public async Task<int> NonQuery()
-            {
-                var command = await PrepareAsync().ConfigureAwait(false);
-                return await command.ExecuteNonQueryAsync().ConfigureAwait(false);
-            }
-
-            private async Task<DbCommand> PrepareAsync()
-            {
-                Logger.LogCommand(_command);
-                if (_command.Connection.State == ConnectionState.Closed)
-                    await _command.Connection.OpenAsync().ConfigureAwait(false);
-                return _command;
-            }
-        }
+        private AsyncExecutor ExecuteAsync => new(Command);
     }
 
     /// <summary>
@@ -397,10 +372,7 @@ namespace Net.Code.ADONet
         {
             Type t when !t.IsValueType => ConvertRefType,
             Type t when !t.IsNullableType() => ConvertValueType,
-            Type t => CreateConvertNullableValueTypeFunc(t)
-        }
-
-        ;
+            Type t => CreateConvertNullableValueTypeFunc(t)};
         private static Func<object?, T?> CreateConvertNullableValueTypeFunc(Type type)
         {
             var delegateType = typeof(Func<object?, T?>);
@@ -414,7 +386,7 @@ namespace Net.Code.ADONet
 #pragma warning disable RCS1213 // Remove unused member declaration.
 
         private static TElem? ConvertNullableValueType<TElem>(object value)
-            where TElem : struct => IsNull(value) ? default(TElem?) : ConvertPrivate<TElem>(value);
+            where TElem : struct => IsNull(value) ? default(TElem? ) : ConvertPrivate<TElem>(value);
 #pragma warning restore RCS1213 // Remove unused member declaration.
 
 #pragma warning restore IDE0051 // Remove unused private members
@@ -526,7 +498,7 @@ namespace Net.Code.ADONet
             if (_connection == null || _externalConnection)
                 return;
             _connection.Dispose();
-            _connection = null!;
+            _connection = null !;
         }
 
         /// <summary>
@@ -568,36 +540,24 @@ namespace Net.Code.ADONet
     ///   This includes also the escape character that indicates parameter names in queries with named parameters.
     /// </para>
     /// </summary>
-    public class DbConfig
+    public record DbConfig(Action<IDbCommand> PrepareCommand, IMappingConvention MappingConvention)
     {
-        internal Action<IDbCommand> PrepareCommand { get; }
-
-        internal IMappingConvention MappingConvention { get; }
-
-        public DbConfig(Action<IDbCommand> prepareCommand, IMappingConvention? mappingConvention = null)
-        {
-            PrepareCommand = prepareCommand;
-            MappingConvention = mappingConvention ?? Extensions.Mapping.MappingConvention.Default;
-        }
-
         public static DbConfig FromProviderName(string providerName) => providerName switch
         {
             string s when s.StartsWith("Oracle") => Oracle,
             string s when s.StartsWith("Npgsql") => PostGreSQL,
             string s when s.StartsWith("IBM") => DB2,
             _ => Default
-        }
-
-        ;
+        };
         public static DbConfig FromProviderFactory(DbProviderFactory factory) => FromProviderName(factory.GetType().FullName);
         // By default, the Oracle driver does not support binding parameters by name;
         // one has to set the BindByName property on the OracleDbCommand.
         // Mapping: 
         // Oracle convention is to work with UPPERCASE_AND_UNDERSCORE instead of BookTitleCase
-        public static readonly DbConfig Oracle = new DbConfig(SetBindByName, new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, ':'));
-        public static readonly DbConfig DB2 = new DbConfig(NoOp, new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, '@'));
-        public static readonly DbConfig PostGreSQL = new DbConfig(NoOp, new MappingConvention(StringExtensions.ToLowerWithUnderscores, StringExtensions.ToPascalCase, '@'));
-        public static readonly DbConfig Default = new DbConfig(NoOp, new MappingConvention(StringExtensions.NoOp, StringExtensions.NoOp, '@'));
+        public static readonly DbConfig Oracle = new(SetBindByName, new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, ':'));
+        public static readonly DbConfig DB2 = new(NoOp, new MappingConvention(StringExtensions.ToUpperWithUnderscores, StringExtensions.ToPascalCase, '@'));
+        public static readonly DbConfig PostGreSQL = new(NoOp, new MappingConvention(StringExtensions.ToLowerWithUnderscores, StringExtensions.ToPascalCase, '@'));
+        public static readonly DbConfig Default = new(NoOp, new MappingConvention(StringExtensions.NoOp, StringExtensions.NoOp, '@'));
         private static void SetBindByName(dynamic c) => c.BindByName = true;
         private static void NoOp(dynamic c) { }
     }
@@ -636,6 +596,38 @@ namespace Net.Code.ADONet
         }
     }
 
+    public partial class CommandBuilder
+    {
+        private class Executor
+        {
+            private readonly DbCommand _command;
+            public Executor(DbCommand command)
+            {
+                _command = command;
+            }
+
+            /// <summary>
+            /// executes the query as a datareader
+            /// </summary>
+            public DbDataReader Reader() => Prepare().ExecuteReader();
+            /// <summary>
+            /// Executes the command, returning the first column of the first result as a scalar value
+            /// </summary>
+            public object Scalar() => Prepare().ExecuteScalar();
+            /// <summary>
+            /// Executes the command as a SQL statement, returning the number of rows affected
+            /// </summary>
+            public int NonQuery() => Prepare().ExecuteNonQuery();
+            private DbCommand Prepare()
+            {
+                Logger.LogCommand(_command);
+                if (_command.Connection.State == ConnectionState.Closed)
+                    _command.Connection.Open();
+                return _command;
+            }
+        }
+    }
+
     internal sealed class FastReflection<T>
     {
         private FastReflection()
@@ -643,7 +635,7 @@ namespace Net.Code.ADONet
         }
 
         private static readonly Type Type = typeof(FastReflection<T>);
-        public static FastReflection<T> Instance = new FastReflection<T>();
+        public static FastReflection<T> Instance = new();
         public IReadOnlyDictionary<string, Action<T, object?>> GetSettersForType() => _setters.GetOrAdd(typeof(T), d => d.GetProperties().Where(p => p.SetMethod != null).ToDictionary(p => p.Name, GetSetDelegate));
         private readonly ConcurrentDictionary<Type, IReadOnlyDictionary<string, Action<T, object?>>> _setters = new();
         private static Action<T, object?> GetSetDelegate(PropertyInfo p)
@@ -651,7 +643,7 @@ namespace Net.Code.ADONet
             var method = p.GetSetMethod();
             var genericHelper = Type.GetMethod(nameof(CreateSetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
             var constructedHelper = genericHelper.MakeGenericMethod(typeof(T), method.GetParameters()[0].ParameterType);
-            return (Action<T, object?>)constructedHelper.Invoke(null, new object[] { method });
+            return (Action<T, object?>)constructedHelper.Invoke(null, new object[]{method});
         }
 
         // ReSharper disable once UnusedMethodReturnValue.Local
@@ -669,7 +661,7 @@ namespace Net.Code.ADONet
             var method = p.GetGetMethod();
             var genericHelper = Type.GetMethod(nameof(CreateGetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
             var constructedHelper = genericHelper.MakeGenericMethod(typeof(T), method.ReturnType);
-            return (Func<T, object?>)constructedHelper.Invoke(null, new object[] { method });
+            return (Func<T, object?>)constructedHelper.Invoke(null, new object[]{method});
         }
 
         // ReSharper disable once UnusedMethodReturnValue.Local
@@ -744,7 +736,7 @@ namespace Net.Code.ADONet
 
     internal static class DataRecordExtensions
     {
-        internal record Setter<T>(int FieldIndex, Action<T, object?> SetValue);
+        internal record struct Setter<T>(int FieldIndex, Action<T, object?> SetValue);
         internal class SetterMap<T> : List<Setter<T>>
         {
         }
@@ -876,7 +868,7 @@ namespace Net.Code.ADONet
             public override IEnumerator GetEnumerator() => _enumerator;
             public override Type GetFieldType(int i) => Properties[i].PropertyType;
             public override object? GetValue(int i) => DBNullHelper.ToDb(Getters[Properties[i].Name](_enumerator.Current));
-            public override int GetValues(object?[] values)
+            public override int GetValues(object? [] values)
             {
                 var length = Math.Min(values.Length, Properties.Length);
                 for (int i = 0; i < length; i++)
@@ -920,16 +912,12 @@ namespace Net.Code.ADONet
             public override object? this[string name] => GetValue(GetOrdinal(name));
             public override void Close() => Dispose();
             public override DataTable GetSchemaTable() => (
-                from x in EnumerableDataReaderImpl<T>.Properties.Select((p, i) => (p, i))
-                let p = x.p
+                from x in EnumerableDataReaderImpl<T>.Properties.Select((p, i) => (p, i))let p = x.p
                 select new
                 {
-                    ColumnName = p.Name,
-                    ColumnOrdinal = x.i,
-                    ColumnSize = int.MaxValue, // must be filled in and large enough for ToDataTable
-                    AllowDBNull = p.PropertyType.IsNullableType() || !p.PropertyType.IsValueType, // assumes string nullable
-                    DataType = p.PropertyType.GetUnderlyingType(),
-                }
+                ColumnName = p.Name, ColumnOrdinal = x.i, ColumnSize = int.MaxValue, // must be filled in and large enough for ToDataTable
+ AllowDBNull = p.PropertyType.IsNullableType() || !p.PropertyType.IsValueType, // assumes string nullable
+ DataType = p.PropertyType.GetUnderlyingType(), }
 
             ).ToDataTable();
             public override bool NextResult()
@@ -963,14 +951,14 @@ namespace Net.Code.ADONet
             {
                 if (char.IsUpper(letters[i]) && !char.IsWhiteSpace(previous))
                 {
-                    yield return new string(letters, wordStart, i - wordStart);
+                    yield return new string (letters, wordStart, i - wordStart);
                     wordStart = i;
                 }
 
                 previous = letters[i];
             }
 
-            yield return new string(letters, wordStart, letters.Length - wordStart);
+            yield return new string (letters, wordStart, letters.Length - wordStart);
         }
     }
 
@@ -1081,27 +1069,17 @@ namespace Net.Code.ADONet.Extensions.Mapping
         string Count { get; }
     }
 
-    internal class MappingConvention : IMappingConvention
+    internal record struct MappingConvention(Func<string, string> ToDb, Func<string, string> FromDb, char Escape) : IMappingConvention
     {
-        private readonly Func<string, string> _fromDb;
-        private readonly Func<string, string> _toDb;
-        private readonly char _escape;
-        internal MappingConvention(Func<string, string> todb, Func<string, string> fromdb, char escape)
-        {
-            _toDb = todb;
-            _fromDb = fromdb;
-            _escape = escape;
-        }
-
         /// <summary>
         /// Maps column names to property names based on exact, case sensitive match. Database artefacts are named exactly
         /// like the .Net objects.
         /// </summary>
         public static readonly IMappingConvention Default = new MappingConvention(NoOp, NoOp, '@');
         static string NoOp(string s) => s;
-        public string FromDb(string s) => _fromDb(s);
-        public string ToDb(string s) => _toDb(s);
-        public string Parameter(string s) => $"{_escape}{s}";
+        public string Parameter(string s) => $"{Escape}{s}";
+        string IMappingConvention.FromDb(string s) => FromDb(s);
+        string IMappingConvention.ToDb(string s) => ToDb(s);
     }
 
     internal sealed class Query<T> : IQuery
@@ -1193,7 +1171,9 @@ namespace Net.Code.ADONet.Extensions.SqlClient
         public static void BulkCopy<T>(this IDb db, IEnumerable<T> items)
         {
             using var bcp = new SqlBulkCopy(db.ConnectionString)
-            { DestinationTableName = typeof(T).Name };
+            {
+                DestinationTableName = typeof(T).Name
+            };
             // by default, SqlBulkCopy assumes columns in the database 
             // are in same order as the columns of the source data reader
             // => add explicit column mappings by name

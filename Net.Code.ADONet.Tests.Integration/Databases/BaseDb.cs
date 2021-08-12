@@ -13,7 +13,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
         {
             Factory = factory;
         }
-        static Lazy<bool> _available;
+        static readonly Lazy<bool> _available;
         static BaseDb()
         {
             _available = new Lazy<bool>(() => new T().CanConnect());
@@ -62,7 +62,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
         string MasterConnectionString => Configuration.ConnectionStrings[MasterName];
         public IDb CreateDb() => new Db(ConnectionString, Config, Factory);
         public IDb MasterDb() => new Db(MasterConnectionString, Config, Factory);
-        public virtual Person Project(dynamic d) => new Person
+        public virtual Person Project(dynamic d) => new()
         {
             Id = d[ToDb(nameof(Person.Id))],
             Email = d[ToDb(nameof(Person.Email))],

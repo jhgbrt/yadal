@@ -1,27 +1,24 @@
-using System;
-using System.Data;
 using System.Diagnostics;
 
-namespace Net.Code.ADONet
+namespace Net.Code.ADONet;
+
+/// <summary>
+/// To enable logging, set the Log property of the Logger class
+/// </summary>
+public static class Logger
 {
-    /// <summary>
-    /// To enable logging, set the Log property of the Logger class
-    /// </summary>
-    public static class Logger
-    {
 #if DEBUG
-        public static Action<string> Log = s => Debug.WriteLine(s);
+    public static Action<string> Log = s => Debug.WriteLine(s);
 #else
-        public static Action<string> Log = s => { };
+    public static Action<string> Log = s => { };
 #endif
 
-        internal static void LogCommand(IDbCommand command)
+    internal static void LogCommand(IDbCommand command)
+    {
+        Log(command.CommandText);
+        foreach (IDbDataParameter p in command.Parameters)
         {
-            Log(command.CommandText);
-            foreach (IDbDataParameter p in command.Parameters)
-            {
-                Log($"{p.ParameterName} = {p.Value}");
-            }
+            Log($"{p.ParameterName} = {p.Value}");
         }
     }
 }

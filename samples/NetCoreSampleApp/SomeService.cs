@@ -1,26 +1,21 @@
-﻿using System;
-using Net.Code.ADONet;
+﻿using Net.Code.ADONet;
 
 #pragma warning disable
 
-namespace NetCoreSampleApp
+namespace NetCoreSampleApp;
+
+class SomeService : IDisposable
 {
-    class SomeService : IDisposable
+    IDb _db;
+
+    public SomeService(IDb db, SomeDependency dependency)
     {
-        IDb _db;
-
-        public SomeService(IDb db, SomeDependency dependency)
-        {
-            Console.WriteLine("SomeService - ctor");
-            _db = db;
-            _db.Connect();
-        }
-        public void Dispose()
-        {
-            Console.WriteLine("SomeService - dispose");
-        }
+        Console.WriteLine("SomeService - ctor");
+        _db = db;
+        _db.Connect();
     }
-
-
-
+    public void Dispose()
+    {
+        Console.WriteLine("SomeService - dispose");
+    }
 }

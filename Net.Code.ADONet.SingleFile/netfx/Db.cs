@@ -1,5 +1,7 @@
 using Microsoft.Data.SqlClient;
+
 using Net.Code.ADONet.Extensions.Mapping;
+
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -9,7 +11,6 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
 using System.Data.Common;
-using System.Diagnostics;
 using System.Dynamic;
 using System.Linq;
 using System.Reflection;

@@ -1,7 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Data;
+
 using NSubstitute;
+
 using Xunit;
 
 namespace Net.Code.ADONet.Tests.Unit

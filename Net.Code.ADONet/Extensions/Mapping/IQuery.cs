@@ -1,12 +1,11 @@
-﻿namespace Net.Code.ADONet.Extensions.Mapping
+﻿namespace Net.Code.ADONet.Extensions.Mapping;
+
+public interface IQuery
 {
-    public interface IQuery
-    {
-        string Insert { get; }
-        string Delete { get; }
-        string Update { get; }
-        string Select { get; }
-        string SelectAll { get; }
-        string Count { get; }
-    }
+    string Insert { get; }
+    string Delete { get; }
+    string Update { get; }
+    string Select { get; }
+    string SelectAll { get; }
+    string Count { get; }
 }
