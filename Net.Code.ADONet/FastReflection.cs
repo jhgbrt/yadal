@@ -19,8 +19,6 @@ internal sealed class FastReflection<T>
         return (Action<T, object?>)constructedHelper.Invoke(null, new object[] { method });
     }
 
-    // ReSharper disable once UnusedMethodReturnValue.Local
-    // ReSharper disable once UnusedMember.Local
     private static Action<TTarget, object> CreateSetterDelegateHelper<TTarget, TProperty>(MethodInfo method)
     {
         var action = (Action<TTarget, TProperty?>)method.CreateDelegate(typeof(Action<TTarget, TProperty>));
@@ -41,8 +39,6 @@ internal sealed class FastReflection<T>
         return (Func<T, object?>)constructedHelper.Invoke(null, new object[] { method });
     }
 
-    // ReSharper disable once UnusedMethodReturnValue.Local
-    // ReSharper disable once UnusedMember.Local
     private static Func<TTarget, object?> CreateGetterDelegateHelper<TTarget, TProperty>(MethodInfo method)
     {
         var func = (Func<TTarget, TProperty>)method.CreateDelegate(typeof(Func<TTarget, TProperty>));

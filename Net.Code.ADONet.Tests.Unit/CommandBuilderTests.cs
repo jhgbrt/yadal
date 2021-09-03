@@ -7,11 +7,39 @@ using System.Text;
 using Net.Code.ADONet.Extensions.SqlClient;
 using NSubstitute;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Net.Code.ADONet.Tests.Unit
 {
+    public record R
+    {
+        public int Id { get; set; }
+    }
+
     public class CommandBuilderTests
     {
+        ITestOutputHelper _ouput;
+
+        public CommandBuilderTests(ITestOutputHelper ouput)
+        {
+            _ouput = ouput;
+        }
+
+        private string DefaultCreatePersonTable(Func<string,string> s) =>
+            $"FOO {nameof(R)} (" +
+            $"   {s(nameof(R))} int not null, " +
+            ");";
+
+
+        [Fact]
+        public void Test()
+        {
+            var config = DbConfig.FromProviderName("SqLite");
+
+            var s = DefaultCreatePersonTable(s => s);
+            _ouput.WriteLine(s);
+        }
+
         [Fact]
         public void Logger_LogsCommand()
         {
