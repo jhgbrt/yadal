@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Net.Code.ADONet.Extensions.Mapping;
+namespace Net.Code.ADONet;
 
 internal sealed class Query<T> : IQuery
 {

@@ -1,4 +1,4 @@
-namespace Net.Code.ADONet.Extensions.Mapping;
+namespace Net.Code.ADONet;
 internal record struct MappingConvention(Func<string, string> ToDb, Func<string, string> FromDb, char Escape) : IMappingConvention
 {
     /// <summary>

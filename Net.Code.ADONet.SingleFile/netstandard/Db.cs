@@ -1,5 +1,4 @@
 using Microsoft.Data.SqlClient;
-using Net.Code.ADONet.Extensions.Mapping;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -978,16 +977,6 @@ namespace Net.Code.ADONet
         public static bool IsNullableType(this Type type) => type.IsGenericType && !type.IsGenericTypeDefinition && typeof(Nullable<>) == type.GetGenericTypeDefinition();
     }
 
-    public interface IMappingConvention
-    {
-        string FromDb(string s);
-        string ToDb(string s);
-        string Parameter(string s);
-    }
-}
-
-namespace Net.Code.ADONet.Extensions.Mapping
-{
     public static class DbExtensions
     {
         /// <summary>
@@ -1061,6 +1050,13 @@ namespace Net.Code.ADONet.Extensions.Mapping
                 await commandBuilder.WithParameters(item).AsNonQueryAsync().ConfigureAwait(false);
             }
         }
+    }
+
+    public interface IMappingConvention
+    {
+        string FromDb(string s);
+        string ToDb(string s);
+        string Parameter(string s);
     }
 
     public interface IQuery

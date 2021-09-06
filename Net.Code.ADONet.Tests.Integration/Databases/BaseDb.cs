@@ -1,4 +1,3 @@
-using Net.Code.ADONet.Extensions.Mapping;
 using Net.Code.ADONet.Tests.Integration.Data;
 
 using System;
@@ -70,7 +69,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
             OptionalNumber = d[ToDb(nameof(Person.OptionalNumber))],
             RequiredNumber = d[ToDb(nameof(Person.RequiredNumber))]
         };
-        public IQuery Query<TItem>() => Extensions.Mapping.Query<TItem>.Create(Config.MappingConvention);
+        public IQuery Query<TItem>() => Net.Code.ADONet.Query<TItem>.Create(Config.MappingConvention);
         public DbConfig Config => DbConfig.FromProviderFactory(Factory);
         protected DbProviderFactory Factory { get; }
 

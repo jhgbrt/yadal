@@ -1,4 +1,4 @@
-﻿namespace Net.Code.ADONet.Extensions.Mapping;
+﻿namespace Net.Code.ADONet;
 
 public interface IQuery
 {
