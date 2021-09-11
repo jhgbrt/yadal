@@ -2,35 +2,59 @@ namespace Net.Code.ADONet;
 
 internal static class DataRecordExtensions
 {
-    internal record struct Setter<T>(int FieldIndex, Action<T, object?> SetValue);
-
-    internal class SetterMap<T> : List<Setter<T>> { }
-
-    internal static SetterMap<T> GetSetterMap<T>(this IDataReader reader, DbConfig config)
+    private record struct Setter<T>(int FieldIndex, Action<T, object?> SetValue);
+    private static List<Setter<T>> GetSetters<T>(this IDataReader reader, DbConfig config)
     {
-        var map = new SetterMap<T>();
         var convention = config.MappingConvention;
         var setters = FastReflection<T>.Instance.GetSettersForType();
+        var list = new List<Setter<T>>(reader.FieldCount);
         for (var i = 0; i < reader.FieldCount; i++)
         {
             var columnName = convention.FromDb(reader.GetName(i));
             if (setters.TryGetValue(columnName, out var setter))
             {
-                map.Add(new Setter<T>(i, setter));
+                list.Add(new(i, setter));
             }
         }
-        return map;
+        return list;
     }
 
-    internal static T MapTo<T>(this IDataRecord record, SetterMap<T> setterMap)
+    internal static Func<IDataRecord, T> GetMapper<T>(this IDataReader reader, DbConfig config)
     {
-        var result = Activator.CreateInstance<T>();
-        foreach (var setter in setterMap)
+        var type = typeof(T);
+        var properties = type.GetProperties();
+
+        // convention: if there is only a constructor with parameters for all properties
+        // assume basic 'record-like' class
+        var constructors = type.GetConstructors();
+        var constructor = constructors.Length == 1 ? constructors
+            .SingleOrDefault(c => c.GetParameters().Select(p => (p.Name, p.ParameterType))
+                .SequenceEqual(properties.Select(p => (p.Name, p.PropertyType)))) : null;
+
+        if (constructor == null)
         {
-            var val = DBNullHelper.FromDb(record.GetValue(setter.FieldIndex));
-            setter.SetValue(result, val);
+            var setterMap = GetSetters<T>(reader, config);
+            constructor = type.GetConstructor(Array.Empty<Type>());
+            return record =>
+            {
+                var item = (T)constructor.Invoke(null);
+                foreach (var setter in setterMap)
+                {
+                    var val = DBNullHelper.FromDb(record.GetValue(setter.FieldIndex));
+                    setter.SetValue(item, val);
+                }
+                return item;
+            };
         }
-        return result;
+        else
+        {
+            return record =>
+            {
+                var values = properties.Select(p => DBNullHelper.FromDb(record.GetValue(record.GetOrdinal(p.Name))));
+                return (T)constructor.Invoke(values.ToArray());
+            };
+        }
+
     }
 
     /// <summary>

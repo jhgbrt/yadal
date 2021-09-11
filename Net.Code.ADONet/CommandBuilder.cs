@@ -124,9 +124,9 @@ public partial class CommandBuilder
     public IEnumerable<T> AsEnumerable<T>()
     {
         using var reader = AsReader();
-        var setterMap = reader.GetSetterMap<T>(_config);
+        var mapper = reader.GetMapper<T>(_config);
         while (reader.Read())
-            yield return reader.MapTo(setterMap);
+            yield return mapper(reader);
     }
 
     // enables linq 'select' syntax
@@ -204,8 +204,8 @@ public partial class CommandBuilder
     private static IReadOnlyCollection<T> GetResultSet<T>(IDataReader reader, DbConfig config, out bool moreResults)
     {
         var list = new List<T>();
-        var map = reader.GetSetterMap<T>(config);
-        while (reader.Read()) list.Add(reader.MapTo(map));
+        var map = reader.GetMapper<T>(config);
+        while (reader.Read()) list.Add(map(reader));
         moreResults = reader.NextResult();
         return list;
     }
@@ -286,9 +286,9 @@ public partial class CommandBuilder
     public async IAsyncEnumerable<T> AsEnumerableAsync<T>()
     {
         using var reader = await ExecuteAsync.Reader().ConfigureAwait(false);
-        var setterMap = reader.GetSetterMap<T>(_config);
+        var map = reader.GetMapper<T>(_config);
         while (await reader.ReadAsync().ConfigureAwait(false))
-            yield return reader.MapTo(setterMap);
+            yield return map(reader);
     }
 
     public ValueTask<T> SingleAsync<T>() => AsEnumerableAsync<T>().SingleAsync();

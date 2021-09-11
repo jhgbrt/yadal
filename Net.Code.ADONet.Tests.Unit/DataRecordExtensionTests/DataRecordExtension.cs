@@ -13,6 +13,7 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
             reader.FieldCount.Returns(values.Length);
             for (int i = 0; i < values.Length; i++)
             {
+                reader.GetOrdinal(values[i].name).Returns(i);
                 reader.GetName(i).Returns(values[i].name);
                 reader.GetValue(i).Returns(values[i].value);
             }
@@ -38,6 +39,9 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
             public int MyInt1 { get; set; }
         }
 
+        public record SomeRecord(int Id, string MyString, int? MyNullableInt, double MyDouble);
+        public record struct SomeRecordStruct(int Id, string MyString, int? MyNullableInt, double MyDouble);
+
         [Fact]
         public void MapTo_WhenCalled_MissingProperty_IsIgnored()
         {
@@ -48,9 +52,9 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
 
             var record = values.ToDataReader();
             var config = new DbConfig(c => { }, MappingConvention.Default);
-            var map = record.GetSetterMap<SomeEntity>(config);
+            var map = record.GetMapper<SomeEntity>(config);
 
-            var entity = record.MapTo(map);
+            var entity = map(record);
 
             Assert.Null(entity.MyProperty);
             Assert.Null(entity.MyNullableInt1);
@@ -72,14 +76,61 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
             var reader = values.ToDataReader();
 
             var config = new DbConfig(c => { }, MappingConvention.Default);
-            var map = reader.GetSetterMap<MyEntity>(config);
-            var entity = reader.MapTo(map);
+            var map = reader.GetMapper<MyEntity>(config);
+            var entity = map(reader);
 
             Assert.Equal("SomeValue", entity.MyProperty);
             Assert.Null(entity.MyNullableInt1);
             Assert.Equal(1, entity.MyNullableInt2);
             Assert.Equal(2, entity.MyInt1);
         }
+
+        [Fact]
+        public void MapTo_WhenCalled_RecordClassIsMapped()
+        {
+            var values = new[]
+            {
+                (nameof(SomeRecord.Id),  (object)1),
+                (nameof(SomeRecord.MyString), "Some String"),
+                (nameof(SomeRecord.MyNullableInt), DBNull.Value),
+                (nameof(SomeRecord.MyDouble), (object) 2.0)
+            };
+
+            var reader = values.ToDataReader();
+
+            var config = new DbConfig(c => { }, MappingConvention.Default);
+            var map = reader.GetMapper<SomeRecord>(config);
+            var entity = map(reader);
+
+            Assert.Equal(1, entity.Id);
+            Assert.Equal("Some String", entity.MyString);
+            Assert.Null(entity.MyNullableInt);
+            Assert.Equal(2.0, entity.MyDouble);
+        }
+
+        [Fact]
+        public void MapTo_WhenCalled_RecordStructIsMapped()
+        {
+            var values = new[]
+            {
+                (nameof(SomeRecord.Id),  (object)1),
+                (nameof(SomeRecord.MyString), "Some String"),
+                (nameof(SomeRecord.MyNullableInt), DBNull.Value),
+                (nameof(SomeRecord.MyDouble), (object) 2.0)
+            };
+
+            var reader = values.ToDataReader();
+
+            var config = new DbConfig(c => { }, MappingConvention.Default);
+            var map = reader.GetMapper<SomeRecordStruct>(config);
+            var entity = map(reader);
+
+            Assert.Equal(1, entity.Id);
+            Assert.Equal("Some String", entity.MyString);
+            Assert.Null(entity.MyNullableInt);
+            Assert.Equal(2.0, entity.MyDouble);
+        }
+
 
         [Fact]
         public void GivenDataReaderMock_WhenGetByNameReturnsDbNull_ResultIsNull()
