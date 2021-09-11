@@ -1,5 +1,7 @@
 ﻿using Net.Code.ADONet;
 
+using System;
+
 #pragma warning disable
 
 namespace NetCoreSampleApp;
