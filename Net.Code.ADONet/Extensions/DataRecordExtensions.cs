@@ -19,17 +19,17 @@ internal static class DataRecordExtensions
         return list;
     }
 
+    static IEnumerable<(string name, Type type)> Parameters(this ConstructorInfo constructors) => constructors.GetParameters().Select(p => (p.Name, p.ParameterType));
+
     internal static Func<IDataRecord, T> GetMapper<T>(this IDataReader reader, DbConfig config)
     {
         var type = typeof(T);
-        var properties = type.GetProperties();
+        var properties = type.GetProperties().Select(p => (p.Name, p.PropertyType));
 
         // convention: if there is only a constructor with parameters for all properties
         // assume basic 'record-like' class
         var constructors = type.GetConstructors();
-        var constructor = constructors.Length == 1 ? constructors
-            .SingleOrDefault(c => c.GetParameters().Select(p => (p.Name, p.ParameterType))
-                .SequenceEqual(properties.Select(p => (p.Name, p.PropertyType)))) : null;
+        var constructor = constructors.Length == 1 ? constructors.SingleOrDefault(c => c.Parameters().SequenceEqual(properties)) : null;
 
         if (constructor == null)
         {

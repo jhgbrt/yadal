@@ -39,4 +39,8 @@ public interface IDb : IDisposable
     /// </summary>
     /// <param name="command"></param>
     int Execute(string command);
+    /// <summary>
+    /// DB name mapping convention
+    /// </summary>
+    MappingConvention MappingConvention { get; }
 }

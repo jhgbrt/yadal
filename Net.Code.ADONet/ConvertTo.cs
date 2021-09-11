@@ -18,11 +18,9 @@ public static class ConvertTo<T>
     /// </summary>
     public static readonly Func<object?, T?> From;
 
-    static ConvertTo()
-    {
+    static ConvertTo() =>
         // Sets the From delegate, depending on whether T is a reference type, a nullable value type or a value type.
         From = CreateConvertFunction(typeof(T));
-    }
 
     private static Func<object?, T?> CreateConvertFunction(Type type) => type switch
     {
@@ -48,14 +46,7 @@ public static class ConvertTo<T>
 
     private static T? ConvertRefType(object? value) => IsNull(value) ? default : ConvertPrivate<T>(value!);
 
-    private static T ConvertValueType(object? value)
-    {
-        if (IsNull(value))
-        {
-            throw new NullReferenceException("Value is DbNull");
-        }
-        return ConvertPrivate<T>(value!);
-    }
+    private static T ConvertValueType(object? value) => IsNull(value) ? throw new NullReferenceException("Value is DbNull") : ConvertPrivate<T>(value!);
 
-    private static TElem ConvertPrivate<TElem>(object value) => (TElem)(Convert.ChangeType(value, typeof(TElem)));
+    private static TElem ConvertPrivate<TElem>(object value) => (TElem)Convert.ChangeType(value, typeof(TElem));
 }

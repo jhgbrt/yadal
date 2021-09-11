@@ -12,7 +12,7 @@
 public class Db : IDb
 {
     internal DbConfig Config { get; }
-    internal IMappingConvention MappingConvention => Config.MappingConvention;
+    public MappingConvention MappingConvention => Config.MappingConvention;
 
     private DbConnection _connection;
     private readonly bool _externalConnection;
@@ -45,11 +45,11 @@ public class Db : IDb
     /// </summary>
     /// <param name="connectionString">the connection string</param>
     /// <param name="config"></param>
-    /// <param name="connectionFactory">the connection factory</param>
-    internal Db(string connectionString, DbConfig config, DbProviderFactory connectionFactory)
+    /// <param name="providerFactory">the connection factory</param>
+    internal Db(string connectionString, DbConfig config, DbProviderFactory providerFactory)
     {
         Logger.Log("Db ctor");
-        _connection = connectionFactory.CreateConnection();
+        _connection = providerFactory.CreateConnection();
         _connection.ConnectionString = connectionString;
         _externalConnection = false;
         Config = config;

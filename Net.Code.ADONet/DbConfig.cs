@@ -13,7 +13,7 @@ namespace Net.Code.ADONet;
 ///   This includes also the escape character that indicates parameter names in queries with named parameters.
 /// </para>
 /// </summary>
-public record DbConfig(Action<IDbCommand> PrepareCommand, IMappingConvention MappingConvention)
+public record DbConfig(Action<IDbCommand> PrepareCommand, MappingConvention MappingConvention)
 {
     public static DbConfig FromProviderName(string providerName) => providerName switch
     {

@@ -7,7 +7,7 @@ internal static class StringExtensions
     public static string ToUpperRemoveSpecialChars(this string str)
         => string.IsNullOrEmpty(str) ? str : Regex.Replace(str, @"([^\w]|_)", "").ToUpperInvariant();
 
-    public static string ToPascalCase(this string? str) => str?.Aggregate(
+    public static string ToPascalCase(this string str) => str?.Aggregate(
         (sb: new StringBuilder(), transform: (Func<char, char>)char.ToUpper),
         (t, c) => char.IsLetterOrDigit(c) ? (t.sb.Append(t.transform(c)), char.ToLower) : (t.sb, char.ToUpper)
         ).sb.ToString() ?? string.Empty;

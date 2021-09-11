@@ -2,15 +2,8 @@
 
 public partial class CommandBuilder
 {
-    private class AsyncExecutor
+    private record struct AsyncExecutor(DbCommand Command)
     {
-        private readonly DbCommand _command;
-
-        public AsyncExecutor(DbCommand command)
-        {
-            _command = command;
-        }
-
         /// <summary>
         /// executes the query as a datareader
         /// </summary>
@@ -40,10 +33,10 @@ public partial class CommandBuilder
 
         private async Task<DbCommand> PrepareAsync()
         {
-            Logger.LogCommand(_command);
-            if (_command.Connection.State == ConnectionState.Closed)
-                await _command.Connection.OpenAsync().ConfigureAwait(false);
-            return _command;
+            Logger.LogCommand(Command);
+            if (Command.Connection.State == ConnectionState.Closed)
+                await Command.Connection.OpenAsync().ConfigureAwait(false);
+            return Command;
         }
     }
 }

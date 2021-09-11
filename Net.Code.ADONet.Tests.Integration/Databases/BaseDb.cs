@@ -43,8 +43,8 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
 
         public virtual (IReadOnlyCollection<Person>, IReadOnlyCollection<Address>) SelectPersonAndAddress(IDb db)
             => db.Sql($"{SelectPeople};\r\n{SelectAddresses}").AsMultiResultSet<Person, Address>();
-        protected string SelectPeople => Query<Person>().SelectAll;
-        protected string SelectAddresses => Query<Address>().SelectAll;
+        protected string SelectPeople => CreateQuery<Person>().SelectAll;
+        protected string SelectAddresses => CreateQuery<Address>().SelectAll;
         public virtual void BulkInsert(IDb db, IEnumerable<Person> list) => db.Insert(list);
         protected string Name => GetType().Name.Replace("Db", "");
         protected string MasterName => $"{Name}Master";
@@ -53,7 +53,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
         private string ToDb(string name) => Config.MappingConvention.ToDb(name);
         public virtual string CreateAddressTable => DefaultCreateAddressTable();
         public virtual string DropAddressTable => $"DROP TABLE {ToDb(nameof(Address))}";
-        public virtual string InsertPerson => Query<Person>().Insert;
+        public virtual string InsertPerson => CreateQuery<Person>().Insert;
         public virtual bool SupportsMultipleResultSets => true;
         public virtual bool SupportsTableValuedParameters => false;
         public abstract void DropAndRecreate();
@@ -69,7 +69,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
             OptionalNumber = d[ToDb(nameof(Person.OptionalNumber))],
             RequiredNumber = d[ToDb(nameof(Person.RequiredNumber))]
         };
-        public IQuery Query<TItem>() => Net.Code.ADONet.Query<TItem>.Create(Config.MappingConvention);
+        public Query CreateQuery<TItem>() => QueryFactory<TItem>.Create(Config.MappingConvention);
         public DbConfig Config => DbConfig.FromProviderFactory(Factory);
         protected DbProviderFactory Factory { get; }
 

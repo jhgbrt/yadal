@@ -3,62 +3,49 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Net.Code.ADONet;
 
-internal sealed class Query<T> : IQuery
+public record Query(string Insert, string Update, string Delete, string Select, string SelectAll, string Count);
+
+internal sealed class QueryFactory<T> 
 {
-    // ReSharper disable StaticMemberInGenericType
-    private static readonly PropertyInfo[] Properties;
-    private static readonly PropertyInfo[] KeyProperties;
-    private static readonly PropertyInfo[] DbGenerated;
-    // ReSharper restore StaticMemberInGenericType
+    private static readonly string[] AllPropertyNames;
+    private static readonly string[] InsertPropertyNames;
+    private static readonly string[] KeyPropertyNames;
+    private static readonly string[] NonKeyPropertyNames;
 
-    internal static IQuery Create(IMappingConvention convention) => new Query<T>(convention);
-
-    static Query()
+    internal static Query Create(MappingConvention convention)
     {
-        Properties = typeof(T).GetProperties();
-
-        KeyProperties = Properties.Where(p => p.CustomAttributes.Any(a => a.AttributeType == typeof(KeyAttribute))).ToArray();
-        if (KeyProperties.Length == 0)
-            KeyProperties = Properties.Where(p => p.Name.Equals("Id", StringComparison.OrdinalIgnoreCase)).ToArray();
-        if (KeyProperties.Length == 0)
-            KeyProperties = Properties.Where(p => p.Name.Equals($"{typeof(T).Name}Id", StringComparison.OrdinalIgnoreCase)).ToArray();
-
-        DbGenerated = KeyProperties.Where(p => p.HasCustomAttribute<DatabaseGeneratedAttribute>(a => a.DatabaseGeneratedOption != DatabaseGeneratedOption.None)).ToArray();
-    }
-
-    private Query(IMappingConvention convention)
-    {
-        var allPropertyNames = Properties.Select(p => convention.ToDb(p.Name)).ToArray();
-        var insertPropertyNames = Properties.Except(DbGenerated).Select(p => p.Name).ToArray();
-        var keyPropertyNames = KeyProperties.Select(p => p.Name).ToArray();
-        var nonKeyProperties = Properties.Except(KeyProperties).ToArray();
-        var nonKeyPropertyNames = nonKeyProperties.Select(p => p.Name).ToArray();
-
-        string assign(string s) => $"{convention.ToDb(s)} = {convention.Parameter(s)}";
-        var insertColumns = string.Join(", ", insertPropertyNames.Select(convention.ToDb));
-        var insertValues = string.Join(", ", insertPropertyNames.Select(s => $"{convention.Parameter(s)}"));
-        var whereClause = string.Join(" AND ", keyPropertyNames.Select(assign));
-        var updateColumns = string.Join(", ", nonKeyPropertyNames.Select(assign));
-        var allColumns = string.Join(", ", allPropertyNames);
+        var insertColumns = string.Join(", ", QueryFactory<T>.InsertPropertyNames.Select(convention.ToDb));
+        var insertValues = string.Join(", ", InsertPropertyNames.Select(s => $"{convention.Parameter(s)}"));
+        var whereClause = string.Join(" AND ", KeyPropertyNames.Select(s => $"{convention.ToDb(s)} = {convention.Parameter(s)}"));
+        var updateColumns = string.Join(", ", NonKeyPropertyNames.Select(s => $"{convention.ToDb(s)} = {convention.Parameter(s)}"));
+        var allColumns = string.Join(", ", QueryFactory<T>.AllPropertyNames.Select(convention.ToDb));
         var tableName = convention.ToDb(typeof(T).Name);
 
-        Insert = $"INSERT INTO {tableName} ({insertColumns}) VALUES ({insertValues})";
-        Delete = $"DELETE FROM {tableName} WHERE {whereClause}";
-        Update = $"UPDATE {tableName} SET {updateColumns} WHERE {whereClause}";
-        Select = $"SELECT {allColumns} FROM {tableName} WHERE {whereClause}";
-        SelectAll = $"SELECT {allColumns} FROM {tableName}";
-        Count = $"SELECT COUNT(*) FROM {tableName}";
+        return new Query(
+            $"INSERT INTO {tableName} ({insertColumns}) VALUES ({insertValues})", 
+            $"UPDATE {tableName} SET {updateColumns} WHERE {whereClause}", 
+            $"DELETE FROM {tableName} WHERE {whereClause}", 
+            $"SELECT {allColumns} FROM {tableName} WHERE {whereClause}", 
+            $"SELECT {allColumns} FROM {tableName}", 
+            $"SELECT COUNT(*) FROM {tableName}");
     }
 
-    public string Insert { get; }
+    static QueryFactory()
+    {
+        var properties = typeof(T).GetProperties();
 
-    public string Delete { get; }
+        var keyProperties = properties.Where(p => p.CustomAttributes.Any(a => a.AttributeType == typeof(KeyAttribute)));
+        if (!keyProperties.Any())
+            keyProperties = properties.Where(p => p.Name.Equals("Id", StringComparison.OrdinalIgnoreCase));
+        if (!keyProperties.Any())
+            keyProperties = properties.Where(p => p.Name.Equals($"{typeof(T).Name}Id", StringComparison.OrdinalIgnoreCase)).ToArray();
 
-    public string Update { get; }
+        var dbGenerated = keyProperties.Where(p => p.HasCustomAttribute<DatabaseGeneratedAttribute>(a => a.DatabaseGeneratedOption != DatabaseGeneratedOption.None));
+        var nonKeyProperties = properties.Except(keyProperties);
 
-    public string Select { get; }
-
-    public string SelectAll { get; }
-
-    public string Count { get; }
+        AllPropertyNames = properties.Select(p => p.Name).ToArray();
+        InsertPropertyNames = properties.Except(dbGenerated).Select(p => p.Name).ToArray();
+        KeyPropertyNames = keyProperties.Select(p => p.Name).ToArray();
+        NonKeyPropertyNames = nonKeyProperties.Select(p => p.Name).ToArray();
+    }
 }

@@ -22,14 +22,8 @@ namespace Net.Code.ADONet
 
     public partial class CommandBuilder
     {
-        private class AsyncExecutor
+        private record struct AsyncExecutor(DbCommand Command)
         {
-            private readonly DbCommand _command;
-            public AsyncExecutor(DbCommand command)
-            {
-                _command = command;
-            }
-
             /// <summary>
             /// executes the query as a datareader
             /// </summary>
@@ -59,10 +53,10 @@ namespace Net.Code.ADONet
 
             private async Task<DbCommand> PrepareAsync()
             {
-                Logger.LogCommand(_command);
-                if (_command.Connection.State == ConnectionState.Closed)
-                    await _command.Connection.OpenAsync().ConfigureAwait(false);
-                return _command;
+                Logger.LogCommand(Command);
+                if (Command.Connection.State == ConnectionState.Closed)
+                    await Command.Connection.OpenAsync().ConfigureAwait(false);
+                return Command;
             }
         }
     }
@@ -361,12 +355,8 @@ namespace Net.Code.ADONet
         /// at runtime (in the static constructor).
         /// </summary>
         public static readonly Func<object?, T?> From;
-        static ConvertTo()
-        {
-            // Sets the From delegate, depending on whether T is a reference type, a nullable value type or a value type.
-            From = CreateConvertFunction(typeof(T));
-        }
-
+        static ConvertTo() => // Sets the From delegate, depending on whether T is a reference type, a nullable value type or a value type.
+        From = CreateConvertFunction(typeof(T));
         private static Func<object?, T?> CreateConvertFunction(Type type) => type switch
         {
             Type t when !t.IsValueType => ConvertRefType,
@@ -391,17 +381,8 @@ namespace Net.Code.ADONet
 #pragma warning restore IDE0051 // Remove unused private members
 
         private static T? ConvertRefType(object? value) => IsNull(value) ? default : ConvertPrivate<T>(value!);
-        private static T ConvertValueType(object? value)
-        {
-            if (IsNull(value))
-            {
-                throw new NullReferenceException("Value is DbNull");
-            }
-
-            return ConvertPrivate<T>(value!);
-        }
-
-        private static TElem ConvertPrivate<TElem>(object value) => (TElem)(Convert.ChangeType(value, typeof(TElem)));
+        private static T ConvertValueType(object? value) => IsNull(value) ? throw new NullReferenceException("Value is DbNull") : ConvertPrivate<T>(value!);
+        private static TElem ConvertPrivate<TElem>(object value) => (TElem)Convert.ChangeType(value, typeof(TElem));
     }
 
     /// <summary>
@@ -417,7 +398,7 @@ namespace Net.Code.ADONet
     {
         internal DbConfig Config { get; }
 
-        internal IMappingConvention MappingConvention => Config.MappingConvention;
+        public MappingConvention MappingConvention => Config.MappingConvention;
         private DbConnection _connection;
         private readonly bool _externalConnection;
         /// <summary>
@@ -447,11 +428,11 @@ namespace Net.Code.ADONet
         /// </summary>
         /// <param name = "connectionString">the connection string</param>
         /// <param name = "config"></param>
-        /// <param name = "connectionFactory">the connection factory</param>
-        internal Db(string connectionString, DbConfig config, DbProviderFactory connectionFactory)
+        /// <param name = "providerFactory">the connection factory</param>
+        internal Db(string connectionString, DbConfig config, DbProviderFactory providerFactory)
         {
             Logger.Log("Db ctor");
-            _connection = connectionFactory.CreateConnection();
+            _connection = providerFactory.CreateConnection();
             _connection.ConnectionString = connectionString;
             _externalConnection = false;
             Config = config;
@@ -539,7 +520,7 @@ namespace Net.Code.ADONet
     ///   This includes also the escape character that indicates parameter names in queries with named parameters.
     /// </para>
     /// </summary>
-    public record DbConfig(Action<IDbCommand> PrepareCommand, IMappingConvention MappingConvention)
+    public record DbConfig(Action<IDbCommand> PrepareCommand, MappingConvention MappingConvention)
     {
         public static DbConfig FromProviderName(string providerName) => providerName switch
         {
@@ -594,11 +575,7 @@ namespace Net.Code.ADONet
 
             public sealed override bool TryGetIndex(GetIndexBinder b, object[] i, out object? r) => ByMemberName(out r, (string)i[0]);
             public sealed override bool TryGetMember(GetMemberBinder b, out object? r) => ByMemberName(out r, b.Name);
-            public sealed override IEnumerable<string> GetDynamicMemberNames()
-            {
-                return _memberNames;
-            }
-
+            public sealed override IEnumerable<string> GetDynamicMemberNames() => _memberNames;
             private bool ByMemberName(out object? result, string memberName)
             {
                 var value = _getter(_item, memberName);
@@ -610,14 +587,8 @@ namespace Net.Code.ADONet
 
     public partial class CommandBuilder
     {
-        private class Executor
+        private record struct Executor(DbCommand Command)
         {
-            private readonly DbCommand _command;
-            public Executor(DbCommand command)
-            {
-                _command = command;
-            }
-
             /// <summary>
             /// executes the query as a datareader
             /// </summary>
@@ -632,10 +603,10 @@ namespace Net.Code.ADONet
             public int NonQuery() => Prepare().ExecuteNonQuery();
             private DbCommand Prepare()
             {
-                Logger.LogCommand(_command);
-                if (_command.Connection.State == ConnectionState.Closed)
-                    _command.Connection.Open();
-                return _command;
+                Logger.LogCommand(Command);
+                if (Command.Connection.State == ConnectionState.Closed)
+                    Command.Connection.Open();
+                return Command;
             }
         }
     }
@@ -722,6 +693,10 @@ namespace Net.Code.ADONet
         /// </summary>
         /// <param name = "command"></param>
         int Execute(string command);
+        /// <summary>
+        /// DB name mapping convention
+        /// </summary>
+        MappingConvention MappingConvention { get; }
     }
 
     /// <summary>
@@ -762,14 +737,15 @@ namespace Net.Code.ADONet
             return list;
         }
 
+        static IEnumerable<(string name, Type type)> Parameters(this ConstructorInfo constructors) => constructors.GetParameters().Select(p => (p.Name, p.ParameterType));
         internal static Func<IDataRecord, T> GetMapper<T>(this IDataReader reader, DbConfig config)
         {
             var type = typeof(T);
-            var properties = type.GetProperties();
+            var properties = type.GetProperties().Select(p => (p.Name, p.PropertyType));
             // convention: if there is only a constructor with parameters for all properties
             // assume basic 'record-like' class
             var constructors = type.GetConstructors();
-            var constructor = constructors.Length == 1 ? constructors.SingleOrDefault(c => c.GetParameters().Select(p => (p.Name, p.ParameterType)).SequenceEqual(properties.Select(p => (p.Name, p.PropertyType)))) : null;
+            var constructor = constructors.Length == 1 ? constructors.SingleOrDefault(c => c.Parameters().SequenceEqual(properties)) : null;
             if (constructor == null)
             {
                 var setterMap = GetSetters<T>(reader, config);
@@ -963,7 +939,7 @@ namespace Net.Code.ADONet
     internal static class StringExtensions
     {
         public static string ToUpperRemoveSpecialChars(this string str) => string.IsNullOrEmpty(str) ? str : Regex.Replace(str, @"([^\w]|_)", "").ToUpperInvariant();
-        public static string ToPascalCase(this string? str) => str?.Aggregate((sb: new StringBuilder(), transform: (Func<char, char>)char.ToUpper), (t, c) => char.IsLetterOrDigit(c) ? (t.sb.Append(t.transform(c)), char.ToLower) : (t.sb, char.ToUpper)).sb.ToString() ?? string.Empty;
+        public static string ToPascalCase(this string str) => str?.Aggregate((sb: new StringBuilder(), transform: (Func<char, char>)char.ToUpper), (t, c) => char.IsLetterOrDigit(c) ? (t.sb.Append(t.transform(c)), char.ToLower) : (t.sb, char.ToUpper)).sb.ToString() ?? string.Empty;
         public static string PascalCaseToSentence(this string source) => string.IsNullOrEmpty(source) ? source : string.Join(" ", SplitUpperCase(source));
         public static string ToUpperWithUnderscores(this string source) => string.Join("_", SplitUpperCase(source).Select(s => s.ToUpperInvariant()));
         public static string ToLowerWithUnderscores(this string source) => string.Join("_", SplitUpperCase(source).Select(s => s.ToLowerInvariant()));
@@ -998,59 +974,29 @@ namespace Net.Code.ADONet
     public static class DbExtensions
     {
         /// <summary>
-        /// Please note: this is an experimental feature, API may change or be removed in future versions"
+        /// Insert a list of items
         /// </summary>
-        public static void Insert<T>(this IDb db, IEnumerable<T> items)
-        {
-            var query = Query<T>.Create(((Db)db).MappingConvention).Insert;
-            Do(db, items, query);
-        }
-
+        public static void Insert<T>(this IDb db, IEnumerable<T> items) => Do(db, items, QueryFactory<T>.Create(db.MappingConvention).Insert);
         /// <summary>
-        /// Please note: this is an experimental feature, API may change or be removed in future versions"
+        /// Insert a list of items
         /// </summary>
-        public static async Task InsertAsync<T>(this IDb db, IEnumerable<T> items)
-        {
-            var query = Query<T>.Create(((Db)db).MappingConvention).Insert;
-            await DoAsync(db, items, query).ConfigureAwait(false);
-        }
-
+        public static async Task InsertAsync<T>(this IDb db, IEnumerable<T> items) => await DoAsync(db, items, QueryFactory<T>.Create(db.MappingConvention).Insert).ConfigureAwait(false);
         /// <summary>
-        /// Please note: this is an experimental feature, API may change or be removed in future versions"
+        /// Update a list of items
         /// </summary>
-        public static void Update<T>(this IDb db, IEnumerable<T> items)
-        {
-            var query = Query<T>.Create(((Db)db).MappingConvention).Update;
-            Do(db, items, query);
-        }
-
+        public static void Update<T>(this IDb db, IEnumerable<T> items) => Do(db, items, QueryFactory<T>.Create(db.MappingConvention).Update);
         /// <summary>
-        /// Please note: this is an experimental feature, API may change or be removed in future versions"
+        /// Update a list of items
         /// </summary>
-        public static async Task UpdateAsync<T>(this IDb db, IEnumerable<T> items)
-        {
-            var query = Query<T>.Create(((Db)db).MappingConvention).Update;
-            await DoAsync(db, items, query).ConfigureAwait(false);
-        }
-
+        public static async Task UpdateAsync<T>(this IDb db, IEnumerable<T> items) => await DoAsync(db, items, QueryFactory<T>.Create(db.MappingConvention).Update).ConfigureAwait(false);
         /// <summary>
-        /// Please note: this is an experimental feature, API may change or be removed in future versions"
+        /// Delete a list of items
         /// </summary>
-        public static void Delete<T>(this IDb db, IEnumerable<T> items)
-        {
-            var query = Query<T>.Create(((Db)db).MappingConvention).Delete;
-            Do(db, items, query);
-        }
-
+        public static void Delete<T>(this IDb db, IEnumerable<T> items) => Do(db, items, QueryFactory<T>.Create(db.MappingConvention).Delete);
         /// <summary>
-        /// Please note: this is an experimental feature, API may change or be removed in future versions"
+        /// Delete a list of items
         /// </summary>
-        public static async Task DeleteAsync<T>(this IDb db, IEnumerable<T> items)
-        {
-            var query = Query<T>.Create(((Db)db).MappingConvention).Delete;
-            await DoAsync(db, items, query).ConfigureAwait(false);
-        }
-
+        public static async Task DeleteAsync<T>(this IDb db, IEnumerable<T> items) => await DoAsync(db, items, QueryFactory<T>.Create(db.MappingConvention).Delete).ConfigureAwait(false);
         private static void Do<T>(IDb db, IEnumerable<T> items, string query)
         {
             var commandBuilder = db.Sql(query);
@@ -1070,93 +1016,49 @@ namespace Net.Code.ADONet
         }
     }
 
-    public interface IMappingConvention
-    {
-        string FromDb(string s);
-        string ToDb(string s);
-        string Parameter(string s);
-    }
-
-    public interface IQuery
-    {
-        string Insert { get; }
-
-        string Delete { get; }
-
-        string Update { get; }
-
-        string Select { get; }
-
-        string SelectAll { get; }
-
-        string Count { get; }
-    }
-
-    internal record struct MappingConvention(Func<string, string> ToDb, Func<string, string> FromDb, char Escape) : IMappingConvention
+    public record struct MappingConvention(Func<string, string> ToDb, Func<string, string> FromDb, char Escape)
     {
         /// <summary>
         /// Maps column names to property names based on exact, case sensitive match. Database artefacts are named exactly
         /// like the .Net objects.
         /// </summary>
-        public static readonly IMappingConvention Default = new MappingConvention(NoOp, NoOp, '@');
-        static string NoOp(string s) => s;
+        public static readonly MappingConvention Default = new(StringExtensions.NoOp, StringExtensions.NoOp, '@');
         public string Parameter(string s) => $"{Escape}{s}";
-        string IMappingConvention.FromDb(string s) => FromDb(s);
-        string IMappingConvention.ToDb(string s) => ToDb(s);
     }
 
-    internal sealed class Query<T> : IQuery
+    public record Query(string Insert, string Update, string Delete, string Select, string SelectAll, string Count);
+    internal sealed class QueryFactory<T>
     {
-        // ReSharper disable StaticMemberInGenericType
-        private static readonly PropertyInfo[] Properties;
-        private static readonly PropertyInfo[] KeyProperties;
-        private static readonly PropertyInfo[] DbGenerated;
-        // ReSharper restore StaticMemberInGenericType
-        internal static IQuery Create(IMappingConvention convention) => new Query<T>(convention);
-        static Query()
+        private static readonly string[] AllPropertyNames;
+        private static readonly string[] InsertPropertyNames;
+        private static readonly string[] KeyPropertyNames;
+        private static readonly string[] NonKeyPropertyNames;
+        internal static Query Create(MappingConvention convention)
         {
-            Properties = typeof(T).GetProperties();
-            KeyProperties = Properties.Where(p => p.CustomAttributes.Any(a => a.AttributeType == typeof(KeyAttribute))).ToArray();
-            if (KeyProperties.Length == 0)
-                KeyProperties = Properties.Where(p => p.Name.Equals("Id", StringComparison.OrdinalIgnoreCase)).ToArray();
-            if (KeyProperties.Length == 0)
-                KeyProperties = Properties.Where(p => p.Name.Equals($"{typeof(T).Name}Id", StringComparison.OrdinalIgnoreCase)).ToArray();
-            DbGenerated = KeyProperties.Where(p => p.HasCustomAttribute<DatabaseGeneratedAttribute>(a => a.DatabaseGeneratedOption != DatabaseGeneratedOption.None)).ToArray();
-        }
-
-        private Query(IMappingConvention convention)
-        {
-            var allPropertyNames = Properties.Select(p => convention.ToDb(p.Name)).ToArray();
-            var insertPropertyNames = Properties.Except(DbGenerated).Select(p => p.Name).ToArray();
-            var keyPropertyNames = KeyProperties.Select(p => p.Name).ToArray();
-            var nonKeyProperties = Properties.Except(KeyProperties).ToArray();
-            var nonKeyPropertyNames = nonKeyProperties.Select(p => p.Name).ToArray();
-            string assign(string s) => $"{convention.ToDb(s)} = {convention.Parameter(s)}";
-            var insertColumns = string.Join(", ", insertPropertyNames.Select(convention.ToDb));
-            var insertValues = string.Join(", ", insertPropertyNames.Select(s => $"{convention.Parameter(s)}"));
-            var whereClause = string.Join(" AND ", keyPropertyNames.Select(assign));
-            var updateColumns = string.Join(", ", nonKeyPropertyNames.Select(assign));
-            var allColumns = string.Join(", ", allPropertyNames);
+            var insertColumns = string.Join(", ", QueryFactory<T>.InsertPropertyNames.Select(convention.ToDb));
+            var insertValues = string.Join(", ", InsertPropertyNames.Select(s => $"{convention.Parameter(s)}"));
+            var whereClause = string.Join(" AND ", KeyPropertyNames.Select(s => $"{convention.ToDb(s)} = {convention.Parameter(s)}"));
+            var updateColumns = string.Join(", ", NonKeyPropertyNames.Select(s => $"{convention.ToDb(s)} = {convention.Parameter(s)}"));
+            var allColumns = string.Join(", ", QueryFactory<T>.AllPropertyNames.Select(convention.ToDb));
             var tableName = convention.ToDb(typeof(T).Name);
-            Insert = $"INSERT INTO {tableName} ({insertColumns}) VALUES ({insertValues})";
-            Delete = $"DELETE FROM {tableName} WHERE {whereClause}";
-            Update = $"UPDATE {tableName} SET {updateColumns} WHERE {whereClause}";
-            Select = $"SELECT {allColumns} FROM {tableName} WHERE {whereClause}";
-            SelectAll = $"SELECT {allColumns} FROM {tableName}";
-            Count = $"SELECT COUNT(*) FROM {tableName}";
+            return new Query($"INSERT INTO {tableName} ({insertColumns}) VALUES ({insertValues})", $"UPDATE {tableName} SET {updateColumns} WHERE {whereClause}", $"DELETE FROM {tableName} WHERE {whereClause}", $"SELECT {allColumns} FROM {tableName} WHERE {whereClause}", $"SELECT {allColumns} FROM {tableName}", $"SELECT COUNT(*) FROM {tableName}");
         }
 
-        public string Insert { get; }
-
-        public string Delete { get; }
-
-        public string Update { get; }
-
-        public string Select { get; }
-
-        public string SelectAll { get; }
-
-        public string Count { get; }
+        static QueryFactory()
+        {
+            var properties = typeof(T).GetProperties();
+            var keyProperties = properties.Where(p => p.CustomAttributes.Any(a => a.AttributeType == typeof(KeyAttribute)));
+            if (!keyProperties.Any())
+                keyProperties = properties.Where(p => p.Name.Equals("Id", StringComparison.OrdinalIgnoreCase));
+            if (!keyProperties.Any())
+                keyProperties = properties.Where(p => p.Name.Equals($"{typeof(T).Name}Id", StringComparison.OrdinalIgnoreCase)).ToArray();
+            var dbGenerated = keyProperties.Where(p => p.HasCustomAttribute<DatabaseGeneratedAttribute>(a => a.DatabaseGeneratedOption != DatabaseGeneratedOption.None));
+            var nonKeyProperties = properties.Except(keyProperties);
+            AllPropertyNames = properties.Select(p => p.Name).ToArray();
+            InsertPropertyNames = properties.Except(dbGenerated).Select(p => p.Name).ToArray();
+            KeyPropertyNames = keyProperties.Select(p => p.Name).ToArray();
+            NonKeyPropertyNames = nonKeyProperties.Select(p => p.Name).ToArray();
+        }
     }
 }
 

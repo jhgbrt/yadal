@@ -69,14 +69,14 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
         public List<Person> GetAllPeopleGeneric()
         {
             return _db
-                .Sql(_target.Query<Person>().SelectAll)
+                .Sql(_target.CreateQuery<Person>().SelectAll)
                 .AsEnumerable<Person>()
                 .ToList();
         }
         public List<Person> GetAllPeopleGenericLegacy()
         {
             return _db
-                .Sql(_target.Query<Person>().SelectAll)
+                .Sql(_target.CreateQuery<Person>().SelectAll)
                 .AsEnumerableLegacy<Person>(((Db)_db).Config)
                 .ToList();
         }
@@ -84,7 +84,7 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
         public DataTable GetSchemaTable()
         {
             var dataReader = _db
-                .Sql(_target.Query<Person>().SelectAll)
+                .Sql(_target.CreateQuery<Person>().SelectAll)
                 .AsReader();
             using (dataReader)
             {
@@ -96,7 +96,7 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
         public List<Person> GetAllPeopleAsDynamic()
         {
             return _db
-                .Sql(_target.Query<Person>().SelectAll)
+                .Sql(_target.CreateQuery<Person>().SelectAll)
                 .AsEnumerable()
                 .Select(d => (Person) _target.Project(d))
                 .ToList();
@@ -104,7 +104,7 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
 
         public async Task<List<Person>> GetAllPeopleAsDynamicAsync()
         {
-            return await _db.Sql(_target.Query<Person>().SelectAll)
+            return await _db.Sql(_target.CreateQuery<Person>().SelectAll)
                         .AsEnumerableAsync()
                         .Select(d => (Person)_target.Project(d))
                         .ToListAsync();
@@ -113,7 +113,7 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
         public DataTable PeopleAsDataTable()
         {
             return _db
-                .Sql(_target.Query<Person>().SelectAll)
+                .Sql(_target.CreateQuery<Person>().SelectAll)
                 .AsDataTable();
         }
 
@@ -128,7 +128,7 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
         public Person Get(int id)
         {
             return _db
-                .Sql(_target.Query<Person>().Select)
+                .Sql(_target.CreateQuery<Person>().Select)
                 .WithParameters(new { Id = id })
                 .Single<Person>();
         }
@@ -136,7 +136,7 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
         public async Task<Person> GetAsync(int id)
         {
             return await _db
-                .Sql(_target.Query<Person>().Select)
+                .Sql(_target.CreateQuery<Person>().Select)
                 .WithParameters(new { Id = id })
                 .SingleAsync<Person>();
         }

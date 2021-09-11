@@ -29,10 +29,7 @@ internal static class Dynamic
 
         public sealed override bool TryGetIndex(GetIndexBinder b, object[] i, out object? r) => ByMemberName(out r, (string)i[0]);
         public sealed override bool TryGetMember(GetMemberBinder b, out object? r) => ByMemberName(out r, b.Name);
-        public sealed override IEnumerable<string> GetDynamicMemberNames()
-        {
-            return _memberNames;
-        }
+        public sealed override IEnumerable<string> GetDynamicMemberNames() => _memberNames;
 
         private bool ByMemberName(out object? result, string memberName)
         {

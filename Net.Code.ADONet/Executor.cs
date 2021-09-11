@@ -2,14 +2,8 @@
 
 public partial class CommandBuilder
 {
-    private class Executor
+    private record struct Executor(DbCommand Command)
     {
-        private readonly DbCommand _command;
-        public Executor(DbCommand command)
-        {
-            _command = command;
-        }
-
         /// <summary>
         /// executes the query as a datareader
         /// </summary>
@@ -27,10 +21,10 @@ public partial class CommandBuilder
 
         private DbCommand Prepare()
         {
-            Logger.LogCommand(_command);
-            if (_command.Connection.State == ConnectionState.Closed)
-                _command.Connection.Open();
-            return _command;
+            Logger.LogCommand(Command);
+            if (Command.Connection.State == ConnectionState.Closed)
+                Command.Connection.Open();
+            return Command;
         }
     }
 }

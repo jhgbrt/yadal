@@ -21,6 +21,6 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
         Person Project(dynamic d);
         (IReadOnlyCollection<Person>, IReadOnlyCollection<Address>) SelectPersonAndAddress(IDb db);
         void BulkInsert(IDb db, IEnumerable<Person> list);
-        IQuery Query<T>();
+        Query CreateQuery<T>();
     }
 }

@@ -13,6 +13,8 @@ using Microsoft.Extensions.Configuration;
 using Net.Code.ADONet;
 using System.Data.SQLite;
 using NetCoreSampleApp;
+using System;
+using System.IO;
 
 #pragma warning disable
 
