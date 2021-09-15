@@ -21,7 +21,8 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
             var isAvailable = _target.IsAvailable();
             Skip.IfNot(isAvailable);
             _output = output;
-            Logger.Log = _output.WriteLine;
+            //Logger.Log = _output.WriteLine;
+            Logger.Log = s => { };
             _db = _target.CreateDb();
         }
 

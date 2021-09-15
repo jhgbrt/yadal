@@ -36,7 +36,6 @@ namespace IntegrationTests
             _testHelper.GetAllPeopleGeneric();
             _testHelper.GetAllPeopleGenericLegacy();
 
-
             var fast = Measure(
                 () => { for (int i = 0; i < 100; i++) _testHelper.GetAllPeopleGeneric(); }
                 );

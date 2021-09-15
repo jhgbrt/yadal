@@ -10,15 +10,16 @@ public static class Logger
 #if DEBUG
     public static Action<string> Log = s => Debug.WriteLine(s);
 #else
-    public static Action<string> Log = s => { };
+    public static Action<string>? Log = null;
 #endif
 
     internal static void LogCommand(IDbCommand command)
     {
-        Log(command.CommandText);
+        if (Log == null) return;
+        Log.Invoke(command.CommandText);
         foreach (IDbDataParameter p in command.Parameters)
         {
-            Log($"{p.ParameterName} = {p.Value}");
+            Log.Invoke($"{p.ParameterName} = {p.Value}");
         }
     }
 }

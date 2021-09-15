@@ -28,6 +28,7 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
             return result;
         }
 
-        public static IEnumerable<T> AsEnumerableLegacy<T>(this CommandBuilder cb, DbConfig config) => cb.AsReader().AsEnumerable().Select(r => MapTo<T>(r, config));
+        public static IEnumerable<T> AsEnumerableLegacy<T>(this CommandBuilder cb, DbConfig config) 
+            => cb.AsReader().AsEnumerable().Select(r => MapTo<T>(r, config));
     }
 }

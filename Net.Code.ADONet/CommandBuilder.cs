@@ -1,6 +1,6 @@
 namespace Net.Code.ADONet;
 
-public partial class CommandBuilder
+public partial class CommandBuilder : IDisposable
 {
     private readonly DbConfig _config;
 
@@ -292,6 +292,8 @@ public partial class CommandBuilder
     }
 
     public ValueTask<T> SingleAsync<T>() => AsEnumerableAsync<T>().SingleAsync();
+
+    public void Dispose() => Command.Dispose();
 
     private AsyncExecutor ExecuteAsync => new(Command);
 }
