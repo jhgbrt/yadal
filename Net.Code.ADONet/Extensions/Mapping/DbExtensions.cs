@@ -28,7 +28,7 @@ public static class DbExtensions
 
     private static void Do<T>(IDb db, IEnumerable<T> items, string query)
     {
-        var commandBuilder = db.Sql(query);
+        using var commandBuilder = db.Sql(query);
         foreach (var item in items)
         {
             commandBuilder.WithParameters(item).AsNonQuery();
@@ -36,7 +36,7 @@ public static class DbExtensions
     }
     private static async Task DoAsync<T>(IDb db, IEnumerable<T> items, string query)
     {
-        var commandBuilder = db.Sql(query);
+        using var commandBuilder = db.Sql(query);
         foreach (var item in items)
         {
             await commandBuilder.WithParameters(item).AsNonQueryAsync().ConfigureAwait(false);

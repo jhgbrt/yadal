@@ -61,7 +61,7 @@ namespace Net.Code.ADONet
         }
     }
 
-    public partial class CommandBuilder
+    public partial class CommandBuilder : IDisposable
     {
         private readonly DbConfig _config;
         public CommandBuilder(DbCommand command, DbConfig config)
@@ -337,6 +337,7 @@ namespace Net.Code.ADONet
         }
 
         public ValueTask<T> SingleAsync<T>() => AsEnumerableAsync<T>().SingleAsync();
+        public void Dispose() => Command.Dispose();
         private AsyncExecutor ExecuteAsync => new(Command);
     }
 
@@ -431,7 +432,6 @@ namespace Net.Code.ADONet
         /// <param name = "providerFactory">the connection factory</param>
         internal Db(string connectionString, DbConfig config, DbProviderFactory providerFactory)
         {
-            Logger.Log("Db ctor");
             _connection = providerFactory.CreateConnection();
             _connection.ConnectionString = connectionString;
             _externalConnection = false;
@@ -440,21 +440,18 @@ namespace Net.Code.ADONet
 
         public void Connect()
         {
-            Logger.Log("Db connect");
             if (_connection.State != ConnectionState.Open)
                 _connection.Open();
         }
 
         public void Disconnect()
         {
-            Logger.Log("Db disconnect");
             if (_connection.State != ConnectionState.Closed)
                 _connection.Close();
         }
 
         public async Task ConnectAsync()
         {
-            Logger.Log("Db connect");
             if (_connection.State != ConnectionState.Open)
                 await _connection.OpenAsync().ConfigureAwait(false);
         }
@@ -474,7 +471,6 @@ namespace Net.Code.ADONet
         public string ConnectionString => _connection.ConnectionString;
         public void Dispose()
         {
-            Logger.Log("Db dispose");
             if (_connection == null || _externalConnection)
                 return;
             _connection.Dispose();
@@ -704,15 +700,15 @@ namespace Net.Code.ADONet
     /// </summary>
     public static class Logger
     {
-        public static Action<string> Log = s =>
-        {
-        };
+        public static Action<string>? Log = null;
         internal static void LogCommand(IDbCommand command)
         {
-            Log(command.CommandText);
+            if (Log == null)
+                return;
+            Log.Invoke(command.CommandText);
             foreach (IDbDataParameter p in command.Parameters)
             {
-                Log($"{p.ParameterName} = {p.Value}");
+                Log.Invoke($"{p.ParameterName} = {p.Value}");
             }
         }
     }
@@ -999,7 +995,7 @@ namespace Net.Code.ADONet
         public static async Task DeleteAsync<T>(this IDb db, IEnumerable<T> items) => await DoAsync(db, items, QueryFactory<T>.Create(db.MappingConvention).Delete).ConfigureAwait(false);
         private static void Do<T>(IDb db, IEnumerable<T> items, string query)
         {
-            var commandBuilder = db.Sql(query);
+            using var commandBuilder = db.Sql(query);
             foreach (var item in items)
             {
                 commandBuilder.WithParameters(item).AsNonQuery();
@@ -1008,7 +1004,7 @@ namespace Net.Code.ADONet
 
         private static async Task DoAsync<T>(IDb db, IEnumerable<T> items, string query)
         {
-            var commandBuilder = db.Sql(query);
+            using var commandBuilder = db.Sql(query);
             foreach (var item in items)
             {
                 await commandBuilder.WithParameters(item).AsNonQueryAsync().ConfigureAwait(false);

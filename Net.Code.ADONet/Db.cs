@@ -48,7 +48,6 @@ public class Db : IDb
     /// <param name="providerFactory">the connection factory</param>
     internal Db(string connectionString, DbConfig config, DbProviderFactory providerFactory)
     {
-        Logger.Log("Db ctor");
         _connection = providerFactory.CreateConnection();
         _connection.ConnectionString = connectionString;
         _externalConnection = false;
@@ -57,20 +56,17 @@ public class Db : IDb
 
     public void Connect()
     {
-        Logger.Log("Db connect");
         if (_connection.State != ConnectionState.Open)
             _connection.Open();
     }
     public void Disconnect()
     {
-        Logger.Log("Db disconnect");
         if (_connection.State != ConnectionState.Closed)
             _connection.Close();
     }
 
     public async Task ConnectAsync()
     {
-        Logger.Log("Db connect");
         if (_connection.State != ConnectionState.Open)
             await _connection.OpenAsync().ConfigureAwait(false);
     }
@@ -91,7 +87,6 @@ public class Db : IDb
 
     public void Dispose()
     {
-        Logger.Log("Db dispose");
         if (_connection == null || _externalConnection) return;
         _connection.Dispose();
         _connection = null!;
