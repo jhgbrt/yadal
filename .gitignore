@@ -12,3 +12,4 @@ packages
 *.coverage
 lib
 .vs
+/samples/benchmark/BenchmarkDotNet.Artifacts
