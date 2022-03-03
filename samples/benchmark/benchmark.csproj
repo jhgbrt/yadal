@@ -9,8 +9,8 @@
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.13.1" />
-    <PackageReference Include="Dapper" Version="2.0.90" />
-    <PackageReference Include="Microsoft.Data.SqLite" Version="6.0.0-rc.1.21452.10" />
+    <PackageReference Include="Dapper" Version="2.0.123" />
+    <PackageReference Include="Microsoft.Data.SqLite" Version="6.0.2" />
   </ItemGroup>
 
   <ItemGroup>

@@ -76,7 +76,7 @@ public record Post(int Id, string Text, DateTime? CreationDate, DateTime? LastCh
 public class PostD
 {
     public int Id { get; set; }
-    public string Text { get; set; }
+    public string? Text { get; set; }
     public DateTime CreationDate { get; set; }
     public DateTime LastChangeDate { get; set; }
     public int? Counter1 { get; set; }

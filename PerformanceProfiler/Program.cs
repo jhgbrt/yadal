@@ -49,7 +49,7 @@ GC.KeepAlive(posts);
 public class Post
 {
     public int Id { get; set; }
-    public string Text { get; set; }
+    public string? Text { get; set; }
     public DateTime CreationDate { get; set; }
     public DateTime LastChangeDate { get; set; }
     public int? Counter1 { get; set; }

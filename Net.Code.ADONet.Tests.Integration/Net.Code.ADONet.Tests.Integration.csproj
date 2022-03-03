@@ -8,17 +8,17 @@
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Faker.Net" Version="1.5.148" />
+    <PackageReference Include="Faker.Net" Version="2.0.154" />
     <PackageReference Include="IBM.Data.DB2.Core" Version="3.1.0.500" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="6.0.0-rc.1.21452.10" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
-    <PackageReference Include="MySql.Data" Version="8.0.26" />
-    <PackageReference Include="Npgsql" Version="6.0.0-rc.1" />
-    <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="3.21.3" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="6.0.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
+    <PackageReference Include="MySql.Data" Version="8.0.28" />
+    <PackageReference Include="Npgsql" Version="6.0.3" />
+    <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="3.21.50" />
     <PackageReference Include="System.Data.Common" Version="4.3.0" />
-    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.115" PrivateAssets="none" />
-    <PackageReference Include="System.Linq.Async" Version="5.0.0" />
-    <PackageReference Include="Validation" Version="2.5.42" />
+    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.115.5" PrivateAssets="none" />
+    <PackageReference Include="System.Linq.Async" Version="6.0.1" />
+    <PackageReference Include="Validation" Version="2.5.51" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.core" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
