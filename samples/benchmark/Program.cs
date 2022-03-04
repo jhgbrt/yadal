@@ -20,38 +20,38 @@ public class Benchmarks
         _connection = new SqliteConnection("Data Source=:memory:");
         _db = new Db(_connection, DbConfig.Default);
         _db.Connect();
-        _db.Sql(@"create table Post
-	                    (
-		                    Id int identity primary key, 
-		                    [Text] varchar(2000) not null, 
-		                    CreationDate datetime not null, 
-		                    LastChangeDate datetime not null,
-		                    Counter1 int,
-		                    Counter2 int,
-		                    Counter3 int,
-		                    Counter4 int,
-		                    Counter5 int,
-		                    Counter6 int,
-		                    Counter7 int,
-		                    Counter8 int,
-		                    Counter9 int
-	                    )").AsNonQuery();
+        _db.Sql(
+          """
+           create table Post (
+               Id int identity primary key, 
+               [Text] varchar(2000) not null, 
+               CreationDate datetime not null, 
+               LastChangeDate datetime not null,
+               Counter1 int,
+               Counter2 int,
+               Counter3 int,
+               Counter4 int,
+               Counter5 int,
+               Counter6 int,
+               Counter7 int,
+               Counter8 int,
+               Counter9 int
+           ) 
+           """).AsNonQuery();
         var text = new string(Enumerable.Repeat('x', 1999).ToArray());
         var items = Enumerable.Range(1, 5000).Select(i => new Post(i, text + i, DateTime.Now, DateTime.Now, null, null, null, i, null, null, null, null, null));
-        //{
-        //    Id = i,
-        //    Text = text + i,
-        //    CreationDate = DateTime.Now,
-        //    LastChangeDate = DateTime.Now,
-        //    Counter4 = i
-        //}); 
         _db.Insert(items);
     }
 
     [Benchmark]
     public Post NetCodeAdoNet()
     {
-        return _db.Sql("select Id, Text, CreationDate, LastChangeDate, Counter1, Counter2, Counter3, Counter4, Counter5, Counter6, Counter7, Counter8, Counter9 from Post where Id=@Id").WithParameters(new { Id = 42 }).Single<Post>();
+        return _db.Sql("""
+                       select Id, Text, CreationDate, LastChangeDate, 
+                              Counter1, Counter2, Counter3, Counter4, Counter5, Counter6, Counter7, Counter8, Counter9
+                       from Post
+                       where Id=@Id
+                       """).WithParameters(new { Id = 42 }).Single<Post>();
     }
 
     [Benchmark]

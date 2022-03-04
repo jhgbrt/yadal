@@ -18,4 +18,7 @@ namespace Net.Code.ADONet.Tests.Integration.Data
         public string City { get; set; }
         public string Country { get; set; }
     }
+
+    public record Product(int Id, string Name, decimal Price);
+
 }

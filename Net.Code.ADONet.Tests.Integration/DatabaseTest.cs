@@ -24,6 +24,7 @@ namespace IntegrationTests
         private readonly DbTestHelper<T> _testHelper;
         private readonly Person[] _people;
         private readonly Address[] _addresses;
+        private readonly Product[] _products;
         private readonly ITestOutputHelper _output;
 
 
@@ -33,10 +34,16 @@ namespace IntegrationTests
             _output.WriteLine($"{GetType()} - initialize");
             _people = FakeData.People.List(10).ToArray();
             _addresses = FakeData.Addresses.List(10);
+            _products = FakeData.Products.List(10);
             _testHelper = new DbTestHelper<T>(output);
             _testHelper.Initialize();
-            _testHelper.Insert(_people.Take(5), _addresses);
-            _testHelper.InsertAsync(_people.Skip(5)).Wait();
+            _testHelper.Insert(
+                people: _people.Take(5), 
+                addresses: _addresses, 
+                products: _products);
+            _testHelper.InsertAsync(
+                people: _people.Skip(5)
+                ).Wait();
         }
 
         public void Dispose()
@@ -93,6 +100,13 @@ namespace IntegrationTests
         }
 
         [SkippableFact]
+        public void GetAllProducts()
+        {
+            var result = _testHelper.GetAllProducts();
+            Assert.Equal(_products, result);
+        }
+
+        [SkippableFact]
         public void AsDataTable()
         {
             var result = _testHelper.PeopleAsDataTable();
@@ -123,7 +137,7 @@ namespace IntegrationTests
         public void InsertAndGet()
         {
             var person = FakeData.People.One();
-            _testHelper.Insert(new[] { person }, Enumerable.Empty<Address>());
+            _testHelper.Insert(people: new[] { person });
             var result = _testHelper.Get(person.Id);
             Assert.Equal(person, result);
         }
@@ -132,7 +146,7 @@ namespace IntegrationTests
         public async Task InsertAndGetAsync()
         {
             var person = FakeData.People.One();
-            await _testHelper.InsertAsync(new[] { person }, Enumerable.Empty<Address>());
+            await _testHelper.InsertAsync(people: new[] { person });
             var result = await _testHelper.GetAsync(person.Id);
             Assert.Equal(person, result);
         }

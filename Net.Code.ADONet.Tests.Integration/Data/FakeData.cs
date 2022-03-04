@@ -17,10 +17,7 @@ namespace Net.Code.ADONet.Tests.Integration.Data
 
         public static class People
         {
-            public static IEnumerable<Person> List(int n)
-            {
-                return Enumerable.Range(1, n).Select(x => One());
-            }
+            public static IEnumerable<Person> List(int n) => Enumerable.Range(1, n).Select(x => One());
 
             public static Person One()
             {
@@ -39,21 +36,22 @@ namespace Net.Code.ADONet.Tests.Integration.Data
 
         public static class Addresses
         {
-            public static Address[] List(int n)
+            public static Address[] List(int n) => Enumerable.Range(1, n).Select(x => One()).ToArray();
+            public static Address One() => new()
             {
-                return Enumerable.Range(1, n).Select(x => One()).ToArray();
-            }
-            public static Address One()
-            {
-                return new Address
-                {
-                    Id = Id.Next(),
-                    Street = Faker.Address.StreetAddress(),
-                    ZipCode = Faker.Address.ZipCode(),
-                    City = Faker.Address.City(),
-                    Country = Faker.Address.Country()
-                };
-            }
+                Id = Id.Next(),
+                Street = Faker.Address.StreetAddress(),
+                ZipCode = Faker.Address.ZipCode(),
+                City = Faker.Address.City(),
+                Country = Faker.Address.Country()
+            };
+        }
+
+        public static class Products
+        {
+            public static Product[] List(int n) => Enumerable.Range(1, n).Select(x => One()).ToArray();
+
+            public static Product One() => new (Id.Next(), Faker.Company.Name(), Faker.RandomNumber.Next() + .25m);
         }
     }
 }

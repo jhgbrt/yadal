@@ -24,22 +24,35 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
         public bool IsAvailable() => _available.Value;
 
         private string DefaultCreatePersonTable() =>
-            $"CREATE TABLE {ToDb(nameof(Person))} (" +
-            $"   {ToDb(nameof(Person.Id))} int not null, " +
-            $"   {ToDb(nameof(Person.OptionalNumber))} int, " +
-            $"   {ToDb(nameof(Person.RequiredNumber))} int not null, " +
-            $"   {ToDb(nameof(Person.Name))} varchar(100) not null, " +
-            $"   {ToDb(nameof(Person.Email))} varchar(100)" +
-            ");";
+           $"""
+            CREATE TABLE {ToDb(nameof(Person))} (
+                {ToDb(nameof(Person.Id))} int not null,
+                {ToDb(nameof(Person.OptionalNumber))} int,
+                {ToDb(nameof(Person.RequiredNumber))} int not null,
+                {ToDb(nameof(Person.Name))} varchar(100) not null,
+                {ToDb(nameof(Person.Email))} varchar(100)
+            );
+            """;
 
         private string DefaultCreateAddressTable() =>
-            $"CREATE TABLE {ToDb(nameof(Address))} (" +
-            $"   {ToDb(nameof(Address.Id))} int not null, " +
-            $"   {ToDb(nameof(Address.Street))} varchar(100), " +
-            $"   {ToDb(nameof(Address.ZipCode))} varchar(20), " +
-            $"   {ToDb(nameof(Address.City))} varchar(100) not null, " +
-            $"   {ToDb(nameof(Address.Country))} varchar(100)" +
-            ");";
+           $"""
+            CREATE TABLE {ToDb(nameof(Address))} (
+                {ToDb(nameof(Address.Id))} int not null,
+                {ToDb(nameof(Address.Street))} varchar(100),
+                {ToDb(nameof(Address.ZipCode))} varchar(20),
+                {ToDb(nameof(Address.City))} varchar(100) not null,
+                {ToDb(nameof(Address.Country))} varchar(100)
+            );
+            """;
+
+        private string DefaultCreateProductTable() =>
+           $"""
+            CREATE TABLE {ToDb(nameof(Product))} (
+               {ToDb(nameof(Product.Id))} int not null,
+               {ToDb(nameof(Product.Name))} nvarchar(100),
+               {ToDb(nameof(Product.Price))} decimal not null
+            );
+            """;
 
         public virtual (IReadOnlyCollection<Person>, IReadOnlyCollection<Address>) SelectPersonAndAddress(IDb db)
             => db.Sql($"{SelectPeople};\r\n{SelectAddresses}").AsMultiResultSet<Person, Address>();
@@ -49,7 +62,9 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
         protected string Name => GetType().Name.Replace("Db", "");
         protected string MasterName => $"{Name}Master";
         public virtual string CreatePersonTable => DefaultCreatePersonTable();
+        public virtual string CreateProductTable => DefaultCreateProductTable();
         public virtual string DropPersonTable => $"DROP TABLE {ToDb(nameof(Person))}";
+        public virtual string DropProductTable => $"DROP TABLE {ToDb(nameof(Product))}";
         private string ToDb(string name) => Config.MappingConvention.ToDb(name);
         public virtual string CreateAddressTable => DefaultCreateAddressTable();
         public virtual string DropAddressTable => $"DROP TABLE {ToDb(nameof(Address))}";

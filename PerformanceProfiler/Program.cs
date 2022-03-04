@@ -8,22 +8,25 @@ using Net.Code.ADONet;
 using var db = new Db("Data Source=:memory:", SqliteFactory.Instance);
 db.Connect();
 
-db.Sql(@"create table Post
-	                    (
-		                    Id int identity primary key, 
-		                    [Text] varchar(2000) not null, 
-		                    CreationDate datetime not null, 
-		                    LastChangeDate datetime not null,
-		                    Counter1 int,
-		                    Counter2 int,
-		                    Counter3 int,
-		                    Counter4 int,
-		                    Counter5 int,
-		                    Counter6 int,
-		                    Counter7 int,
-		                    Counter8 int,
-		                    Counter9 int
-	                    )").AsNonQuery(); 
+db.Sql(
+    """
+    create table Post
+    (
+        Id int identity primary key, 
+        [Text] varchar(2000) not null, 
+        CreationDate datetime not null, 
+        LastChangeDate datetime not null,
+        Counter1 int,
+        Counter2 int,
+        Counter3 int,
+        Counter4 int,
+        Counter5 int,
+        Counter6 int,
+        Counter7 int,
+        Counter8 int,
+        Counter9 int
+    )
+    """).AsNonQuery(); 
 
 var text = new string(Enumerable.Repeat('x', 1999).ToArray());
 var items = Enumerable.Range(1, 50).Select(i => new Post

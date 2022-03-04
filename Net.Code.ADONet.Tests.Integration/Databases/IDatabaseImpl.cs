@@ -9,7 +9,9 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
         bool IsAvailable();
         string CreatePersonTable { get; }
         string DropPersonTable { get; }
+        string DropProductTable { get; }
         string CreateAddressTable { get; }
+        string CreateProductTable { get; }
         string DropAddressTable { get; }
         string InsertPerson { get; }
         bool SupportsMultipleResultSets { get; }

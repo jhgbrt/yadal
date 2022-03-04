@@ -13,27 +13,44 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
         {
         }
 
-        public override string CreatePersonTable => "CREATE TABLE PERSON (" +
-                                                    "    ID NUMBER(8,0) NOT NULL" +
-                                                    ",   OPTIONAL_NUMBER NUMBER(8,0) NULL" +
-                                                    ",   REQUIRED_NUMBER NUMBER(8,0) NOT NULL" +
-                                                    ",   NAME VARCHAR2(100) NOT NULL" +
-                                                    ",   EMAIL VARCHAR2(100) NOT NULL" +
-                                                    ")";
-        public override string CreateAddressTable => "CREATE TABLE ADDRESS (" +
-                                                    "    ID NUMBER(8,0) NOT NULL" +
-                                                    ",   STREET VARCHAR2(100) NOT NULL" +
-                                                    ",   ZIP_CODE VARCHAR2(20) NOT NULL" +
-                                                    ",   CITY VARCHAR2(100) NOT NULL" +
-                                                    ",   COUNTRY VARCHAR2(100) NOT NULL" +
-                                                    ")";
+        public override string CreatePersonTable
+            => """
+               CREATE TABLE PERSON (
+                   ID NUMBER(8,0) NOT NULL
+               ,   OPTIONAL_NUMBER NUMBER(8,0) NULL
+               ,   REQUIRED_NUMBER NUMBER(8,0) NOT NULL
+               ,   NAME VARCHAR2(100) NOT NULL
+               ,   EMAIL VARCHAR2(100) NOT NULL
+               )
+               """;
+        public override string CreateAddressTable
+            => """
+               CREATE TABLE ADDRESS (
+                   ID NUMBER(8,0) NOT NULL
+               ,   STREET VARCHAR2(100) NOT NULL
+               ,   ZIP_CODE VARCHAR2(20) NOT NULL
+               ,   CITY VARCHAR2(100) NOT NULL
+               ,   COUNTRY VARCHAR2(100) NOT NULL
+               )
+               """;
+
+        public override string CreateProductTable
+            => """
+               CREATE TABLE PRODUCT ("
+                   ID NUMBER(8,0) NOT NULL
+               ,   NAME VARCHAR2(100) NOT NULL
+               ,   PRICE NUMBER(8,2) NOT NULL
+               )
+               """;
 
         public override (IReadOnlyCollection<Person>, IReadOnlyCollection<Address>) SelectPersonAndAddress(IDb db)
         {
-            var query = "BEGIN\r\n" +
-            $" OPEN :Cur1 FOR {SelectPeople};" +
-            $" OPEN :Cur2 FOR {SelectAddresses};" +
-            "END;";
+            var query = $"""
+                        BEGIN
+                          OPEN :Cur1 FOR {SelectPeople};
+                          OPEN :Cur2 FOR {SelectAddresses};
+                        END;
+                        """;
             return db.Sql(query)
                 .WithParameter(new OracleParameter("Cur1", OracleDbType.RefCursor, ParameterDirection.Output))
                 .WithParameter(new OracleParameter("Cur2", OracleDbType.RefCursor, ParameterDirection.Output))

@@ -31,26 +31,38 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
             _db.Connect();
             _db.Sql(_target.CreatePersonTable).AsNonQuery();
             _db.Sql(_target.CreateAddressTable).AsNonQuery();
+            _db.Sql(_target.CreateProductTable).AsNonQuery();
         }
 
         public void Cleanup()
         {
             _db.Execute(_target.DropPersonTable);
             _db.Execute(_target.DropAddressTable);
+            _db.Execute(_target.DropProductTable);
             _db.Disconnect();
             Logger.Log = s => { };
         }
 
-        public void Insert(IEnumerable<Person> people, IEnumerable<Address> addresses)
+        public void Insert(
+            IEnumerable<Person> people = null, 
+            IEnumerable<Address> addresses = null, 
+            IEnumerable<Product> products = null
+            )
         {
-            _db.Insert(people);
-            _db.Insert(addresses);
+            _db.Insert(people ?? Enumerable.Empty<Person>());
+            _db.Insert(addresses ?? Enumerable.Empty<Address>());
+            _db.Insert(products ?? Enumerable.Empty<Product>());
         }
-        public async Task InsertAsync(IEnumerable<Person> people, IEnumerable<Address> addresses)
+        public async Task InsertAsync(
+            IEnumerable<Person> people = null,
+            IEnumerable<Address> addresses = null,
+            IEnumerable<Product> products = null
+            )
         {
             await Task.WhenAll(
-                _db.InsertAsync(people),
-                _db.InsertAsync(addresses)
+                _db.InsertAsync(people ?? Enumerable.Empty<Person>()),
+                _db.InsertAsync(addresses ?? Enumerable.Empty<Address>()),
+                _db.InsertAsync(products ?? Enumerable.Empty<Product>())
                 );
         }
 
@@ -109,6 +121,14 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
                         .AsEnumerableAsync()
                         .Select(d => (Person)_target.Project(d))
                         .ToListAsync();
+        }
+
+        public List<Product> GetAllProducts()
+        {
+            return _db
+                .Sql(_target.CreateQuery<Product>().SelectAll)
+                .AsEnumerable<Product>()
+                .ToList();
         }
 
         public DataTable PeopleAsDataTable()
