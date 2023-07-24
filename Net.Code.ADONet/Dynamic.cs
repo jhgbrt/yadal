@@ -14,26 +14,15 @@ internal static class Dynamic
     private static dynamic From<T>(T item, Func<T, string, object?> getter, IEnumerable<string> memberNames) 
         => new DynamicIndexer<T>(item, getter, memberNames);
 
-    private class DynamicIndexer<T> : DynamicObject
+    private class DynamicIndexer<T>(T item, Func<T, string, object?> getter, IEnumerable<string> memberNames) : DynamicObject
     {
-        private readonly T _item;
-        private readonly Func<T, string, object?> _getter;
-        private readonly IEnumerable<string> _memberNames;
-
-        public DynamicIndexer(T item, Func<T, string, object?> getter, IEnumerable<string> memberNames)
-        {
-            _item = item;
-            _getter = getter;
-            _memberNames = memberNames;
-        }
-
         public sealed override bool TryGetIndex(GetIndexBinder b, object[] i, out object? r) => ByMemberName(out r, (string)i[0]);
         public sealed override bool TryGetMember(GetMemberBinder b, out object? r) => ByMemberName(out r, b.Name);
-        public sealed override IEnumerable<string> GetDynamicMemberNames() => _memberNames;
+        public sealed override IEnumerable<string> GetDynamicMemberNames() => memberNames;
 
         private bool ByMemberName(out object? result, string memberName)
         {
-            var value = _getter(_item, memberName);
+            var value = getter(item, memberName);
             result = DBNullHelper.FromDb(value);
             return true;
         }

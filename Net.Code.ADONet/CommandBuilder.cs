@@ -1,14 +1,7 @@
 namespace Net.Code.ADONet;
 
-public partial class CommandBuilder : IDisposable
+public partial class CommandBuilder(DbCommand command, DbConfig config) : IDisposable
 {
-    private readonly DbConfig _config;
-
-    public CommandBuilder(DbCommand command, DbConfig config)
-    {
-        Command = command;
-        _config = config;
-    }
 
     /// <summary>
     /// Sets the command text
@@ -97,7 +90,7 @@ public partial class CommandBuilder : IDisposable
     /// <summary>
     /// The raw IDbCommand instance
     /// </summary>
-    public DbCommand Command { get; }
+    public DbCommand Command => command;
 
     /// <summary>
     /// Executes the query and returns the result as a list of dynamic objects.
@@ -124,7 +117,7 @@ public partial class CommandBuilder : IDisposable
     public IEnumerable<T> AsEnumerable<T>()
     {
         using var reader = AsReader();
-        var mapper = reader.GetMapper<T>(_config);
+        var mapper = reader.GetMapper<T>(config);
         while (reader.Read())
             yield return mapper(reader);
     }
@@ -157,8 +150,8 @@ public partial class CommandBuilder : IDisposable
     {
         using var reader = AsReader();
         return (
-            GetResultSet<T1>(reader, _config, out _),
-            GetResultSet<T2>(reader, _config, out _)
+            GetResultSet<T1>(reader, config, out _),
+            GetResultSet<T2>(reader, config, out _)
             );
     }
 
@@ -169,9 +162,9 @@ public partial class CommandBuilder : IDisposable
     {
         using var reader = AsReader();
         return (
-            GetResultSet<T1>(reader, _config, out _),
-            GetResultSet<T2>(reader, _config, out _),
-            GetResultSet<T3>(reader, _config, out _)
+            GetResultSet<T1>(reader, config, out _),
+            GetResultSet<T2>(reader, config, out _),
+            GetResultSet<T3>(reader, config, out _)
             );
     }
     /// <summary>
@@ -181,10 +174,10 @@ public partial class CommandBuilder : IDisposable
     {
         using var reader = AsReader();
         return (
-            GetResultSet<T1>(reader, _config, out _),
-            GetResultSet<T2>(reader, _config, out _),
-            GetResultSet<T3>(reader, _config, out _),
-            GetResultSet<T4>(reader, _config, out _)
+            GetResultSet<T1>(reader, config, out _),
+            GetResultSet<T2>(reader, config, out _),
+            GetResultSet<T3>(reader, config, out _),
+            GetResultSet<T4>(reader, config, out _)
             );
     }
     /// <summary>
@@ -194,11 +187,11 @@ public partial class CommandBuilder : IDisposable
     {
         using var reader = AsReader();
         return (
-            GetResultSet<T1>(reader, _config, out _),
-            GetResultSet<T2>(reader, _config, out _),
-            GetResultSet<T3>(reader, _config, out _),
-            GetResultSet<T4>(reader, _config, out _),
-            GetResultSet<T5>(reader, _config, out _)
+            GetResultSet<T1>(reader, config, out _),
+            GetResultSet<T2>(reader, config, out _),
+            GetResultSet<T3>(reader, config, out _),
+            GetResultSet<T4>(reader, config, out _),
+            GetResultSet<T5>(reader, config, out _)
             );
     }
     private static IReadOnlyCollection<T> GetResultSet<T>(IDataReader reader, DbConfig config, out bool moreResults)
@@ -286,7 +279,7 @@ public partial class CommandBuilder : IDisposable
     public async IAsyncEnumerable<T> AsEnumerableAsync<T>()
     {
         using var reader = await ExecuteAsync.Reader().ConfigureAwait(false);
-        var map = reader.GetMapper<T>(_config);
+        var map = reader.GetMapper<T>(config);
         while (await reader.ReadAsync().ConfigureAwait(false))
             yield return map(reader);
     }
