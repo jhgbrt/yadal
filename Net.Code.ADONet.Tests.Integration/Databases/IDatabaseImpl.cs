@@ -7,6 +7,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
     public interface IDatabaseImpl
     {
         bool IsAvailable();
+        string ConnectionFailureException{ get; }
         string CreatePersonTable { get; }
         string DropPersonTable { get; }
         string DropProductTable { get; }

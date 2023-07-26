@@ -5,14 +5,14 @@ namespace Net.Code.ADONet.Tests.Integration
     public class Configuration
     {
         public const string DatabaseName = "TESTDB";
-        const string Password = "P@ssword1!";
+        const string Password = "P#ssword1!";
 
         public static readonly IReadOnlyDictionary<string, string> ConnectionStrings = new Dictionary<string, string>
         {
-            ["SqlServer"] = @$"Data Source=localhost;Initial Catalog={DatabaseName};User Id=sa;Password={Password};Persist Security Info=True",
-            ["SqlServerMaster"] = @$"Data Source=localhost;Initial Catalog=master;User Id=sa;Password={Password};Persist Security Info=True",
-            ["Oracle"] = @$"Data Source=localhost:1521/ORCLCDB;User ID={DatabaseName};Password=P_ssw0rd_1",
-            ["OracleMaster"] = $@"Data Source=localhost:1521/ORCLCDB;DBA Privilege=SYSDBA;User Id=SYS;Password={Password}",
+            ["SqlServer"] = @$"Data Source=127.0.0.1;Initial Catalog={DatabaseName};User Id=sa;Password={Password};Persist Security Info=True;Encrypt=false",
+            ["SqlServerMaster"] = @$"Data Source=127.0.0.1;Initial Catalog=master;User Id=sa;Password={Password};Persist Security Info=True;Encrypt=false",
+            ["Oracle"] = @$"Data Source=localhost:1521/FREE;User ID={DatabaseName};Password=P_ssw0rd_1",
+            ["OracleMaster"] = $@"Data Source=localhost:1521/FREE;DBA Privilege=SYSDBA;User Id=SYS;Password={Password}",
             ["SqLite"] = @"Data Source=:memory:",
             ["SqLiteMaster"] = @"Data Source=:memory:",
             ["MySql"] = $@"Server=localhost;Database={DatabaseName};Uid=root;Pwd=root;",

@@ -36,10 +36,10 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
 
         public override string CreateProductTable
             => """
-               CREATE TABLE PRODUCT ("
+               CREATE TABLE PRODUCT (
                    ID NUMBER(8,0) NOT NULL
                ,   NAME VARCHAR2(100) NOT NULL
-               ,   PRICE NUMBER(8,2) NOT NULL
+               ,   PRICE NUMBER(16,2) NOT NULL
                )
                """;
 
@@ -67,7 +67,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
             using var db = MasterDb();
             db.Execute(@"ALTER SESSION SET ""_ORACLE_SCRIPT""=TRUE");
             if (db.Sql($"SELECT COUNT(*) FROM SYS.DBA_USERS WHERE USERNAME = '{user}'").AsScalar<bool>())
-                db.Execute($"DROP USER {user}");
+                db.Execute($"DROP USER {user} CASCADE");
             if (db.Sql($"SELECT COUNT(*) FROM SYS.DBA_TABLESPACES WHERE TABLESPACE_NAME = '{ts}'").AsScalar<bool>())
                 db.Execute($"DROP TABLESPACE {ts}");
             if (db.Sql($"SELECT COUNT(*) FROM SYS.DBA_TABLESPACES WHERE TABLESPACE_NAME = '{tmpts}'").AsScalar<bool>())

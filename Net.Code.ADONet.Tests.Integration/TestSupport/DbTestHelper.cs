@@ -7,6 +7,7 @@ using Net.Code.ADONet.Tests.Integration.Data;
 using Net.Code.ADONet.Tests.Integration.Databases;
 using Xunit.Abstractions;
 using Xunit;
+using System;
 
 namespace Net.Code.ADONet.Tests.Integration.TestSupport
 {
@@ -19,10 +20,10 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
         {
             _target = new T();
             var isAvailable = _target.IsAvailable();
-            Skip.IfNot(isAvailable);
+            Skip.IfNot(isAvailable, _target.ConnectionFailureException);
             _output = output;
-            //Logger.Log = _output.WriteLine;
-            Logger.Log = s => { };
+            Logger.Log = _output.WriteLine;
+            //Logger.Log = s => { };
             _db = _target.CreateDb();
         }
 
@@ -164,19 +165,27 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
 
         public (int[], Person[]) GetByIdList()
         {
-            if (!_target.SupportsTableValuedParameters)
-                throw new SkipException($"{_target.GetType().Name} does not support table valued parameters");
-
             var ids = _db
-                .Sql($"SELECT TOP 3 Id FROM {nameof(Person)}")
+                .Sql($"SELECT Id FROM {nameof(Person)}")
                 .Select(d => (int)d.Id)
+                .Take(3)
                 .ToArray();
 
-            return (ids, _db
-                .Sql("SELECT * FROM Person JOIN @IDs IdSet ON Person.Id = IdSet.Id")
-                .WithParameter("@IDs", ids.Select(id => new {Id = id}), "IdSet")
-                .AsEnumerable<Person>()
-                .ToArray());
+            if (_target.SupportsTableValuedParameters)
+            {
+                return (ids, _db
+                    .Sql("SELECT * FROM Person JOIN @IDs IdSet ON Person.Id = IdSet.Id")
+                    .WithParameter("@IDs", ids.Select(id => new { Id = id }), "IdSet")
+                    .AsEnumerable<Person>()
+                    .ToArray());
+            }
+            else
+            {
+                return (ids, _db
+                    .Sql($"SELECT * FROM Person WHERE Id in ({string.Join(',',ids)})")
+                    .AsEnumerable<Person>()
+                    .ToArray());
+            }
         }
 
         public int GetCountOfPeople()

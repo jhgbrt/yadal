@@ -13,6 +13,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
             Factory = factory;
         }
         static readonly Lazy<bool> _available;
+        static string _connectionFailureException;
         static BaseDb()
         {
             _available = new Lazy<bool>(() => new T().CanConnect());
@@ -22,7 +23,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
             }
         }
         public bool IsAvailable() => _available.Value;
-
+        public string ConnectionFailureException => _connectionFailureException;
         private string DefaultCreatePersonTable() =>
            $"""
             CREATE TABLE {ToDb(nameof(Person))} (
@@ -49,8 +50,8 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
            $"""
             CREATE TABLE {ToDb(nameof(Product))} (
                {ToDb(nameof(Product.Id))} int not null,
-               {ToDb(nameof(Product.Name))} nvarchar(100),
-               {ToDb(nameof(Product.Price))} decimal not null
+               {ToDb(nameof(Product.Name))} varchar(100),
+               {ToDb(nameof(Product.Price))} decimal(16,2) not null
             );
             """;
 
@@ -97,8 +98,9 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
                 connection.Open();
                 return true;
             }
-            catch
+            catch (Exception ex) 
             {
+                _connectionFailureException = ex.ToString();
                 return false;
             }
         }

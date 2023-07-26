@@ -36,14 +36,22 @@ namespace IntegrationTests
             _addresses = FakeData.Addresses.List(10);
             _products = FakeData.Products.List(10);
             _testHelper = new DbTestHelper<T>(output);
-            _testHelper.Initialize();
-            _testHelper.Insert(
-                people: _people.Take(5), 
-                addresses: _addresses, 
-                products: _products);
-            _testHelper.InsertAsync(
-                people: _people.Skip(5)
-                ).Wait();
+            try
+            {
+                _testHelper.Initialize();
+                _testHelper.Insert(
+                    people: _people.Take(5), 
+                    addresses: _addresses, 
+                    products: _products);
+                _testHelper.InsertAsync(
+                    people: _people.Skip(5)
+                    ).Wait();
+            }
+            catch (Exception e)
+            {
+                _output.WriteLine(e.ToString());
+                throw;
+            }
         }
 
         public void Dispose()
@@ -168,8 +176,8 @@ namespace IntegrationTests
     {
         [Trait("Database", "SQLSERVER")]
         public class SqlServer : DatabaseTest<SqlServerDb> { public SqlServer(ITestOutputHelper output) : base(output) { } }
-        //[Trait("Database", "ORACLE")]
-        //public class Oracle : DatabaseTest<OracleDb> { public Oracle(ITestOutputHelper output) : base(output) { } }
+        [Trait("Database", "ORACLE")]
+        public class Oracle : DatabaseTest<OracleDb> { public Oracle(ITestOutputHelper output) : base(output) { } }
         [Trait("Database", "SQLITE")]
         public class SqLite : DatabaseTest<SqLiteDb> { public SqLite(ITestOutputHelper output) : base(output) { } }
         [Trait("Database", "MSSQLITE")]
@@ -178,7 +186,6 @@ namespace IntegrationTests
         public class MySql : DatabaseTest<MySqlDb> { public MySql (ITestOutputHelper output) : base(output) { } }
         [Trait("Database", "POSTGRES")]
         public class Postgres : DatabaseTest<PostgreSqlDb> { public Postgres(ITestOutputHelper output) : base(output) { } }
-
         //[Trait("Database", "DB2")]
         //public class DB2 : DatabaseTest<DB2Db> { public DB2(ITestOutputHelper output) : base(output) { } }
     }
