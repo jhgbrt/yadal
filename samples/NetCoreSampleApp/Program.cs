@@ -18,8 +18,6 @@ using System.IO;
 
 #pragma warning disable
 
-Logger.Log = Console.WriteLine;
-
 var host = new HostBuilder()
     .ConfigureAppConfiguration((c, conf) =>
     {

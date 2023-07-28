@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Data.Common;
 
 namespace Net.Code.ADONet.Tests.Integration
 {
@@ -19,8 +20,17 @@ namespace Net.Code.ADONet.Tests.Integration
             ["MySqlMaster"] = $@"Server=localhost;Uid=root;Pwd=root;",
             ["PostgreSql"] = $@"Server=localhost;Port=5432;Database={DatabaseName.ToLower()};User ID=postgres;Password={Password}",
             ["PostgreSqlMaster"] = $@"Server=localhost;Port=5432;User ID=postgres;Password={Password}",
-            ["DB2"] = $@"Server=localhost:50000;Database={DatabaseName};UID=db2inst1;Password={Password}",
-            ["DB2Master"] = $@"Server=localhost:50000;Database={DatabaseName};UID=db2inst1;Password={Password}"
+            ["DB2"] = $@"Server=localhost:50000;Database={DatabaseName};UID=db2inst1;Password={Password};Connect Timeout=5",
+            ["DB2Master"] = $@"Server=localhost:50000;Database={DatabaseName};UID=db2inst1;Password={Password};Connect Timeout=5"
         };
+
+        public static string GetConnectionStringProperty(string name, string keyword)
+        {
+            var connectionString = Configuration.ConnectionStrings[name];
+            var connectionStringBuilder = new DbConnectionStringBuilder();
+            connectionStringBuilder.ConnectionString = connectionString;
+            var value = (string)connectionStringBuilder[keyword];
+            return value;
+        }
     }
 }

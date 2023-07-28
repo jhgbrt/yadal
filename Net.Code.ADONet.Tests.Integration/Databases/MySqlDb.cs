@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+
 using MySql.Data.MySqlClient;
+
 using Net.Code.ADONet.Tests.Integration.Data;
 
 namespace Net.Code.ADONet.Tests.Integration.Databases
@@ -10,22 +12,15 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
         {
         }
 
-        public override void DropAndRecreate()
+        public override IEnumerable<string> GetDropAndRecreateDdl()
         {
-            var databaseName = GetConnectionStringProperty("Database");
+            var databaseName = Configuration.GetConnectionStringProperty(Name, "Database");
 
-            var ddl = string.Format("DROP DATABASE IF EXISTS {0};\r\n" +
-                                    "CREATE DATABASE {0}", databaseName);
-
-            using (var db = MasterDb())
-            {
-                db.Execute(ddl);
-            }
-        }
-
-        public override void BulkInsert(IDb db, IEnumerable<Person> list)
-        {
-            base.BulkInsert(db, list);
+            var ddl = $"""
+                DROP DATABASE IF EXISTS {databaseName};
+                CREATE DATABASE {databaseName}
+                """;
+            yield return ddl;
         }
     }
 }

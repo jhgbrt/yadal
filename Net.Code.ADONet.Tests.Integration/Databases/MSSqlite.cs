@@ -7,9 +7,5 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
         public MSSqLiteDb() : base(SqliteFactory.Instance)
         {
         }
-
-        public override void DropAndRecreate()
-        {
-        }
     }
 }

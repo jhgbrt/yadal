@@ -1,8 +1,10 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 namespace Net.Code.ADONet;
 
-public partial class CommandBuilder(DbCommand command, DbConfig config) : IDisposable
+public partial class CommandBuilder(DbCommand command, DbConfig config, ILogger? logger = null) : IDisposable
 {
-
     /// <summary>
     /// Sets the command text
     /// </summary>
@@ -223,7 +225,7 @@ public partial class CommandBuilder(DbCommand command, DbConfig config) : IDispo
 
     public T Single<T>() => AsEnumerable<T>().Single();
 
-    private Executor Execute => new(Command);
+    private Executor Execute => new(Command, logger ?? NullLogger.Instance);
 
     /// <summary>
     /// Executes the command as a statement, returning the number of rows affected asynchronously
@@ -288,5 +290,5 @@ public partial class CommandBuilder(DbCommand command, DbConfig config) : IDispo
 
     public void Dispose() => Command.Dispose();
 
-    private AsyncExecutor ExecuteAsync => new(Command);
+    private AsyncExecutor ExecuteAsync => new(Command, logger ?? NullLogger.Instance);
 }

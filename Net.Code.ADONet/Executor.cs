@@ -1,8 +1,10 @@
-﻿namespace Net.Code.ADONet;
+﻿using Microsoft.Extensions.Logging;
+
+namespace Net.Code.ADONet;
 
 public partial class CommandBuilder
 {
-    private record struct Executor(DbCommand Command)
+    private record struct Executor(DbCommand Command, ILogger logger)
     {
         /// <summary>
         /// executes the query as a datareader
@@ -21,7 +23,7 @@ public partial class CommandBuilder
 
         private DbCommand Prepare()
         {
-            Logger.LogCommand(Command);
+            Logger.LogCommand(logger, Command);
             if (Command.Connection.State == ConnectionState.Closed)
                 Command.Connection.Open();
             return Command;

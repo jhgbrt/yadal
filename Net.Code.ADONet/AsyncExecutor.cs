@@ -1,8 +1,10 @@
-﻿namespace Net.Code.ADONet;
+﻿using Microsoft.Extensions.Logging;
+
+namespace Net.Code.ADONet;
 
 public partial class CommandBuilder
 {
-    private record struct AsyncExecutor(DbCommand Command)
+    private record struct AsyncExecutor(DbCommand Command, ILogger logger)
     {
         /// <summary>
         /// executes the query as a datareader
@@ -33,10 +35,11 @@ public partial class CommandBuilder
 
         private async Task<DbCommand> PrepareAsync()
         {
-            Logger.LogCommand(Command);
+            Logger.LogQuery(logger, LogLevel.Trace, Command.CommandText);
             if (Command.Connection.State == ConnectionState.Closed)
                 await Command.Connection.OpenAsync().ConfigureAwait(false);
             return Command;
         }
+
     }
 }

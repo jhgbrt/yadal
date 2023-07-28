@@ -43,53 +43,51 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
                )
                """;
 
-        public override (IReadOnlyCollection<Person>, IReadOnlyCollection<Address>) SelectPersonAndAddress(IDb db)
+        public override CommandBuilder CreateMultiResultSetCommand(IDb db, string query1, string query2)
         {
             var query = $"""
                         BEGIN
-                          OPEN :Cur1 FOR {SelectPeople};
-                          OPEN :Cur2 FOR {SelectAddresses};
+                          OPEN :Cur1 FOR {query1};
+                          OPEN :Cur2 FOR {query2};
                         END;
                         """;
             return db.Sql(query)
                 .WithParameter(new OracleParameter("Cur1", OracleDbType.RefCursor, ParameterDirection.Output))
-                .WithParameter(new OracleParameter("Cur2", OracleDbType.RefCursor, ParameterDirection.Output))
-                .AsMultiResultSet<Person, Address>();
+                .WithParameter(new OracleParameter("Cur2", OracleDbType.RefCursor, ParameterDirection.Output));
         }
-
-        public override void DropAndRecreate()
+        public override IEnumerable<string> GetDropAndRecreateDdl()
         {
-            var user = GetConnectionStringProperty("User ID");
+            var user = Configuration.GetConnectionStringProperty(Name, "User ID");
             var tmpts = $"{user}_TS_TMP";
             var ts = $"{user}_TS";
-            var password = GetConnectionStringProperty("Password");
+            var password = Configuration.GetConnectionStringProperty(Name, "Password");
 
-            using var db = MasterDb();
-            db.Execute(@"ALTER SESSION SET ""_ORACLE_SCRIPT""=TRUE");
-            if (db.Sql($"SELECT COUNT(*) FROM SYS.DBA_USERS WHERE USERNAME = '{user}'").AsScalar<bool>())
-                db.Execute($"DROP USER {user} CASCADE");
-            if (db.Sql($"SELECT COUNT(*) FROM SYS.DBA_TABLESPACES WHERE TABLESPACE_NAME = '{ts}'").AsScalar<bool>())
-                db.Execute($"DROP TABLESPACE {ts}");
-            if (db.Sql($"SELECT COUNT(*) FROM SYS.DBA_TABLESPACES WHERE TABLESPACE_NAME = '{tmpts}'").AsScalar<bool>())
-                db.Execute($"DROP TABLESPACE {tmpts}");
-            db.Execute($"CREATE TABLESPACE {ts} DATAFILE '{ts}.DAT' SIZE 10M REUSE AUTOEXTEND ON");
-            db.Execute($"CREATE TEMPORARY TABLESPACE {tmpts} TEMPFILE '{tmpts}.DAT' SIZE 10M REUSE AUTOEXTEND ON");
-            db.Execute($"CREATE USER {user} IDENTIFIED BY {password} DEFAULT TABLESPACE {ts} TEMPORARY TABLESPACE {tmpts}");
-            db.Execute($"GRANT CREATE SESSION TO {user}");
-            db.Execute($"GRANT CREATE TABLE TO {user}");
-            db.Execute($"GRANT UNLIMITED TABLESPACE TO {user}");
-        }
+            yield return "ALTER SESSION SET \"_ORACLE_SCRIPT\"=TRUE";
+            yield return $"""
+            DECLARE 
+               c INTEGER := 0;
+            BEGIN
+               SELECT COUNT(*) INTO c FROM SYS.DBA_USERS WHERE USERNAME = '{user}';
+               IF c > 0 THEN
+                    EXECUTE IMMEDIATE 'DROP USER {user} CASCADE';
+               END IF;
+               SELECT COUNT(*) into c FROM SYS.DBA_TABLESPACES WHERE TABLESPACE_NAME = '{ts}';
+               IF c > 0 THEN
+                    EXECUTE IMMEDIATE 'DROP TABLESPACE {ts}';
+               END IF;
+               SELECT COUNT(*) into c FROM SYS.DBA_TABLESPACES WHERE TABLESPACE_NAME = '{tmpts}';
+               IF c > 0 THEN
+                    EXECUTE IMMEDIATE 'DROP TABLESPACE {tmpts}';
+               END IF;
+            END;
+            """;
+            yield return $"CREATE TABLESPACE {ts} DATAFILE '{ts}.DAT' SIZE 10M REUSE AUTOEXTEND ON";
+            yield return $"CREATE TEMPORARY TABLESPACE {tmpts} TEMPFILE '{tmpts}.DAT' SIZE 10M REUSE AUTOEXTEND ON";
+            yield return $"CREATE USER {user} IDENTIFIED BY {password} DEFAULT TABLESPACE {ts} TEMPORARY TABLESPACE {tmpts}";
+            yield return $"GRANT CREATE SESSION TO {user}";
+            yield return $"GRANT CREATE TABLE TO {user}";
+            yield return $"GRANT UNLIMITED TABLESPACE TO {user}";
 
-        public override Person Project(dynamic d)
-        {
-            return new Person
-            {
-                Id = d.ID,
-                Email = d.EMAIL,
-                Name = d.NAME,
-                OptionalNumber = d.OPTIONAL_NUMBER,
-                RequiredNumber = d.REQUIRED_NUMBER
-            };
         }
     }
 }
