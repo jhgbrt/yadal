@@ -40,38 +40,6 @@ namespace Net.Code.ADONet.Tests.Unit
             _ouput.WriteLine(s);
         }
 
-        [Fact]
-        public void Logger_LogsCommand()
-        {
-            var logAction = Logger.Log;
-            var sb = new StringBuilder();
-            Logger.Log = s => sb.AppendLine(s);
-            var command = PrepareCommand();
-
-            new CommandBuilder(command, DbConfig.Default)
-                .WithCommandText("commandtext")
-                .WithParameter("name", "value");
-
-            Logger.LogCommand(command);
-            var loggedText = sb.ToString();
-
-            Assert.Contains("commandtext", loggedText);
-            Assert.Contains("name", loggedText);
-            Assert.Contains("value", loggedText);
-            Logger.Log = logAction;
-        }
-
-        [Fact]
-        public void Logger_WhenNull_DoesNotThrow()
-        {
-            var command = PrepareCommand();
-
-            new CommandBuilder(command, DbConfig.Default)
-                .WithCommandText("commandtext")
-                .WithParameter("name", "value");
-
-            Logger.LogCommand(command);
-        }
 
         [Fact]
         public void CommandBuilder_WithParameterOfTypeString_Adds_Parameter()

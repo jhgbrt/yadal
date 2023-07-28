@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Data.Common;
 
 using Net.Code.ADONet.Tests.Integration.Data;
 
@@ -6,24 +7,21 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
 {
     public interface IDatabaseImpl
     {
-        bool IsAvailable();
-        string ConnectionFailureException{ get; }
         string CreatePersonTable { get; }
         string DropPersonTable { get; }
         string DropProductTable { get; }
         string CreateAddressTable { get; }
         string CreateProductTable { get; }
         string DropAddressTable { get; }
-        string InsertPerson { get; }
         bool SupportsMultipleResultSets { get; }
         bool SupportsTableValuedParameters { get; }
-        DbConfig Config { get; }
+        IEnumerable<string> GetAfterInitSql();
+        IEnumerable<string> GetDropAndRecreateDdl();
 
-        void DropAndRecreate();
-        IDb CreateDb();
-        Person Project(dynamic d);
-        (IReadOnlyCollection<Person>, IReadOnlyCollection<Address>) SelectPersonAndAddress(IDb db);
-        void BulkInsert(IDb db, IEnumerable<Person> list);
-        Query CreateQuery<T>();
+        DbConfig Config { get; }
+        DbProviderFactory Factory { get; }
+        public string Name { get; }
+        CommandBuilder CreateMultiResultSetCommand(IDb db, string query1, string query2);
+        bool SupportsBulkInsert { get; }
     }
 }

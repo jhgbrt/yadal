@@ -1,4 +1,7 @@
-﻿namespace Net.Code.ADONet;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
+namespace Net.Code.ADONet;
 
 /// <summary>
 /// <para>Yet Another Data Access Layer</para>
@@ -16,6 +19,7 @@ public class Db : IDb
 
     private DbConnection _connection;
     private readonly bool _externalConnection;
+    private ILogger _logger;
 
     /// <summary>
     /// Instantiate Db with existing connection. The connection is only used for creating commands;
@@ -23,10 +27,11 @@ public class Db : IDb
     /// </summary>
     /// <param name="connection">The existing connection</param>
     /// <param name="config"></param>
-    public Db(DbConnection connection, DbConfig config)
+    public Db(DbConnection connection, DbConfig config, ILogger? logger = null)
     {
         _connection = connection;
         _externalConnection = true;
+        _logger = logger ?? NullLogger.Instance;
         Config = config ?? DbConfig.Default;
     }
 
@@ -35,8 +40,8 @@ public class Db : IDb
     /// </summary>
     /// <param name="connectionString">the connection string</param>
     /// <param name="providerFactory">the connection provider factory</param>
-    public Db(string connectionString, DbProviderFactory providerFactory)
-        : this(connectionString, DbConfig.FromProviderFactory(providerFactory), providerFactory)
+    public Db(string connectionString, DbProviderFactory providerFactory, ILogger? logger = null)
+        : this(connectionString, DbConfig.FromProviderFactory(providerFactory), providerFactory, logger)
     {
     }
 
@@ -46,11 +51,12 @@ public class Db : IDb
     /// <param name="connectionString">the connection string</param>
     /// <param name="config"></param>
     /// <param name="providerFactory">the connection factory</param>
-    internal Db(string connectionString, DbConfig config, DbProviderFactory providerFactory)
+    internal Db(string connectionString, DbConfig config, DbProviderFactory providerFactory, ILogger? logger = null)
     {
         _connection = providerFactory.CreateConnection();
         _connection.ConnectionString = connectionString;
         _externalConnection = false;
+        _logger = logger ?? NullLogger.Instance;
         Config = config;
     }
 
@@ -110,7 +116,7 @@ public class Db : IDb
     {
         var cmd = Connection.CreateCommand();
         Config.PrepareCommand(cmd);
-        return new CommandBuilder(cmd, Config).OfType(commandType).WithCommandText(command);
+        return new CommandBuilder(cmd, Config, _logger).OfType(commandType).WithCommandText(command);
     }
 
     /// <summary>

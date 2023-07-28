@@ -28,20 +28,21 @@ namespace IntegrationTests
         private readonly ITestOutputHelper _output;
 
 
-        protected DatabaseTest(ITestOutputHelper output)
+        protected DatabaseTest(ITestOutputHelper output, DatabaseFixture<T> fixture)
         {
+            Skip.IfNot(fixture.IsAvailable, fixture.ConnectionFailureException?.Message);
             _output = output;
             _output.WriteLine($"{GetType()} - initialize");
             _people = FakeData.People.List(10).ToArray();
             _addresses = FakeData.Addresses.List(10);
             _products = FakeData.Products.List(10);
-            _testHelper = new DbTestHelper<T>(output);
+            _testHelper = new DbTestHelper<T>(fixture.Target, fixture.CreateDb(XUnitLogger.CreateLogger(output)));
             try
             {
                 _testHelper.Initialize();
                 _testHelper.Insert(
-                    people: _people.Take(5), 
-                    addresses: _addresses, 
+                    people: _people.Take(5),
+                    addresses: _addresses,
                     products: _products);
                 _testHelper.InsertAsync(
                     people: _people.Skip(5)
@@ -137,7 +138,7 @@ namespace IntegrationTests
             var dt = _testHelper.GetSchemaTable();
             foreach (DataColumn dc in dt.Columns)
             {
-                Console.WriteLine($"{dc.ColumnName} ({dc.DataType})");
+                _output.WriteLine($"{dc.ColumnName} ({dc.DataType})");
             }
         }
 
@@ -172,21 +173,51 @@ namespace IntegrationTests
             _testHelper.BulkInsert(FakeData.People.List(100));
         }
     }
+
     namespace Database
     {
         [Trait("Database", "SQLSERVER")]
-        public class SqlServer : DatabaseTest<SqlServerDb> { public SqlServer(ITestOutputHelper output) : base(output) { } }
+        public class SqlServer : DatabaseTest<SqlServerDb>, IClassFixture<DatabaseFixture<SqlServerDb>>
+        {
+            public SqlServer(DatabaseFixture<SqlServerDb> fixture, ITestOutputHelper output)
+            : base(output, fixture) { }
+        }
         [Trait("Database", "ORACLE")]
-        public class Oracle : DatabaseTest<OracleDb> { public Oracle(ITestOutputHelper output) : base(output) { } }
+        public class Oracle : DatabaseTest<OracleDb>, IClassFixture<DatabaseFixture<OracleDb>>
+        {
+            public Oracle(DatabaseFixture<OracleDb> fixture, ITestOutputHelper output)
+            : base(output, fixture) { }
+        }
         [Trait("Database", "SQLITE")]
-        public class SqLite : DatabaseTest<SqLiteDb> { public SqLite(ITestOutputHelper output) : base(output) { } }
+        public class SqLite : DatabaseTest<SqLiteDb>, IClassFixture<DatabaseFixture<SqLiteDb>>
+        {
+            public SqLite(DatabaseFixture<SqLiteDb> fixture, ITestOutputHelper output)
+            : base(output, fixture) { }
+        }
         [Trait("Database", "MSSQLITE")]
-        public class MSSqLite : DatabaseTest<SqLiteDb> { public MSSqLite(ITestOutputHelper output) : base(output) { } }
+        public class MSSqLite : DatabaseTest<SqLiteDb>, IClassFixture<DatabaseFixture<SqLiteDb>>
+        {
+            public MSSqLite(DatabaseFixture<SqLiteDb> fixture, ITestOutputHelper output)
+            : base(output, fixture) { }
+        }
         [Trait("Database", "MYSQL")]
-        public class MySql : DatabaseTest<MySqlDb> { public MySql (ITestOutputHelper output) : base(output) { } }
+        public class MySql : DatabaseTest<MySqlDb>, IClassFixture<DatabaseFixture<MySqlDb>>
+        {
+            public MySql(DatabaseFixture<MySqlDb> fixture, ITestOutputHelper output)
+            : base(output, fixture) { }
+        }
         [Trait("Database", "POSTGRES")]
-        public class Postgres : DatabaseTest<PostgreSqlDb> { public Postgres(ITestOutputHelper output) : base(output) { } }
+        public class Postgres : DatabaseTest<PostgreSqlDb>, IClassFixture<DatabaseFixture<PostgreSqlDb>>
+        {
+            public Postgres(DatabaseFixture<PostgreSqlDb> fixture, ITestOutputHelper output)
+            : base(output, fixture) { }
+        }
         //[Trait("Database", "DB2")]
-        //public class DB2 : DatabaseTest<DB2Db> { public DB2(ITestOutputHelper output) : base(output) { } }
+        //public class DB2 : DatabaseTest<DB2Db>, IClassFixture<DatabaseFixture<DB2Db>>
+        //{
+        //    public DB2(DatabaseFixture<DB2Db> fixture, ITestOutputHelper output)
+        //    : base(output, fixture) { }
+        //}
     }
 }
+

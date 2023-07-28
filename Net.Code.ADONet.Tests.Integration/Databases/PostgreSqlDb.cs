@@ -1,4 +1,7 @@
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
+
 using Npgsql;
 
 namespace Net.Code.ADONet.Tests.Integration.Databases
@@ -9,28 +12,13 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
         {
         }
 
-        public override void DropAndRecreate()
+        public override IEnumerable<string> GetDropAndRecreateDdl()
         {
-            var databaseName = GetConnectionStringProperty("Database");
+            var databaseName = Configuration.GetConnectionStringProperty(Name, "Database");
 
-            using (var db = MasterDb())
-            {
-                var dropped = db.Execute($"DROP DATABASE IF EXISTS {databaseName};");
-                var created = db.Execute($"CREATE DATABASE {databaseName};");
-                var ok = db.Execute($"SELECT 1 from pg_database WHERE datname='{databaseName}';");
-                var dbs = db.Sql("SELECT datname FROM pg_database").AsEnumerable().Select(d => (string)d.datname).ToList();
-            }
+            yield return $"DROP DATABASE IF EXISTS {databaseName};";
+            yield return $"CREATE DATABASE {databaseName};";
         }
-        public override Data.Person Project(dynamic d)
-        {
-            return new Data.Person
-            {
-                Id = d.id,
-                Email = d.email,
-                Name = d.name,
-                OptionalNumber = d.optional_number,
-                RequiredNumber = d.required_number
-            };
-        }
+       
     }
 }

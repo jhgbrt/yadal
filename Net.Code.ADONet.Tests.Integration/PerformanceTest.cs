@@ -6,18 +6,17 @@ using Net.Code.ADONet.Tests.Integration.TestSupport;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace IntegrationTests
+namespace IntegrationTests.Performance
 {
 
     [Collection("Database collection")]
     public abstract class PerformanceTest<T> : IDisposable where T: IDatabaseImpl, new()
     {
         private ITestOutputHelper _output;
-        protected PerformanceTest(ITestOutputHelper output)
+        protected PerformanceTest(ITestOutputHelper output, DatabaseFixture<T> target)
         {
             _output = output;
-            _output.WriteLine($"{GetType()} - initialize");
-            _testHelper = new DbTestHelper<T>(output);
+            _testHelper = new DbTestHelper<T>(target.Target, target.CreateDb(XUnitLogger.CreateLogger(output)));
             _testHelper.Initialize();
             _testHelper.BulkInsert(FakeData.People.List(1000));
         }
@@ -60,6 +59,9 @@ namespace IntegrationTests
     namespace Performance
     {
         [Trait("Database", "SQLITE")]
-        public class SqLite : PerformanceTest<SqLiteDb> { public SqLite(ITestOutputHelper output) : base(output) { } }
+        public class SqLite : PerformanceTest<SqLiteDb>, IClassFixture<DatabaseFixture<SqLiteDb>> 
+        { 
+            public SqLite(DatabaseFixture<SqLiteDb> fixture, ITestOutputHelper output) : base(output, fixture) { } 
+        }
     }
 }

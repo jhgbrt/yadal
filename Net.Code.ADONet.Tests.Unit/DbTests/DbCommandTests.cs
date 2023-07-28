@@ -62,12 +62,9 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
     {
         private SqlCommand _sqlCommand;
         private CommandBuilder _builder;
-        private StringBuilder _logging;
 
         public DbCommandBuilderTests()
         {
-            _logging = new StringBuilder();
-            Logger.Log = s => _logging.AppendLine(s);
             _sqlCommand = new SqlCommand();
             _builder = new CommandBuilder(_sqlCommand, DbConfig.Default);
         }
