@@ -8,13 +8,10 @@ These are the drivers tested:
 * Oracle.ManagedDataAccess.Client
 * MySql.Data.MySqlClient
 * Npgsql (postgreSQL)
-* IBM.DB2.Data.Core
+* <del>IBM.DB2.Data.Core</del> (should still be ok, but can't get DB2 container to work ATM)
 
 For SqLite, no additional configuration should be necessary.
 
-For the other databases, a script is provided that starts these databases as docker images
-(see the start_databases.cmd script). This obviously requires Docker for windows to be installed.
-For Oracle, this does not yet work as Oracle sadly does not provide a docker image for it's XE
-database and I didn't get around to integrating a script to build such an image myself. 
-(Pull request is welcome ;-))
+For the other databases, a script is provided that starts these databases as podman images
+(see the start_databases.cmd script). This obviously requires Podman to be installed.
 
