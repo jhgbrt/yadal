@@ -13,15 +13,18 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
         string CreateAddressTable { get; }
         string CreateProductTable { get; }
         string DropAddressTable { get; }
-        bool SupportsMultipleResultSets { get; }
-        bool SupportsTableValuedParameters { get; }
+
         IEnumerable<string> GetAfterInitSql();
         IEnumerable<string> GetDropAndRecreateDdl();
 
-        DbConfig Config { get; }
-        DbProviderFactory Factory { get; }
+        bool SupportsMultipleResultSets { get; }
+        bool SupportsTableValuedParameters { get; }
+        bool SupportsBulkInsert { get; }
+
         public string Name { get; }
         CommandBuilder CreateMultiResultSetCommand(IDb db, string query1, string query2);
-        bool SupportsBulkInsert { get; }
+
+        DbConfig Config { get; }
+        DbProviderFactory Factory { get; }
     }
 }
