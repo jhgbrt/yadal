@@ -7,6 +7,7 @@ using Net.Code.ADONet.Tests.Integration.Data;
 using Net.Code.ADONet.Tests.Integration.Databases;
 using Xunit.Abstractions;
 using Xunit;
+using Microsoft.VisualBasic;
 
 namespace Net.Code.ADONet.Tests.Integration.TestSupport
 {
@@ -45,8 +46,8 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
         }
 
         public void Insert(
-            IEnumerable<Person> people = null, 
-            IEnumerable<Address> addresses = null, 
+            IEnumerable<Person> people = null,
+            IEnumerable<Address> addresses = null,
             IEnumerable<Product> products = null
             )
         {
@@ -109,7 +110,15 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
             return _db
                 .Sql(_personQuery.SelectAll)
                 .AsEnumerable()
-                .Select(d => (Person) Project(d))
+                .Select(d => (Person)Project(d))
+                .ToList();
+        }
+
+        public List<Person> GetAllPeopleWithDataReaderMapper()
+        {
+            return _db
+                .Sql(_personQuery.SelectAll)
+                .AsEnumerable((IDataRecord d) => d.ToPerson())
                 .ToList();
         }
 
@@ -150,7 +159,7 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
             Skip.IfNot(_target.SupportsMultipleResultSets, $"{_target.GetType().Name} does not support multiple result sets");
             var result = _target
                 .CreateMultiResultSetCommand(_db, _personQuery.SelectAll, _addressQuery.SelectAll)
-                .AsMultiResultSet<Person,Address>();
+                .AsMultiResultSet<Person, Address>();
             return result;
         }
 
@@ -189,7 +198,7 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
             else
             {
                 return (ids, _db
-                    .Sql($"SELECT * FROM Person WHERE Id in ({string.Join(',',ids)})")
+                    .Sql($"SELECT * FROM Person WHERE Id in ({string.Join(',', ids)})")
                     .AsEnumerable<Person>()
                     .ToArray());
             }
@@ -220,3 +229,4 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
         }
     }
 }
+

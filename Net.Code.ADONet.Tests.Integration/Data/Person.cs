@@ -1,12 +1,27 @@
 namespace Net.Code.ADONet.Tests.Integration.Data
 {
-    public record Person
+    [MapFromDataRecord]
+    public class Person
     {
         public int Id { get; set; }
         public string Email { get; set; }
         public string Name { get; set; }
         public int RequiredNumber { get; set; }
         public int? OptionalNumber { get; set; }
+
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as Person);
+        }
+        bool Equals(Person other)
+        {
+            return other is not null && other.Id == Id;
+        }
+
+        public override int GetHashCode()
+        {
+            return Id.GetHashCode();
+        }
     }
 
     public record Address

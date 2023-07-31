@@ -3,6 +3,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Net.Code.ADONet;
 
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
+public class MapFromDataRecordAttribute : Attribute {}
+
 public partial class CommandBuilder(DbCommand command, DbConfig config, ILogger? logger = null) : IDisposable
 {
     /// <summary>
@@ -113,6 +116,15 @@ public partial class CommandBuilder(DbCommand command, DbConfig config, ILogger?
     public IEnumerable<T> AsEnumerable<T>(Func<dynamic, T> selector) => Select(selector);
 
     /// <summary>
+    /// Executes the query and returns the result as a list of [T]. This method is slightly faster.
+    /// than doing AsEnumerable().Select(selector). The selector is required to map objects as the
+    /// underlying datareader is enumerated.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="selector">mapping function that transforms a datarecord (wrapped as a dynamic object) to an instance of type [T]</param>
+    public IEnumerable<T> AsEnumerable<T>(Func<IDataRecord, T> selector) => Select(selector);
+
+    /// <summary>
     /// Executes the query and returns the result as a list of [T] using the 'case-insensitive, underscore-agnostic column name to property mapping convention.'
     /// </summary>
     /// <typeparam name="T"></typeparam>
@@ -131,6 +143,15 @@ public partial class CommandBuilder(DbCommand command, DbConfig config, ILogger?
         while (reader.Read())
             yield return selector(Dynamic.From(reader));
     }
+
+    // enables linq 'select' syntax
+    public IEnumerable<T> Select<T>(Func<IDataRecord, T> selector)
+    {
+        using var reader = AsReader();
+        while (reader.Read())
+            yield return selector(reader);
+    }
+
 
     /// <summary>
     /// Executes the query and returns the result as a list of lists

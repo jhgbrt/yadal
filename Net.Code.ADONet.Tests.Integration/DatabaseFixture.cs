@@ -1,6 +1,7 @@
 ﻿using System;
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 using Net.Code.ADONet;
 using Net.Code.ADONet.Tests.Integration;
@@ -20,7 +21,11 @@ namespace IntegrationTests
             Target = new T();
 
             var master = $"{Target.Name}Master";
+#if DEBUG
             var logger = XUnitLogger.CreateLogger(sink);
+#else
+            var logger = NullLogger.Instance;
+#endif
             var masterDb = CreateDb(logger, master);
             try
             {

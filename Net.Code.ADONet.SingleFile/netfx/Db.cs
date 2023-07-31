@@ -200,6 +200,13 @@ namespace Net.Code.ADONet
                 yield return selector(Dynamic.From(reader));
         }
 
+        public IEnumerable<T> Select<T>(Func<IDataReader, T> selector)
+        {
+            using var reader = AsReader();
+            while (reader.Read())
+                yield return selector(reader);
+        }
+        
         /// <summary>
         /// Executes the query and returns the result as a list of lists
         /// </summary>
