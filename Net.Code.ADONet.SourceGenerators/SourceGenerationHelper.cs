@@ -84,19 +84,20 @@ namespace Net.Code.ADONet.SourceGenerators
 
         private static string GetGetMethod(PropertyInfo property)
         {
-            return $"{property.SpecialType switch
+            return $"{property.Type switch
             {
-                SpecialType.System_Boolean => nameof(IDataRecord.GetBoolean),
-                SpecialType.System_Byte => nameof(IDataRecord.GetByte),
-                SpecialType.System_Char => nameof(IDataRecord.GetChar),
-                SpecialType.System_DateTime => nameof(IDataRecord.GetDateTime),
-                SpecialType.System_Decimal => nameof(IDataRecord.GetDecimal),
-                SpecialType.System_Double => nameof(IDataRecord.GetDouble),
-                SpecialType.System_Single => nameof(IDataRecord.GetFloat),
-                SpecialType.System_Int16 => nameof(IDataRecord.GetInt16),
-                SpecialType.System_Int32 => nameof(IDataRecord.GetInt32),
-                SpecialType.System_Int64 => nameof(IDataRecord.GetInt64),
-                SpecialType.System_String => nameof(IDataRecord.GetString),
+                "Boolean" => nameof(IDataRecord.GetBoolean),
+                "Byte" => nameof(IDataRecord.GetByte),
+                "Char" => nameof(IDataRecord.GetChar),
+                "DateTime" => nameof(IDataRecord.GetDateTime),
+                "Decimal" => nameof(IDataRecord.GetDecimal),
+                "Double" => nameof(IDataRecord.GetDouble),
+                "Guid" => nameof(IDataRecord.GetGuid),
+                "Single" => nameof(IDataRecord.GetFloat),
+                "Int16" => nameof(IDataRecord.GetInt16),
+                "Int32" => nameof(IDataRecord.GetInt32),
+                "Int64" => nameof(IDataRecord.GetInt64),
+                "String" => nameof(IDataRecord.GetString),
                 _ => throw new Exception("Unsupported")
             }}";
 
@@ -108,24 +109,18 @@ namespace Net.Code.ADONet.SourceGenerators
         public PropertyInfo(IPropertySymbol symbol)
         {
             Name = symbol.Name;
-            Type = symbol.Type.Name;
             Nullable = symbol.Type.NullableAnnotation is NullableAnnotation.Annotated;
             IsValueType = symbol.Type.IsValueType;
-            SpecialType = symbol.Type switch
+            Type = symbol.Type switch
             {
-                INamedTypeSymbol t => t.TypeArguments switch
-                {
-                    [var s] => s.SpecialType,
-                    _ => t.SpecialType
-                },
-                var t => t.SpecialType
+                INamedTypeSymbol { TypeArguments: [ITypeSymbol underlyingType] } => underlyingType.Name,
+                _ => symbol.Type.Name
             };
         }
         public string Name { get; }
         public string Type { get; }
         public bool Nullable { get; }
         public bool IsValueType { get; }
-        public SpecialType SpecialType { get; }
     }
     public class MapperInfo
     {

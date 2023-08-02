@@ -17,26 +17,32 @@ namespace Net.Code.ADONet.SourceGenerators.Tests
     [UsesVerify] 
     public class MapFromDataRecordSnapshotTests
     {
-        [Fact]
-        public async Task GeneratesMapFromDataRecordExtensionsCorrectly()
+        [Theory]
+        [InlineData(NamingConvention.PascalCase)]
+        [InlineData(NamingConvention.lowercase)]
+        [InlineData(NamingConvention.UPPERCASE)]
+        public async Task GeneratesMapFromDataRecordExtensionsCorrectly(NamingConvention convention)
         {
-            // The source code to test
-            var source = """
+            var source = $$"""
                 using Net.Code.ADONet;
                 namespace My.Namespace;
 
-                [MapFromDataRecord(ColumnNamingConvention = NamingConvention.UPPERCASE)]
+                [MapFromDataRecord(ColumnNamingConvention = NamingConvention.{{convention}})]
                 public class Person
                 {
                     public int Id { get; set; }
                     public int? Age { get; set; }
+                    public bool IsGood { get; set; }
+                    public bool? IsBad { get; set; }
+                    public DateTime BirthDate { get; set; }
+                    public DateTime? LastSeen { get; set; }
                     public string Name { get; set; }
                     public string? MiddleName { get; set; }
                 }
                 """;
 
             // Pass the source code to our helper and snapshot test the output
-            var result = TestHelper.Verify(source);
+            var result = TestHelper.Verify(source, convention);
             await result;
         }
     }
@@ -44,10 +50,8 @@ namespace Net.Code.ADONet.SourceGenerators.Tests
 
     public static class TestHelper
     {
-        public static Task Verify(string source)
+        public static Task Verify<T>(string source, T args)
         {
-            var config = new DbConfig(c => { }, MappingConvention.Default);
-
             SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(source);
 
             var references = AppDomain.CurrentDomain.GetAssemblies()
@@ -72,7 +76,7 @@ namespace Net.Code.ADONet.SourceGenerators.Tests
 
             Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
 
-            return Verifier.Verify(driver);
+            return Verifier.Verify(driver).UseParameters(args);
         }
     }
 }
