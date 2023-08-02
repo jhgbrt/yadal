@@ -3,9 +3,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Net.Code.ADONet;
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-public class MapFromDataRecordAttribute : Attribute {}
-
 public partial class CommandBuilder(DbCommand command, DbConfig config, ILogger? logger = null) : IDisposable
 {
     /// <summary>

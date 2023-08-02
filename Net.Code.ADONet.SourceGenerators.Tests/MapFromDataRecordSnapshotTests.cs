@@ -25,7 +25,7 @@ namespace Net.Code.ADONet.SourceGenerators.Tests
                 using Net.Code.ADONet;
                 namespace My.Namespace;
 
-                [MapFromDataRecord]
+                [MapFromDataRecord(ColumnNamingConvention = NamingConvention.UPPERCASE)]
                 public class Person
                 {
                     public int Id { get; set; }

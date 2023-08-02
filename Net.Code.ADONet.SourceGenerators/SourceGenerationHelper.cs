@@ -6,6 +6,7 @@ using System.Data;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Net.Code.ADONet.SourceGenerators
 {
@@ -39,7 +40,7 @@ namespace Net.Code.ADONet.SourceGenerators
                 .WriteOpeningBracket();
             foreach (var p in mapper.Properties)
             {
-                builder.WriteLine($"ordinal.{p.Name} = record.GetOrdinal(nameof({mapper.Name}.{p.Name}));");
+                builder.WriteLine($"ordinal.{p.Name} = record.GetOrdinal(\"{ToColumnName(p.Name, mapper.NamingConvention)}\");");
             }
             builder
             .WriteLine("System.Threading.Thread.MemoryBarrier();")
@@ -70,7 +71,18 @@ namespace Net.Code.ADONet.SourceGenerators
 
 
         }
-        public static string GetGetMethod(PropertyInfo property)
+
+        private static string ToColumnName(string propertyName, NamingConvention namingConvention)
+        {
+            return namingConvention switch
+            {
+                NamingConvention.lowercase => propertyName.ToLowerWithUnderscores(),
+                NamingConvention.UPPERCASE => propertyName.ToUpperWithUnderscores(),
+                _ => propertyName
+            };
+        }
+
+        private static string GetGetMethod(PropertyInfo property)
         {
             return $"{property.SpecialType switch
             {
@@ -119,14 +131,55 @@ namespace Net.Code.ADONet.SourceGenerators
     {
         public string? Namespace { get; }
         public string Name { get; }
+        internal NamingConvention NamingConvention { get; }
         public MapperInfo(ITypeSymbol type)
         {
             Namespace = type.ContainingNamespace.IsGlobalNamespace ? null : type.ContainingNamespace.ToString();
             Name = type.Name;
             Properties = type.GetMembers().OfType<IPropertySymbol>().Select(s => new PropertyInfo(s)).ToList();
+
+            NamingConvention = (
+                from a in type.GetAttributes()
+                where a.AttributeClass?.Name == "MapFromDataRecordAttribute"
+                let columnNamingConvention =
+                    (from n in a.NamedArguments
+                     where n.Key == "ColumnNamingConvention"
+                     select n.Value.Value).FirstOrDefault()
+                select (NamingConvention?) ((int?)columnNamingConvention)
+                ).SingleOrDefault() ?? NamingConvention.PascalCase;
         }
  
         public IEnumerable<PropertyInfo> Properties { get; }
     }
 }
 
+enum NamingConvention
+{
+    PascalCase = 0,
+    lowercase = 1,
+    UPPERCASE = 2
+}
+
+internal static class StringExtensions
+{
+    public static string ToUpperWithUnderscores(this string source) => string.Join("_", SplitUpperCase(source).Select(s => s.ToUpperInvariant()));
+    public static string ToLowerWithUnderscores(this string source) => string.Join("_", SplitUpperCase(source).Select(s => s.ToLowerInvariant()));
+    private static IEnumerable<string> SplitUpperCase(string source)
+    {
+        var wordStart = 0;
+        var letters = source.ToCharArray();
+        var previous = char.MinValue;
+        for (var i = 1; i < letters.Length; i++)
+        {
+            if (char.IsUpper(letters[i]) && !char.IsWhiteSpace(previous))
+            {
+                yield return new string(letters, wordStart, i - wordStart);
+                wordStart = i;
+            }
+
+            previous = letters[i];
+        }
+
+        yield return new string(letters, wordStart, letters.Length - wordStart);
+    }
+}
