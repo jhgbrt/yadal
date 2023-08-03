@@ -31,6 +31,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "github workflows", "github workflows", "{46F3C7FC-D1C9-463D-B7F0-3B39BA1ED5FE}"
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\buildandtest.yml = .github\workflows\buildandtest.yml
+		.github\workflows\buildtestpublish.yml = .github\workflows\buildtestpublish.yml
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "benchmark", "samples\benchmark\benchmark.csproj", "{021BB4B6-29DA-4D63-82E3-6F3846800AB6}"
@@ -39,7 +40,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PerformanceProfiler", "Perf
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Net.Code.ADONet.SourceGenerators", "Net.Code.ADONet.SourceGenerators\Net.Code.ADONet.SourceGenerators.csproj", "{BD5F9994-B703-414C-9BEC-C558E8C495E8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Net.Code.ADONet.SourceGenerators.Tests", "Net.Code.ADONet.SourceGenerators.Tests\Net.Code.ADONet.SourceGenerators.Tests.csproj", "{6F68981C-6FD4-4DB9-8E2C-EFE824CDFC08}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Net.Code.ADONet.SourceGenerators.Tests", "Net.Code.ADONet.SourceGenerators.Tests\Net.Code.ADONet.SourceGenerators.Tests.csproj", "{6F68981C-6FD4-4DB9-8E2C-EFE824CDFC08}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
