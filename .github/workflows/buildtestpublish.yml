@@ -21,6 +21,6 @@ jobs:
     - name: pack
       run: dotnet pack Net.Code.ADONet -o out
     - name: push to nuget
-      run: dotnet nuget push out/Net.Code.ADONet.*.nupkg -k ${{secrets.NUGET_API_KEY}} -s https://api.nuget.org/v3/index.json
+      run: dotnet nuget push out/Net.Code.ADONet.*.nupkg -k ${{secrets.NUGET_API_KEY}} -s https://api.nuget.org/v3/index.json --skip-duplicate
     - name: push symbols to nuget
-      run: dotnet nuget push out/Net.Code.ADONet.*.snupkg -k ${{secrets.NUGET_API_KEY}} -s https://api.nuget.org/v3/index.json
+      run: dotnet nuget push out/Net.Code.ADONet.*.snupkg -k ${{secrets.NUGET_API_KEY}} -s https://api.nuget.org/v3/index.json --skip-duplicate
