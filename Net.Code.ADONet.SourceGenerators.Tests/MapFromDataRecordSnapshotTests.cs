@@ -14,7 +14,6 @@ namespace Net.Code.ADONet.SourceGenerators.Tests
         }
     }
 
-    [UsesVerify] 
     public class MapFromDataRecordSnapshotTests
     {
         [Theory]
