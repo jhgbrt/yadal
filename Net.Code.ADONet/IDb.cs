@@ -1,6 +1,6 @@
 namespace Net.Code.ADONet;
 
-public interface IDb : IDisposable
+public interface IDb : IDisposable, IAsyncDisposable
 {
     /// <summary>
     /// Open a connection to the database. Not required.

@@ -124,4 +124,11 @@ public class Db : IDb
     /// </summary>
     /// <param name="command"></param>
     public int Execute(string command) => Sql(command).AsNonQuery();
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_connection == null || _externalConnection) return;
+        await _connection.DisposeAsync();
+        _connection = null!;
+    }
 }
