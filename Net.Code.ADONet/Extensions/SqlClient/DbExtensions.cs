@@ -51,4 +51,31 @@ public static class DbExtensions
         var datareader = items.AsDataReader();
         bcp.WriteToServer(datareader);
     }
+
+    /// <summary>
+    /// Assumes one to one mapping between
+    /// - tablename and typename
+    /// - property names and column names
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="db"></param>
+    /// <param name="items"></param>
+    public static async ValueTask BulkCopyAsync<T>(this IDb db, IEnumerable<T> items)
+    {
+        using var bcp = new SqlBulkCopy(db.ConnectionString)
+        {
+            DestinationTableName = typeof(T).Name
+        };
+
+        // by default, SqlBulkCopy assumes columns in the database 
+        // are in same order as the columns of the source data reader
+        // => add explicit column mappings by name
+        foreach (var p in typeof(T).GetProperties())
+        {
+            bcp.ColumnMappings.Add(p.Name, p.Name);
+        }
+
+        var datareader = items.AsDataReader();
+        await bcp.WriteToServerAsync(datareader);
+    }
 }
