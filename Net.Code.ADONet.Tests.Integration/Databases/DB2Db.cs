@@ -1,4 +1,4 @@
-﻿using IBM.Data.DB2.Core;
+﻿using IBM.Data.Db2;
 
 namespace Net.Code.ADONet.Tests.Integration.Databases
 {
