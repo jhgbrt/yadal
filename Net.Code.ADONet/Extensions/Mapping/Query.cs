@@ -7,19 +7,26 @@ public record Query(string Insert, string Update, string Delete, string Select, 
 
 internal sealed class QueryFactory<T> 
 {
-    private static readonly string[] AllPropertyNames;
-    private static readonly string[] InsertPropertyNames;
-    private static readonly string[] KeyPropertyNames;
-    private static readonly string[] NonKeyPropertyNames;
 
     internal static Query Create(MappingConvention convention)
     {
-        var insertColumns = string.Join(", ", QueryFactory<T>.InsertPropertyNames.Select(convention.ToDb));
-        var insertValues = string.Join(", ", InsertPropertyNames.Select(s => $"{convention.Parameter(s)}"));
-        var whereClause = string.Join(" AND ", KeyPropertyNames.Select(s => $"{convention.ToDb(s)} = {convention.Parameter(s)}"));
-        var updateColumns = string.Join(", ", NonKeyPropertyNames.Select(s => $"{convention.ToDb(s)} = {convention.Parameter(s)}"));
-        var allColumns = string.Join(", ", QueryFactory<T>.AllPropertyNames.Select(convention.ToDb));
-        var tableName = convention.ToDb(typeof(T).Name);
+        var properties = typeof(T).GetProperties();
+        var keyProperties = properties.Where(p => p.CustomAttributes.Any(a => a.AttributeType == typeof(KeyAttribute)));
+        if (!keyProperties.Any())
+            keyProperties = properties.Where(p => p.Name.Equals("Id", StringComparison.OrdinalIgnoreCase));
+        if (!keyProperties.Any())
+            keyProperties = properties.Where(p => p.Name.Equals($"{typeof(T).Name}Id", StringComparison.OrdinalIgnoreCase)).ToArray();
+
+        var dbGenerated = keyProperties.Where(p => p.HasCustomAttribute<DatabaseGeneratedAttribute>(a => a.DatabaseGeneratedOption != DatabaseGeneratedOption.None));
+        var nonKeyProperties = properties.Except(keyProperties);
+        var insertProperties = properties.Except(dbGenerated);
+
+        var insertColumns = string.Join(", ", insertProperties.Select(p => p.GetColumnName(convention)));
+        var insertValues = string.Join(", ", insertProperties.Select(p => $"{convention.Parameter(p.Name)}"));
+        var whereClause = string.Join(" AND ", keyProperties.Select(p => $"{p.GetColumnName(convention)} = {convention.Parameter(p.Name)}"));
+        var updateColumns = string.Join(", ", nonKeyProperties.Select(p => $"{p.GetColumnName(convention)} = {convention.Parameter(p.Name)}"));
+        var allColumns = string.Join(", ", properties.Select(p => p.GetColumnName(convention)));
+        var tableName = typeof(T).GetTableName(convention);
 
         return new Query(
             $"INSERT INTO {tableName} ({insertColumns}) VALUES ({insertValues})", 
@@ -30,22 +37,4 @@ internal sealed class QueryFactory<T>
             $"SELECT COUNT(*) FROM {tableName}");
     }
 
-    static QueryFactory()
-    {
-        var properties = typeof(T).GetProperties();
-
-        var keyProperties = properties.Where(p => p.CustomAttributes.Any(a => a.AttributeType == typeof(KeyAttribute)));
-        if (!keyProperties.Any())
-            keyProperties = properties.Where(p => p.Name.Equals("Id", StringComparison.OrdinalIgnoreCase));
-        if (!keyProperties.Any())
-            keyProperties = properties.Where(p => p.Name.Equals($"{typeof(T).Name}Id", StringComparison.OrdinalIgnoreCase)).ToArray();
-
-        var dbGenerated = keyProperties.Where(p => p.HasCustomAttribute<DatabaseGeneratedAttribute>(a => a.DatabaseGeneratedOption != DatabaseGeneratedOption.None));
-        var nonKeyProperties = properties.Except(keyProperties);
-
-        AllPropertyNames = properties.Select(p => p.Name).ToArray();
-        InsertPropertyNames = properties.Except(dbGenerated).Select(p => p.Name).ToArray();
-        KeyPropertyNames = keyProperties.Select(p => p.Name).ToArray();
-        NonKeyPropertyNames = nonKeyProperties.Select(p => p.Name).ToArray();
-    }
 }

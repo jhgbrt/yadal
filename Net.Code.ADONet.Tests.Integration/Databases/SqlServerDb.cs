@@ -14,6 +14,13 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
         {
         }
 
+        public override IReadOnlyDictionary<string, string> AlternateConnectionStrings
+            => new Dictionary<string, string>
+            {
+                ["SqlServer"] = @$"Data Source=(localdb)\mssqllocaldb;Initial Catalog={Configuration.DatabaseName};Integrated Security=True;Encrypt=false",
+                ["SqlServerMaster"] = @$"Data Source=(localdb)\mssqllocaldb;Initial Catalog=master;Integrated Security=True;Encrypt=false",
+            };
+
         public override IEnumerable<string> GetDropAndRecreateDdl()
         {
             var databaseName = Configuration.GetConnectionStringProperty(Name, "Initial Catalog");

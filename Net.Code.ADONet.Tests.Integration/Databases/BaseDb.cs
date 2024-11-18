@@ -14,41 +14,46 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
             Config = DbConfig.FromProviderFactory(factory);
         }
 
+        public virtual IReadOnlyDictionary<string, string>? AlternateConnectionStrings => null;
+
         public virtual CommandBuilder CreateMultiResultSetCommand(IDb db, string query1, string query2)
             => db.Sql($"{query1};\r\n{query2}");
 
         public virtual bool SupportsBulkInsert => false;
         public string Name => GetType().Name.Replace("Db", "");
+
+        protected string GetTableName<TInner>() => typeof(TInner).GetTableName(Config.MappingConvention);
+        protected string GetColumnName<TInner>(string propertyName) => typeof(TInner).GetProperty(propertyName)?.GetColumnName(Config.MappingConvention) ?? propertyName;
         public virtual string CreatePersonTable => $"""
-            CREATE TABLE {ToDb(nameof(Person))} (
-                {ToDb(nameof(Person.Id))} int not null,
-                {ToDb(nameof(Person.OptionalNumber))} int,
-                {ToDb(nameof(Person.RequiredNumber))} int not null,
-                {ToDb(nameof(Person.Name))} varchar(100) not null,
-                {ToDb(nameof(Person.Email))} varchar(100)
+            CREATE TABLE {GetTableName<Person>()} (
+                {GetColumnName<Person>(nameof(Person.Id))} int not null,
+                {GetColumnName<Person>(nameof(Person.OptionalNumber))} int,
+                {GetColumnName<Person>(nameof(Person.RequiredNumber))} int not null,
+                {GetColumnName<Person>(nameof(Person.Name))} varchar(100) not null,
+                {GetColumnName<Person>(nameof(Person.Email))} varchar(100)
             );
             """;
 
         public virtual string CreateProductTable => $"""
-            CREATE TABLE {ToDb(nameof(Product))} (
-               {ToDb(nameof(Product.Id))} int not null,
-               {ToDb(nameof(Product.Name))} varchar(100),
-               {ToDb(nameof(Product.Price))} decimal(16,2) not null
+            CREATE TABLE {typeof(Product).GetTableName(Config.MappingConvention)} (
+               {GetColumnName<Product>(nameof(Product.Id))} int not null,
+               {GetColumnName<Product>(nameof(Product.Name))} varchar(100),
+               {GetColumnName<Product>(nameof(Product.Price))} decimal(16,2) not null
             );
             """;
 
         public virtual string CreateAddressTable => $"""
-            CREATE TABLE {ToDb(nameof(Address))} (
-                {ToDb(nameof(Address.Id))} int not null,
-                {ToDb(nameof(Address.Street))} varchar(100),
-                {ToDb(nameof(Address.ZipCode))} varchar(20),
-                {ToDb(nameof(Address.City))} varchar(100) not null,
-                {ToDb(nameof(Address.Country))} varchar(100)
+            CREATE TABLE {typeof(Address).GetTableName(Config.MappingConvention)} (
+                {GetColumnName<Address>(nameof(Address.Id     ))} int not null,
+                {GetColumnName<Address>(nameof(Address.Street ))} varchar(100),
+                {GetColumnName<Address>(nameof(Address.ZipCode))} varchar(20),
+                {GetColumnName<Address>(nameof(Address.City   ))} varchar(100) not null,
+                {GetColumnName<Address>(nameof(Address.Country))} varchar(100)
             );
             """;
-        public virtual string DropPersonTable => $"DROP TABLE {ToDb(nameof(Person))}";
-        public virtual string DropProductTable => $"DROP TABLE {ToDb(nameof(Product))}";
-        public virtual string DropAddressTable => $"DROP TABLE {ToDb(nameof(Address))}";
+        public virtual string DropPersonTable => $"DROP TABLE {typeof(Person).GetTableName(Config.MappingConvention)}";
+        public virtual string DropProductTable => $"DROP TABLE {typeof(Product).GetTableName(Config.MappingConvention)}";
+        public virtual string DropAddressTable => $"DROP TABLE {typeof(Address).GetTableName(Config.MappingConvention)}";
 
         private string ToDb(string name) => Config.MappingConvention.ToDb(name);
 

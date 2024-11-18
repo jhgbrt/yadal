@@ -3,9 +3,9 @@
 using System.Data;
 
 namespace My.Namespace;
-public static class __PersonExtension__
+public static partial class Mapper
 {
-    static class ordinal
+    static class Ordinal
     {
         public static bool __initialized__;
         public static int Id;
@@ -19,29 +19,29 @@ public static class __PersonExtension__
     }
     public static Person ToPerson(this IDataRecord record)
     {
-        if (!ordinal.__initialized__)
+        if (!Ordinal.__initialized__)
         {
-            ordinal.Id = record.GetOrdinal("Id");
-            ordinal.Age = record.GetOrdinal("Age");
-            ordinal.IsGood = record.GetOrdinal("IsGood");
-            ordinal.IsBad = record.GetOrdinal("IsBad");
-            ordinal.BirthDate = record.GetOrdinal("BirthDate");
-            ordinal.LastSeen = record.GetOrdinal("LastSeen");
-            ordinal.Name = record.GetOrdinal("Name");
-            ordinal.MiddleName = record.GetOrdinal("MiddleName");
+            Ordinal.Id = record.GetOrdinal("Id");
+            Ordinal.Age = record.GetOrdinal("TheAge");
+            Ordinal.IsGood = record.GetOrdinal("IsGood");
+            Ordinal.IsBad = record.GetOrdinal("IsBad");
+            Ordinal.BirthDate = record.GetOrdinal("BirthDate");
+            Ordinal.LastSeen = record.GetOrdinal("LastSeen");
+            Ordinal.Name = record.GetOrdinal("Name");
+            Ordinal.MiddleName = record.GetOrdinal("MiddleName");
             System.Threading.Thread.MemoryBarrier();
-            ordinal.__initialized__ = true;
+            Ordinal.__initialized__ = true;
         }
         return new Person
         {
-            Id = record.GetInt32(ordinal.Id),
-            Age = record.IsDBNull(ordinal.Age) ? null : record.GetInt32(ordinal.Age),
-            IsGood = record.GetBoolean(ordinal.IsGood),
-            IsBad = record.IsDBNull(ordinal.IsBad) ? null : record.GetBoolean(ordinal.IsBad),
-            BirthDate = record.GetDateTime(ordinal.BirthDate),
-            LastSeen = record.IsDBNull(ordinal.LastSeen) ? null : record.GetDateTime(ordinal.LastSeen),
-            Name = record.GetString(ordinal.Name),
-            MiddleName = record.GetString(ordinal.MiddleName),
+            Id = record.GetInt32(Ordinal.Id),
+            Age = record.IsDBNull(Ordinal.Age) ? null : record.GetInt32(Ordinal.Age),
+            IsGood = record.GetBoolean(Ordinal.IsGood),
+            IsBad = record.IsDBNull(Ordinal.IsBad) ? null : record.GetBoolean(Ordinal.IsBad),
+            BirthDate = record.GetDateTime(Ordinal.BirthDate),
+            LastSeen = record.IsDBNull(Ordinal.LastSeen) ? null : record.GetDateTime(Ordinal.LastSeen),
+            Name = record.GetString(Ordinal.Name),
+            MiddleName = record.GetString(Ordinal.MiddleName),
         };
     }
 }

@@ -35,19 +35,7 @@ public static class DbExtensions
     /// <param name="items"></param>
     public static void BulkCopy<T>(this IDb db, IEnumerable<T> items)
     {
-        using var bcp = new SqlBulkCopy(db.ConnectionString)
-        {
-            DestinationTableName = typeof(T).Name
-        };
-
-        // by default, SqlBulkCopy assumes columns in the database 
-        // are in same order as the columns of the source data reader
-        // => add explicit column mappings by name
-        foreach (var p in typeof(T).GetProperties())
-        {
-            bcp.ColumnMappings.Add(p.Name, p.Name);
-        }
-
+        using var bcp = GetBulkCopy<T>(db);
         var datareader = items.AsDataReader();
         bcp.WriteToServer(datareader);
     }
@@ -62,9 +50,16 @@ public static class DbExtensions
     /// <param name="items"></param>
     public static async ValueTask BulkCopyAsync<T>(this IDb db, IEnumerable<T> items)
     {
-        using var bcp = new SqlBulkCopy(db.ConnectionString)
+        using var bcp = GetBulkCopy<T>(db);
+        var datareader = items.AsDataReader();
+        await bcp.WriteToServerAsync(datareader);
+    }
+
+    private static SqlBulkCopy GetBulkCopy<T>(IDb db)
+    {
+        var bcp = new SqlBulkCopy(db.ConnectionString)
         {
-            DestinationTableName = typeof(T).Name
+            DestinationTableName = typeof(T).GetTableName(db.MappingConvention)
         };
 
         // by default, SqlBulkCopy assumes columns in the database 
@@ -72,10 +67,9 @@ public static class DbExtensions
         // => add explicit column mappings by name
         foreach (var p in typeof(T).GetProperties())
         {
-            bcp.ColumnMappings.Add(p.Name, p.Name);
+            bcp.ColumnMappings.Add(p.Name, p.GetColumnName(db.MappingConvention));
         }
 
-        var datareader = items.AsDataReader();
-        await bcp.WriteToServerAsync(datareader);
+        return bcp;
     }
 }

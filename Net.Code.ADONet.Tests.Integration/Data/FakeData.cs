@@ -37,14 +37,13 @@ namespace Net.Code.ADONet.Tests.Integration.Data
         public static class Addresses
         {
             public static Address[] List(int n) => Enumerable.Range(1, n).Select(x => One()).ToArray();
-            public static Address One() => new()
-            {
-                Id = Id.Next(),
-                Street = Faker.Address.StreetAddress(),
-                ZipCode = Faker.Address.ZipCode(),
-                City = Faker.Address.City(),
-                Country = Faker.Address.Country()
-            };
+            public static Address One() => new(
+                Id.Next(),
+                Faker.Address.StreetAddress(),
+                Faker.Address.ZipCode(),
+                Faker.Address.City(),
+                Faker.Address.Country()
+            );
         }
 
         public static class Products

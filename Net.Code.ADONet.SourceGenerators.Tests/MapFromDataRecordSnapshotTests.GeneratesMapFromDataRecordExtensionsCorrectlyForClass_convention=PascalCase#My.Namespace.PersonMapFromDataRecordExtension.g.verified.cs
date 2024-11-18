@@ -3,7 +3,7 @@
 using System.Data;
 
 namespace My.Namespace;
-public static partial class Mapper
+public static partial class PersonMapper
 {
     static class Ordinal
     {
@@ -21,14 +21,14 @@ public static partial class Mapper
     {
         if (!Ordinal.__initialized__)
         {
-            Ordinal.Id = record.GetOrdinal("ID");
-            Ordinal.Age = record.GetOrdinal("THE_AGE");
-            Ordinal.IsGood = record.GetOrdinal("IS_GOOD");
-            Ordinal.IsBad = record.GetOrdinal("IS_BAD");
-            Ordinal.BirthDate = record.GetOrdinal("BIRTH_DATE");
-            Ordinal.LastSeen = record.GetOrdinal("LAST_SEEN");
-            Ordinal.Name = record.GetOrdinal("NAME");
-            Ordinal.MiddleName = record.GetOrdinal("MIDDLE_NAME");
+            Ordinal.Id = record.GetOrdinal("Id");
+            Ordinal.Age = record.GetOrdinal("TheAge");
+            Ordinal.IsGood = record.GetOrdinal("IsGood");
+            Ordinal.IsBad = record.GetOrdinal("IsBad");
+            Ordinal.BirthDate = record.GetOrdinal("BirthDate");
+            Ordinal.LastSeen = record.GetOrdinal("LastSeen");
+            Ordinal.Name = record.GetOrdinal("Name");
+            Ordinal.MiddleName = record.GetOrdinal("MiddleName");
             System.Threading.Thread.MemoryBarrier();
             Ordinal.__initialized__ = true;
         }

@@ -8,6 +8,7 @@ using Net.Code.ADONet.Tests.Integration.TestSupport;
 using Xunit;
 using Xunit.Abstractions;
 using Net.Code.ADONet;
+using System.Windows.Markup;
 
 // ReSharper disable UnusedMember.Local
 // ReSharper disable InconsistentNaming
@@ -21,7 +22,7 @@ namespace IntegrationTests
     [Collection("Database collection")]
     public abstract class DatabaseTest<T> : IDisposable where T : IDatabaseImpl, new()
     {
-        private readonly DbTestHelper<T> _testHelper;
+        protected readonly DbTestHelper<T> _testHelper;
         private readonly Person[] _people;
         private readonly Address[] _addresses;
         private readonly Product[] _products;
@@ -116,11 +117,18 @@ namespace IntegrationTests
         }
 
         [SkippableFact]
+        public void GetAllAddresses()
+        {
+            var result = _testHelper.GetAllAddresses();
+            Assert.Equal(_addresses, result);
+        }
+
+        [SkippableFact]
         public void AsDataTable()
         {
             var result = _testHelper.PeopleAsDataTable();
             Assert.Equal(_people.Select(p => p.Id).ToArray(), result.Rows.OfType<DataRow>().Select(dr => (int)dr["Id"]).ToArray());
-            var columnName = _testHelper.GetColumnName(nameof(Person.OptionalNumber));
+            var columnName = _testHelper.GetColumnName<Person>(nameof(Person.OptionalNumber));
             Assert.Equal(_people.Select(p => p.OptionalNumber).ToArray(), result.Rows.OfType<DataRow>().Select(dr => dr.Field<int?>(columnName)).ToArray());
         }
 
@@ -136,6 +144,7 @@ namespace IntegrationTests
         public void GetSchemaTable()
         {
             var dt = _testHelper.GetSchemaTable();
+            Assert.NotNull(dt);
             foreach (DataColumn dc in dt.Columns)
             {
                 _output.WriteLine($"{dc.ColumnName} ({dc.DataType})");
@@ -181,6 +190,7 @@ namespace IntegrationTests
         {
             public SqlServer(DatabaseFixture<SqlServerDb> fixture, ITestOutputHelper output)
             : base(output, fixture) { }
+            
         }
         [Trait("Database", "ORACLE")]
         public class Oracle : DatabaseTest<OracleDb>, IClassFixture<DatabaseFixture<OracleDb>>

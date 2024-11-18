@@ -6,11 +6,12 @@ internal static class DataRecordExtensions
     private static List<Setter<T>> GetSetters<T>(this IDataReader reader, DbConfig config)
     {
         var convention = config.MappingConvention;
-        var setters = FastReflection<T>.Instance.GetSettersForType();
+        var setters = FastReflection<T>.Instance.GetSettersForType(convention);
+
         var list = new List<Setter<T>>(reader.FieldCount);
         for (var i = 0; i < reader.FieldCount; i++)
         {
-            var columnName = convention.FromDb(reader.GetName(i));
+            var columnName = reader.GetName(i);
             if (setters.TryGetValue(columnName, out var setter))
             {
                 list.Add(new(i, setter));
@@ -24,17 +25,17 @@ internal static class DataRecordExtensions
     internal static Func<IDataRecord, T> GetMapper<T>(this IDataReader reader, DbConfig config)
     {
         var type = typeof(T);
-        var properties = type.GetProperties().Select(p => (p.Name, p.PropertyType));
+        var properties = type.GetProperties();
 
         // convention: if there is only a constructor with parameters for all properties
         // assume basic 'record-like' class
         var constructors = type.GetConstructors();
-        var constructor = constructors.Length == 1 ? constructors.SingleOrDefault(c => c.Parameters().SequenceEqual(properties)) : null;
+        var constructor = constructors.Length == 1 ? constructors.SingleOrDefault(c => c.Parameters().SequenceEqual(properties.Select(p => (p.Name, p.PropertyType)))) : null;
 
         if (constructor == null)
         {
             var setterMap = GetSetters<T>(reader, config);
-            constructor = type.GetConstructor(Array.Empty<Type>());
+            constructor = type.GetConstructor([]);
             return record =>
             {
                 var item = (T)constructor.Invoke(null);
@@ -50,7 +51,7 @@ internal static class DataRecordExtensions
         {
             return record =>
             {
-                var values = properties.Select(p => DBNullHelper.FromDb(record.GetValue(record.GetOrdinal(p.Name))));
+                var values = properties.Select(p => DBNullHelper.FromDb(record.GetValue(record.GetOrdinal(p.GetColumnName(config.MappingConvention)))));
                 return (T)constructor.Invoke(values.ToArray());
             };
         }

@@ -12,7 +12,7 @@ namespace Net.Code.ADONet.SourceGenerators
             var types = context.SyntaxProvider
                 .ForAttributeWithMetadataName(
                     AttributeName,
-                    predicate: (node, _) => node is ClassDeclarationSyntax,
+                    predicate: (node, _) => node is ClassDeclarationSyntax or RecordDeclarationSyntax,
                     transform: GetMapperInfo
                 )
                 .Where(t => t is not null)

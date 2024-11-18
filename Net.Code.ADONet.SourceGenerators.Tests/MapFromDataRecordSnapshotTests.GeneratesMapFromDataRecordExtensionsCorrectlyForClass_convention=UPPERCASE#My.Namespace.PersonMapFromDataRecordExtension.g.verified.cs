@@ -3,7 +3,7 @@
 using System.Data;
 
 namespace My.Namespace;
-public static partial class Mapper
+public static partial class PersonMapper
 {
     static class Ordinal
     {

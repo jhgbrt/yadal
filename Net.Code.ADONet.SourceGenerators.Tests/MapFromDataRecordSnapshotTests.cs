@@ -1,81 +1,126 @@
 ﻿using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Collections.Immutable;
+using System.ComponentModel.DataAnnotations;
 
-namespace Net.Code.ADONet.SourceGenerators.Tests
+namespace Net.Code.ADONet.SourceGenerators.Tests;
+
+public class Person
+{
+    public int Id { get; set; }
+    [Column("TheAge")]
+    public int? Age { get; set; }
+    public bool IsGood { get; set; }
+    public bool? IsBad { get; set; }
+    public DateTime BirthDate { get; set; }
+    public DateTime? LastSeen { get; set; }
+    public string? Name { get; set; }
+    public string? MiddleName { get; set; }
+}
+
+public static class ModuleInitializer
+{
+    [ModuleInitializer]
+    public static void Init()
+    {
+        VerifySourceGenerators.Initialize();
+    }
+}
+
+public class MapFromDataRecordSnapshotTests
+{
+    
+    [Theory]
+    [InlineData(NamingConvention.PascalCase)]
+    [InlineData(NamingConvention.lowercase)]
+    [InlineData(NamingConvention.UPPERCASE)]
+    public async Task GeneratesMapFromDataRecordExtensionsCorrectlyForClass(NamingConvention convention)
+    {
+        var source = $$"""
+            using Net.Code.ADONet;
+            using System;
+            using System.ComponentModel.DataAnnotations.Schema;
+            namespace My.Namespace;
+
+            [MapFromDataRecord(ColumnNamingConvention = NamingConvention.{{convention}})]
+            public class Person
+            {
+                public int Id { get; set; }
+                [Column("TheAge")]
+                public int? Age { get; set; }
+                public bool IsGood { get; set; }
+                public bool? IsBad { get; set; }
+                public DateTime BirthDate { get; set; }
+                public DateTime? LastSeen { get; set; }
+                public string Name { get; set; }
+                public string? MiddleName { get; set; }
+            }
+            """;
+
+        // Pass the source code to our helper and snapshot test the output
+        var result = TestHelper.Verify(source, convention);
+        await result;
+    }
+    [Theory]
+    [InlineData(NamingConvention.PascalCase)]
+    [InlineData(NamingConvention.lowercase)]
+    [InlineData(NamingConvention.UPPERCASE)]
+    public async Task GeneratesMapFromDataRecordExtensionsCorrectlyForRecord(NamingConvention convention)
+    {
+        var source = $$"""
+            using Net.Code.ADONet;
+            using System;
+            using System.ComponentModel.DataAnnotations.Schema;
+            namespace My.Namespace;
+
+            [MapFromDataRecord(ColumnNamingConvention = NamingConvention.{{convention}})]
+            public record Person(int Id, int? Age, string Name);
+            """;
+
+        // Pass the source code to our helper and snapshot test the output
+        var result = TestHelper.Verify(source, convention);
+        await result;
+    }
+}
+
+
+public static class TestHelper
 {
 
-    public static class ModuleInitializer
+    public static Task Verify<T>(string source, T args)
     {
-        [ModuleInitializer]
-        public static void Init()
-        {
-            VerifySourceGenerators.Initialize();
-        }
-    }
 
-    public class MapFromDataRecordSnapshotTests
-    {
-        [Theory]
-        [InlineData(NamingConvention.PascalCase)]
-        [InlineData(NamingConvention.lowercase)]
-        [InlineData(NamingConvention.UPPERCASE)]
-        public async Task GeneratesMapFromDataRecordExtensionsCorrectly(NamingConvention convention)
-        {
-            var source = $$"""
-                using Net.Code.ADONet;
-                namespace My.Namespace;
+        SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(source);
 
-                [MapFromDataRecord(ColumnNamingConvention = NamingConvention.{{convention}})]
-                public class Person
-                {
-                    public int Id { get; set; }
-                    public int? Age { get; set; }
-                    public bool IsGood { get; set; }
-                    public bool? IsBad { get; set; }
-                    public DateTime BirthDate { get; set; }
-                    public DateTime? LastSeen { get; set; }
-                    public string Name { get; set; }
-                    public string? MiddleName { get; set; }
-                }
-                """;
+        var references = AppDomain.CurrentDomain.GetAssemblies()
+            .Where(assembly => !assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location))
+            .Select(assembly => MetadataReference.CreateFromFile(assembly.Location))
+            .Cast<MetadataReference>()
+            .Concat([
+                MetadataReference.CreateFromFile(typeof(ColumnAttribute).Assembly.Location)
+                ])
+            .ToArray();
 
-            // Pass the source code to our helper and snapshot test the output
-            var result = TestHelper.Verify(source, convention);
-            await result;
-        }
-    }
+        var compilation = CSharpCompilation.Create(
+            assemblyName: "SourceGeneratorTests",
+            syntaxTrees: [syntaxTree],
+                        references,
+                        new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
 
-    public static class TestHelper
-    {
-        public static Task Verify<T>(string source, T args)
-        {
-            SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(source);
+        var generator = new MappingGenerator();
 
-            var references = AppDomain.CurrentDomain.GetAssemblies()
-                                      .Where(assembly => !assembly.IsDynamic)
-                                      .Select(assembly => MetadataReference.CreateFromFile(assembly.Location))
-                                      .Cast<MetadataReference>();
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 
-            CSharpCompilation compilation = CSharpCompilation.Create(
-                assemblyName: "SourceGeneratorTests",
-                syntaxTrees: new[] { syntaxTree },
-                            references,
-                            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        driver = driver.RunGeneratorsAndUpdateCompilation(compilation,
+                                                          out var outputCompilation,
+                                                          out var diagnostics);
 
 
-            var generator = new MappingGenerator();
+        Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
 
-            GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
-
-            driver = driver.RunGeneratorsAndUpdateCompilation(compilation,
-                                                              out var outputCompilation,
-                                                              out var diagnostics);
-
-            Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
-
-            return Verifier.Verify(driver).UseParameters(args);
-        }
+        return Verifier.Verify(driver).UseParameters(args);
     }
 }

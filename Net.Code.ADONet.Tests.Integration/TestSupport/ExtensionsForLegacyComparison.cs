@@ -15,7 +15,7 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
         private static T MapTo<T>(this IDataRecord record, DbConfig config)
         {
             var convention = config.MappingConvention;
-            var setters = FastReflection<T>.Instance.GetSettersForType();
+            var setters = FastReflection<T>.Instance.GetSettersForType(convention);
             var result = Activator.CreateInstance<T>();
             for (var i = 0; i < record.FieldCount; i++)
             {
