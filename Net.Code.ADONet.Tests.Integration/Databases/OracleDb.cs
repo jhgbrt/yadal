@@ -19,6 +19,8 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
                    {GetColumnName<Person>(nameof(Person.Id))} NUMBER(8,0) NOT NULL
                ,   {GetColumnName<Person>(nameof(Person.OptionalNumber))} NUMBER(8,0) NULL
                ,   {GetColumnName<Person>(nameof(Person.RequiredNumber))} NUMBER(8,0) NOT NULL
+               ,   {GetColumnName<Person>(nameof(Person.BirthDate))} DATE NOT NULL
+               ,   {GetColumnName<Person>(nameof(Person.RegisteredAt))} TIMESTAMP NOT NULL
                ,   {GetColumnName<Person>(nameof(Person.Name))} VARCHAR2(100) NOT NULL
                ,   {GetColumnName<Person>(nameof(Person.Email))} VARCHAR2(100) NOT NULL
                )

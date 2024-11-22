@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Net.Code.ADONet.Tests.Integration.Data
@@ -12,7 +13,8 @@ namespace Net.Code.ADONet.Tests.Integration.Data
         public string? Name { get; set; }
         public int RequiredNumber { get; set; }
         public int? OptionalNumber { get; set; }
-
+        public DateTime RegisteredAt { get; set; }
+        public DateTime BirthDate { get; set; }
         public override bool Equals(object? obj)
         {
             if (obj is Person p) return Equals(p);

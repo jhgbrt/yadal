@@ -29,6 +29,8 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
                 {GetColumnName<Person>(nameof(Person.Id))} int not null,
                 {GetColumnName<Person>(nameof(Person.OptionalNumber))} int,
                 {GetColumnName<Person>(nameof(Person.RequiredNumber))} int not null,
+                {GetColumnName<Person>(nameof(Person.BirthDate))} datetime not null,
+                {GetColumnName<Person>(nameof(Person.RegisteredAt))} datetime not null,
                 {GetColumnName<Person>(nameof(Person.Name))} varchar(100) not null,
                 {GetColumnName<Person>(nameof(Person.Email))} varchar(100)
             );

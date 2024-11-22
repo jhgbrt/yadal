@@ -10,6 +10,20 @@ public static partial class PersonMapper
         public static bool __initialized__;
         public static int Id;
         public static int Age;
+        public static int Float;
+        public static int NullableFloat;
+        public static int Double;
+        public static int NullableDouble;
+        public static int Short;
+        public static int NullableShort;
+        public static int Long;
+        public static int NullableLong;
+        public static int Char;
+        public static int NullableChar;
+        public static int Byte;
+        public static int NullableByte;
+        public static int MyGuid;
+        public static int NullableGuid;
         public static int IsGood;
         public static int IsBad;
         public static int BirthDate;
@@ -23,6 +37,20 @@ public static partial class PersonMapper
         {
             Ordinal.Id = record.GetOrdinal("Id");
             Ordinal.Age = record.GetOrdinal("TheAge");
+            Ordinal.Float = record.GetOrdinal("Float");
+            Ordinal.NullableFloat = record.GetOrdinal("NullableFloat");
+            Ordinal.Double = record.GetOrdinal("Double");
+            Ordinal.NullableDouble = record.GetOrdinal("NullableDouble");
+            Ordinal.Short = record.GetOrdinal("Short");
+            Ordinal.NullableShort = record.GetOrdinal("NullableShort");
+            Ordinal.Long = record.GetOrdinal("Long");
+            Ordinal.NullableLong = record.GetOrdinal("NullableLong");
+            Ordinal.Char = record.GetOrdinal("Char");
+            Ordinal.NullableChar = record.GetOrdinal("NullableChar");
+            Ordinal.Byte = record.GetOrdinal("Byte");
+            Ordinal.NullableByte = record.GetOrdinal("NullableByte");
+            Ordinal.MyGuid = record.GetOrdinal("MyGuid");
+            Ordinal.NullableGuid = record.GetOrdinal("NullableGuid");
             Ordinal.IsGood = record.GetOrdinal("IsGood");
             Ordinal.IsBad = record.GetOrdinal("IsBad");
             Ordinal.BirthDate = record.GetOrdinal("BirthDate");
@@ -36,6 +64,20 @@ public static partial class PersonMapper
         {
             Id = record.GetInt32(Ordinal.Id),
             Age = record.IsDBNull(Ordinal.Age) ? null : record.GetInt32(Ordinal.Age),
+            Float = record.GetFloat(Ordinal.Float),
+            NullableFloat = record.IsDBNull(Ordinal.NullableFloat) ? null : record.GetFloat(Ordinal.NullableFloat),
+            Double = record.GetDouble(Ordinal.Double),
+            NullableDouble = record.IsDBNull(Ordinal.NullableDouble) ? null : record.GetDouble(Ordinal.NullableDouble),
+            Short = record.GetInt16(Ordinal.Short),
+            NullableShort = record.IsDBNull(Ordinal.NullableShort) ? null : record.GetInt16(Ordinal.NullableShort),
+            Long = record.GetInt64(Ordinal.Long),
+            NullableLong = record.IsDBNull(Ordinal.NullableLong) ? null : record.GetInt64(Ordinal.NullableLong),
+            Char = record.GetChar(Ordinal.Char),
+            NullableChar = record.IsDBNull(Ordinal.NullableChar) ? null : record.GetChar(Ordinal.NullableChar),
+            Byte = record.GetByte(Ordinal.Byte),
+            NullableByte = record.IsDBNull(Ordinal.NullableByte) ? null : record.GetByte(Ordinal.NullableByte),
+            MyGuid = record.GetGuid(Ordinal.MyGuid),
+            NullableGuid = record.IsDBNull(Ordinal.NullableGuid) ? null : record.GetGuid(Ordinal.NullableGuid),
             IsGood = record.GetBoolean(Ordinal.IsGood),
             IsBad = record.IsDBNull(Ordinal.IsBad) ? null : record.GetBoolean(Ordinal.IsBad),
             BirthDate = record.GetDateTime(Ordinal.BirthDate),

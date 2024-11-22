@@ -2,8 +2,7 @@
 using Microsoft.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Collections.Immutable;
-using System.ComponentModel.DataAnnotations;
+using System.Data;
 
 namespace Net.Code.ADONet.SourceGenerators.Tests;
 
@@ -12,11 +11,25 @@ public class Person
     public int Id { get; set; }
     [Column("TheAge")]
     public int? Age { get; set; }
+    public float Float { get; set; }
+    public float? NullableFloat { get; set; }
+    public double Double { get; set; }
+    public double? NullableDouble { get; set; }
+    public short Short { get; set; }
+    public short? NullableShort { get; set; }
+    public long Long { get; set; }
+    public long? NullableLong { get; set; }
+    public char Char { get; set; }
+    public char? NullableChar { get; set; }
+    public byte Byte { get; set; }
+    public byte? NullableByte { get; set; }
+    public Guid MyGuid { get; set; }
+    public Guid? NullableGuid { get; set; }
     public bool IsGood { get; set; }
     public bool? IsBad { get; set; }
     public DateTime BirthDate { get; set; }
     public DateTime? LastSeen { get; set; }
-    public string? Name { get; set; }
+    public string Name { get; set; }
     public string? MiddleName { get; set; }
 }
 
@@ -50,6 +63,20 @@ public class MapFromDataRecordSnapshotTests
                 public int Id { get; set; }
                 [Column("TheAge")]
                 public int? Age { get; set; }
+                public float Float { get; set; }
+                public float? NullableFloat { get; set; }
+                public double Double { get; set; }
+                public double? NullableDouble { get; set; }
+                public short Short { get; set; }
+                public short? NullableShort { get; set; }
+                public long Long { get; set; }
+                public long? NullableLong { get; set; }
+                public char Char { get; set; }
+                public char? NullableChar { get; set; }
+                public byte Byte { get; set; }
+                public byte? NullableByte { get; set; }
+                public Guid MyGuid { get; set; }
+                public Guid? NullableGuid { get; set; }
                 public bool IsGood { get; set; }
                 public bool? IsBad { get; set; }
                 public DateTime BirthDate { get; set; }
@@ -124,3 +151,5 @@ public static class TestHelper
         return Verifier.Verify(driver).UseParameters(args);
     }
 }
+
+

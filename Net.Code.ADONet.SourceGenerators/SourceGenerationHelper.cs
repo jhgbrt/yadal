@@ -89,7 +89,7 @@ namespace Net.Code.ADONet.SourceGenerators
 
         }
 
-        private static string GetGetMethod(PropertyInfo property) => property.Type switch
+        private static string GetGetMethod(PropertyInfo property) => property.TypeName switch
         {
             "Boolean" => nameof(IDataRecord.GetBoolean),
             "Byte" => nameof(IDataRecord.GetByte),
@@ -103,7 +103,7 @@ namespace Net.Code.ADONet.SourceGenerators
             "Int32" => nameof(IDataRecord.GetInt32),
             "Int64" => nameof(IDataRecord.GetInt64),
             "String" => nameof(IDataRecord.GetString),
-            _ => throw new Exception($"Unsupported property type: can not get datarecord getter for {property.Type}")
+            _ => throw new Exception($"Unsupported property type: can not get datarecord getter for {property.TypeName}")
         };
     }
 
@@ -116,7 +116,7 @@ namespace Net.Code.ADONet.SourceGenerators
             _ => symbol.Name
         };
 
-        public string Type { get; } = symbol.Type switch
+        public string TypeName { get; } = symbol.Type switch
         {
             INamedTypeSymbol { TypeArguments: [ITypeSymbol underlyingType] } => underlyingType.Name,
             _ => symbol.Type.Name
