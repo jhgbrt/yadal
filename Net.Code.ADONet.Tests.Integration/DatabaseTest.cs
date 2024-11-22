@@ -75,6 +75,35 @@ namespace IntegrationTests
         }
 
         [SkippableFact]
+        public void Delete()
+        {
+            var people = _testHelper.GetAllPeopleGeneric();
+            var first = people.Take(1);
+            _testHelper.Delete(first);
+            var people2 = _testHelper.GetAllPeopleGeneric();
+            Assert.DoesNotContain(first.Single(), people2);
+        }
+
+        [SkippableFact]
+        public async Task DeleteAsync()
+        {
+            var people = _testHelper.GetAllPeopleGeneric();
+            var first = people.Take(1);
+            await _testHelper.DeleteAsync(people);
+            var people2 = _testHelper.GetAllPeopleGeneric();
+            Assert.DoesNotContain(first.Single(), people2);
+        }
+
+        [SkippableFact]
+        public void SelectOne()
+        {
+            var key = _people.First().Id;
+            var person = _testHelper.SelectOne(key);
+            Assert.Equal(person, _people.First());
+        }
+
+
+        [SkippableFact]
         public void CountIsExpected()
         {
             var count = _testHelper.GetCountOfPeople();
@@ -180,6 +209,11 @@ namespace IntegrationTests
         public void BulkCopy()
         {
             _testHelper.BulkInsert(FakeData.People.List(100));
+        }
+        [SkippableFact]
+        public async Task BulkCopyAsync()
+        {
+            await _testHelper.BulkInsertAsync(FakeData.People.List(100));
         }
     }
 

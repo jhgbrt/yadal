@@ -26,9 +26,9 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
             _target = target;
             _db = db;
             _config = _target.Config;
-            _personQuery = QueryFactory<Person>.Create(_config.MappingConvention);
-            _productQuery = QueryFactory<Product>.Create(_config.MappingConvention);
-            _addressQuery = QueryFactory<Address>.Create(_config.MappingConvention);
+            _personQuery = QueryFactory<Person>.Get(_config.MappingConvention);
+            _productQuery = QueryFactory<Product>.Get(_config.MappingConvention);
+            _addressQuery = QueryFactory<Address>.Get(_config.MappingConvention);
         }
 
         public void Initialize()
@@ -63,11 +63,9 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
             IEnumerable<Product>? products = null
             )
         {
-            await Task.WhenAll(
-                _db.InsertAsync(people ?? []),
-                _db.InsertAsync(addresses ?? []),
-                _db.InsertAsync(products ?? [])
-                );
+            await _db.InsertAsync(people ?? []);
+            await _db.InsertAsync(addresses ?? []);
+            await _db.InsertAsync(products ?? []);
         }
 
         public void Update(IEnumerable<Person> items)
@@ -75,6 +73,24 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
             _db.Update(items);
         }
 
+        public void Delete(IEnumerable<Person> items)
+        {
+            _db.Delete(items);
+        }
+
+        public Person? SelectOne(int Id)
+        {
+            return _db.SelectOne<Person>(Id);
+        }
+        public ValueTask<Person?> SelectOneAsync(int Id)
+        {
+            return _db.SelectOneAsync<Person>(Id);
+        }
+
+        public async Task DeleteAsync(IEnumerable<Person> items)
+        {
+            await _db.DeleteAsync(items);
+        }
         public async Task InsertAsync(IEnumerable<Person> items)
         {
             foreach (var item in items)
@@ -210,16 +226,9 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
             }
         }
 
-        public int GetCountOfPeople()
-        {
-            return _db.Sql($"SELECT count(*) FROM {GetTableName<Person>()}").AsScalar<int>();
-        }
+        public int GetCountOfPeople() => _db.Count<Person>();
 
-        public async Task<int> GetCountOfPeopleAsync()
-        {
-            var result = await _db.Sql($"SELECT count(*) FROM {GetTableName<Person>()}").AsScalarAsync<int>();
-            return result;
-        }
+        public Task<int> GetCountOfPeopleAsync() => _db.CountAsync<Person>();
 
         public void BulkInsert(IEnumerable<Person> list)
         {
@@ -227,6 +236,13 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
                 _db.BulkCopy(list);
             else
                 _db.Insert(list);
+        }
+        public async Task BulkInsertAsync(IEnumerable<Person> list)
+        {
+            if (_target.SupportsBulkInsert)
+                await _db.BulkCopyAsync(list);
+            else
+                await  _db.InsertAsync(list);
         }
 
         public string GetTableName<TEntity>() => typeof(TEntity).GetTableName(_config.MappingConvention);
