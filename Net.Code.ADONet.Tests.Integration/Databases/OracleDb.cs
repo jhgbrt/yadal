@@ -14,32 +14,34 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
         }
 
         public override string CreatePersonTable
-            => """
-               CREATE TABLE PERSON (
-                   ID NUMBER(8,0) NOT NULL
-               ,   OPTIONAL_NUMBER NUMBER(8,0) NULL
-               ,   REQUIRED_NUMBER NUMBER(8,0) NOT NULL
-               ,   NAME VARCHAR2(100) NOT NULL
-               ,   EMAIL VARCHAR2(100) NOT NULL
+            => $"""
+               CREATE TABLE {GetTableName<Person>()} (
+                   {GetColumnName<Person>(nameof(Person.Id))} NUMBER(8,0) NOT NULL
+               ,   {GetColumnName<Person>(nameof(Person.OptionalNumber))} NUMBER(8,0) NULL
+               ,   {GetColumnName<Person>(nameof(Person.RequiredNumber))} NUMBER(8,0) NOT NULL
+               ,   {GetColumnName<Person>(nameof(Person.BirthDate))} DATE NOT NULL
+               ,   {GetColumnName<Person>(nameof(Person.RegisteredAt))} TIMESTAMP NOT NULL
+               ,   {GetColumnName<Person>(nameof(Person.Name))} VARCHAR2(100) NOT NULL
+               ,   {GetColumnName<Person>(nameof(Person.Email))} VARCHAR2(100) NOT NULL
                )
                """;
         public override string CreateAddressTable
-            => """
-               CREATE TABLE ADDRESS (
-                   ID NUMBER(8,0) NOT NULL
-               ,   STREET VARCHAR2(100) NOT NULL
-               ,   ZIP_CODE VARCHAR2(20) NOT NULL
-               ,   CITY VARCHAR2(100) NOT NULL
-               ,   COUNTRY VARCHAR2(100) NOT NULL
+            => $"""
+               CREATE TABLE {GetTableName<Address>()} (
+                   {GetColumnName<Address>(nameof(Address.Id)       )} NUMBER(8,0) NOT NULL
+               ,   {GetColumnName<Address>(nameof(Address.Street)   )} VARCHAR2(100) NOT NULL
+               ,   {GetColumnName<Address>(nameof(Address.ZipCode)  )} VARCHAR2(20) NOT NULL
+               ,   {GetColumnName<Address>(nameof(Address.City)     )} VARCHAR2(100) NOT NULL
+               ,   {GetColumnName<Address>(nameof(Address.Country)  )} VARCHAR2(100) NOT NULL
                )
                """;
 
         public override string CreateProductTable
-            => """
-               CREATE TABLE PRODUCT (
-                   ID NUMBER(8,0) NOT NULL
-               ,   NAME VARCHAR2(100) NOT NULL
-               ,   PRICE NUMBER(16,2) NOT NULL
+            => $"""
+               CREATE TABLE {GetTableName<Product>()} (
+                   {GetColumnName<Product>(nameof(Product.Id   ))} NUMBER(8,0) NOT NULL
+               ,   {GetColumnName<Product>(nameof(Product.Name ))} VARCHAR2(100) NOT NULL
+               ,   {GetColumnName<Product>(nameof(Product.Price))} NUMBER(16,2) NOT NULL
                )
                """;
 

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -26,11 +28,9 @@ namespace IntegrationTests
 #else
             var logger = NullLogger.Instance;
 #endif
-            var masterDb = CreateDb(logger, master);
             try
             {
-                masterDb.Connect();
-                IsAvailable = true;
+                var masterDb = CreateDb(logger, master);
 
                 foreach (var statement in Target.GetDropAndRecreateDdl())
                 {
@@ -57,11 +57,46 @@ namespace IntegrationTests
         public T Target { get; private set; }
         public IDb CreateDb(ILogger logger)
         => CreateDb(logger, Target.Name);
+
+        IReadOnlyDictionary<string, string>? connectionStrings;
         private IDb CreateDb(ILogger logger, string name)
-        => new Db(
-            Configuration.ConnectionStrings[name], Target.Config, Target.Factory, logger
-            );
-        public Exception ConnectionFailureException { get; private set; }
+        {
+            if (IsAvailable && connectionStrings is not null)
+            {
+                var db = new Db(connectionStrings[name], Target.Config, Target.Factory, logger);
+                return db;
+            }
+            else
+            {
+                var cs = Target.AlternateConnectionStrings ?? Configuration.ConnectionStrings;
+
+                var db = new Db(
+                        cs[name], Target.Config, Target.Factory, logger
+                        );
+
+                try
+                {
+                    db.Connect();
+                }
+                catch when (Target.AlternateConnectionStrings is not null)
+                {
+                    db.Dispose();
+                    cs = Configuration.ConnectionStrings;
+                    db = new Db(
+                            cs[name], Target.Config, Target.Factory, logger
+                            );
+                }
+
+                db.Connect();
+                connectionStrings = cs;
+                IsAvailable = true;
+                return db;
+
+            }
+
+        }
+
+        public Exception? ConnectionFailureException { get; private set; }
     }
 }
 

@@ -1,4 +1,6 @@
-﻿namespace Net.Code.ADONet;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Net.Code.ADONet;
 
 internal static class TypeExtensions
 {
@@ -10,4 +12,14 @@ internal static class TypeExtensions
         => type.IsGenericType
             && !type.IsGenericTypeDefinition
             && typeof(Nullable<>) == type.GetGenericTypeDefinition();
+    public static string GetTableName(this Type type, MappingConvention convention)
+    {
+        var attribute = type.GetCustomAttributes(false).OfType<TableAttribute>().FirstOrDefault();
+        return convention.ToDb(attribute?.Name ?? type.Name);
+    }
+    public static string GetColumnName(this PropertyInfo property, MappingConvention convention)
+    {
+        var attribute = property.GetCustomAttributes(true).OfType<ColumnAttribute>().FirstOrDefault();
+        return convention.ToDb(attribute?.Name ?? property.Name);
+    }
 }

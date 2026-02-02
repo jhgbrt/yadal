@@ -7,6 +7,7 @@ namespace Net.Code.ADONet.Tests.Integration.Databases
 {
     public interface IDatabaseImpl
     {
+        IReadOnlyDictionary<string, string>? AlternateConnectionStrings { get; }
         string CreatePersonTable { get; }
         string DropPersonTable { get; }
         string DropProductTable { get; }

@@ -34,11 +34,21 @@ public partial class CommandBuilder(DbCommand command, DbConfig config, ILogger?
     {
         if (parameters == null)
             throw new ArgumentNullException(nameof(parameters));
+
         var getters = FastReflection<T>.Instance.GetGettersForType();
         var props = parameters.GetType().GetProperties();
         foreach (var property in props)
         {
             WithParameter(property.Name, getters[property.Name](parameters));
+        }
+        return this;
+    }
+
+    internal CommandBuilder WithKey(DbKey key)
+    {
+        foreach (var v in key.values)
+        {
+            WithParameter(v.name, v.value);
         }
         return this;
     }

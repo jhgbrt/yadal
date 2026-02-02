@@ -70,7 +70,7 @@ namespace Net.Code.ADONet.Tests.Unit.FastReflection
     {
         private readonly MyTestEntity _entity = new MyTestEntity();
 
-        private readonly IReadOnlyDictionary<string, Action<MyTestEntity,object>> setters = FastReflection<MyTestEntity>.Instance.GetSettersForType();
+        private readonly IReadOnlyDictionary<string, Action<MyTestEntity,object>> setters = FastReflection<MyTestEntity>.Instance.GetSettersForType(MappingConvention.Default);
 
         [Fact]
         public void Setter_ForStringProperty_ReturnsCorrectValue()

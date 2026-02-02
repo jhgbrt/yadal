@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -29,7 +30,9 @@ namespace Net.Code.ADONet.Tests.Integration.Data
                     Name = fullName,
                     Email = Faker.Internet.Email(fullName),
                     RequiredNumber = Faker.RandomNumber.Next(short.MaxValue),
-                    OptionalNumber = optionalNumber % 2 == 0 ? optionalNumber : null
+                    OptionalNumber = optionalNumber % 2 == 0 ? optionalNumber : null,
+                    RegisteredAt = DateTime.Now.AddMinutes(-Faker.RandomNumber.Next(100, 10000)),
+                    BirthDate =  DateTime.Now.AddYears(-Faker.RandomNumber.Next(18, 80))
                 };
             }
         }
@@ -37,14 +40,13 @@ namespace Net.Code.ADONet.Tests.Integration.Data
         public static class Addresses
         {
             public static Address[] List(int n) => Enumerable.Range(1, n).Select(x => One()).ToArray();
-            public static Address One() => new()
-            {
-                Id = Id.Next(),
-                Street = Faker.Address.StreetAddress(),
-                ZipCode = Faker.Address.ZipCode(),
-                City = Faker.Address.City(),
-                Country = Faker.Address.Country()
-            };
+            public static Address One() => new(
+                Id.Next(),
+                Faker.Address.StreetAddress(),
+                Faker.Address.ZipCode(),
+                Faker.Address.City(),
+                Faker.Address.Country()
+            );
         }
 
         public static class Products

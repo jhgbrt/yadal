@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Xunit;
 
@@ -30,7 +31,7 @@ namespace Net.Code.ADONet.Tests.Unit.Extensions.Experimental
 
     public class QueryGeneratorTestsForEntityWithDatabaseGeneratedId
     {
-        Query query = QueryFactory<MyEntityWithGeneratedId>.Create(MappingConvention.Default);
+        Query query = QueryFactory<MyEntityWithGeneratedId>.Get(MappingConvention.Default);
 
         [Fact]
         public void Insert()
@@ -73,7 +74,7 @@ namespace Net.Code.ADONet.Tests.Unit.Extensions.Experimental
 
     public class QueryGeneratorTestsForEntityOracleConvention
     {
-        Query query = QueryFactory<MyEntity>.Create(DbConfig.FromProviderName("Oracle").MappingConvention);
+        Query query = QueryFactory<MyEntity>.Get(DbConfig.FromProviderName("Oracle").MappingConvention);
 
         [Fact]
         public void Insert()
@@ -115,7 +116,7 @@ namespace Net.Code.ADONet.Tests.Unit.Extensions.Experimental
 
     public class QueryGeneratorTestsForDefaultEntity
     {
-        Query query = QueryFactory<MyEntity>.Create(DbConfig.FromProviderName("Npgsql").MappingConvention);
+        Query query = QueryFactory<MyEntity>.Get(DbConfig.FromProviderName("Npgsql").MappingConvention);
 
         [Fact]
         public void Insert()
@@ -157,7 +158,7 @@ namespace Net.Code.ADONet.Tests.Unit.Extensions.Experimental
 
     public class QueryGeneratorTestsForEntityWithCompositeKey
     {
-        Query query = QueryFactory<MyEntityWithCompositeKey>.Create(DbConfig.FromProviderName("Oracle").MappingConvention);
+        Query query = QueryFactory<MyEntityWithCompositeKey>.Get(DbConfig.FromProviderName("Oracle").MappingConvention);
 
         [Fact]
         public void Insert()
@@ -194,6 +195,83 @@ namespace Net.Code.ADONet.Tests.Unit.Extensions.Experimental
         {
             var sql = query.Count;
             Assert.Equal("SELECT COUNT(*) FROM MY_ENTITY_WITH_COMPOSITE_KEY", sql);
+        }
+    }
+
+    public class QueryFactoryToKeyTests
+    {
+        record Person(int Id, string Name);
+        class PersonAddress
+        {
+            [Key] public int PersonId { get; set; }
+            [Key] public int AddressId { get; set; }
+        }
+
+        [Fact]
+        public void IntegerKeyValue()
+        {
+            var key = QueryFactory<Person>.ToKey(5);
+            Assert.True(key.values.Equals(new[] { ("Id", (object)5) }));
+        }
+        [Fact]
+        public void IntegerKeyPropertyValue()
+        {
+            var key = QueryFactory<Person>.ToKey(new { Id = 5 });
+            Assert.True(key.values.Equals(new[] { ("Id", (object)5) }));
+        }
+        [Fact]
+        public void CompositeKeyValue()
+        {
+            var key = QueryFactory<PersonAddress>.ToKey(new {PersonId = 5, AddressId = 6});
+            Assert.True(key.values.Equals(new[] { ("PersonId", (object)5), ("AddressId", (object)6) }));
+        }
+
+    }
+
+    public class ValueListTests()
+    {
+        ValueList<int?> list = [1, 2, null, 3];
+
+        [Fact]
+        public void Equals_SameTypeAndValues_Succeeds()
+        {
+            ValueList<int?> other = [1, 2, null, 3];
+            Assert.True(list.Equals(other));
+        }
+
+        [Fact]
+        public void Equals_SameTypeOtherValues_Fails()
+        {
+            ValueList<int?> other = [1, 2, null, 4];
+            Assert.False(list.Equals(other));
+        }
+
+        [Fact]
+        public void Equals_SameUnderlyingTypeAndValues_Succeeds()
+        {
+            List<int?> other = [1, 2, null, 3];
+            Assert.True(list.Equals(other));
+        }
+
+        [Fact]
+        public void Equals_SameUnderlyingTypeOtherValues_Fails()
+        {
+            List<int?> other = [1, 2, null, 4];
+            Assert.False(list.Equals(other));
+        }
+
+        [Fact]
+        public void Equals_SameUnderlyingTypeDefinedAsObjectAndSameValues_Succeeds()
+        {
+            List<object> other = [1, 2, null, 3];
+            Assert.True(list.Equals(other));
+        }
+
+        [Fact]
+        public void Equals_SameUnderlyingTypeDefinedAsObjectAndOtherValues_Fails()
+        {
+            List<object> other = [1, 2, null, 4];
+            Assert.False(list.Equals(other));
         }
     }
 }

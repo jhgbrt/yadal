@@ -8,6 +8,8 @@ using Net.Code.ADONet.Tests.Integration.Databases;
 using Xunit.Abstractions;
 using Xunit;
 using Microsoft.VisualBasic;
+using System.Linq.Expressions;
+using System;
 
 namespace Net.Code.ADONet.Tests.Integration.TestSupport
 {
@@ -24,9 +26,9 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
             _target = target;
             _db = db;
             _config = _target.Config;
-            _personQuery = QueryFactory<Person>.Create(_config.MappingConvention);
-            _productQuery = QueryFactory<Product>.Create(_config.MappingConvention);
-            _addressQuery = QueryFactory<Address>.Create(_config.MappingConvention);
+            _personQuery = QueryFactory<Person>.Get(_config.MappingConvention);
+            _productQuery = QueryFactory<Product>.Get(_config.MappingConvention);
+            _addressQuery = QueryFactory<Address>.Get(_config.MappingConvention);
         }
 
         public void Initialize()
@@ -46,26 +48,24 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
         }
 
         public void Insert(
-            IEnumerable<Person> people = null,
-            IEnumerable<Address> addresses = null,
-            IEnumerable<Product> products = null
+            IEnumerable<Person>? people = null,
+            IEnumerable<Address>? addresses = null,
+            IEnumerable<Product>? products = null
             )
         {
-            _db.Insert(people ?? Enumerable.Empty<Person>());
-            _db.Insert(addresses ?? Enumerable.Empty<Address>());
-            _db.Insert(products ?? Enumerable.Empty<Product>());
+            _db.Insert(people ?? []);
+            _db.Insert(addresses ?? []);
+            _db.Insert(products ?? []);
         }
         public async Task InsertAsync(
-            IEnumerable<Person> people = null,
-            IEnumerable<Address> addresses = null,
-            IEnumerable<Product> products = null
+            IEnumerable<Person>? people = null,
+            IEnumerable<Address>? addresses = null,
+            IEnumerable<Product>? products = null
             )
         {
-            await Task.WhenAll(
-                _db.InsertAsync(people ?? Enumerable.Empty<Person>()),
-                _db.InsertAsync(addresses ?? Enumerable.Empty<Address>()),
-                _db.InsertAsync(products ?? Enumerable.Empty<Product>())
-                );
+            await _db.InsertAsync(people ?? []);
+            await _db.InsertAsync(addresses ?? []);
+            await _db.InsertAsync(products ?? []);
         }
 
         public void Update(IEnumerable<Person> items)
@@ -73,6 +73,24 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
             _db.Update(items);
         }
 
+        public void Delete(IEnumerable<Person> items)
+        {
+            _db.Delete(items);
+        }
+
+        public Person? SelectOne(int Id)
+        {
+            return _db.SelectOne<Person>(Id);
+        }
+        public ValueTask<Person?> SelectOneAsync(int Id)
+        {
+            return _db.SelectOneAsync<Person>(Id);
+        }
+
+        public async Task DeleteAsync(IEnumerable<Person> items)
+        {
+            await _db.DeleteAsync(items);
+        }
         public async Task InsertAsync(IEnumerable<Person> items)
         {
             foreach (var item in items)
@@ -96,7 +114,7 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
                 .ToList();
         }
 
-        public DataTable GetSchemaTable()
+        public DataTable? GetSchemaTable()
         {
             using var dataReader = _db
                 .Sql(_personQuery.SelectAll)
@@ -118,17 +136,17 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
         {
             return _db
                 .Sql(_personQuery.SelectAll)
-                .AsEnumerable((IDataRecord d) => d.ToPerson())
+                .AsEnumerable(PersonMapper.ToPerson)
                 .ToList();
         }
 
         Person Project(dynamic d) => new()
         {
-            Id = d[GetColumnName(nameof(Person.Id))],
-            Email = d[GetColumnName(nameof(Person.Email))],
-            Name = d[GetColumnName(nameof(Person.Name))],
-            OptionalNumber = d[GetColumnName(nameof(Person.OptionalNumber))],
-            RequiredNumber = d[GetColumnName(nameof(Person.RequiredNumber))]
+            Id = d[GetColumnName<Person>(nameof(Person.Id))],
+            Email = d[GetColumnName<Person>(nameof(Person.Email))],
+            Name = d[GetColumnName<Person>(nameof(Person.Name))],
+            OptionalNumber = d[GetColumnName<Person>(nameof(Person.OptionalNumber))],
+            RequiredNumber = d[GetColumnName<Person>(nameof(Person.RequiredNumber))]
         };
 
         public async Task<List<Person>> GetAllPeopleAsDynamicAsync()
@@ -139,6 +157,10 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
                         .ToListAsync();
         }
 
+        public List<Address> GetAllAddresses()
+        {
+            return _db.Sql(_addressQuery.SelectAll).AsEnumerable<Address>().ToList();
+        }
         public List<Product> GetAllProducts()
         {
             return _db
@@ -182,7 +204,7 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
         public (int[], Person[]) GetByIdList()
         {
             var ids = _db
-                .Sql($"SELECT Id FROM {nameof(Person)}")
+                .Sql($"SELECT Id FROM {GetTableName<Person>()}")
                 .Select(d => (int)d.Id)
                 .Take(3)
                 .ToArray();
@@ -190,7 +212,7 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
             if (_target.SupportsTableValuedParameters)
             {
                 return (ids, _db
-                    .Sql("SELECT * FROM Person JOIN @IDs IdSet ON Person.Id = IdSet.Id")
+                    .Sql($"SELECT * FROM {GetTableName<Person>()} JOIN @IDs IdSet ON {GetTableName<Person>()}.Id = IdSet.Id")
                     .WithParameter("@IDs", ids.Select(id => new { Id = id }), "IdSet")
                     .AsEnumerable<Person>()
                     .ToArray());
@@ -198,22 +220,15 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
             else
             {
                 return (ids, _db
-                    .Sql($"SELECT * FROM Person WHERE Id in ({string.Join(',', ids)})")
+                    .Sql($"SELECT * FROM {GetTableName<Person>()} WHERE Id in ({string.Join(',', ids)})")
                     .AsEnumerable<Person>()
                     .ToArray());
             }
         }
 
-        public int GetCountOfPeople()
-        {
-            return _db.Sql($"SELECT count(*) FROM {nameof(Person)}").AsScalar<int>();
-        }
+        public int GetCountOfPeople() => _db.Count<Person>();
 
-        public async Task<int> GetCountOfPeopleAsync()
-        {
-            var result = await _db.Sql($"SELECT count(*) FROM {nameof(Person)}").AsScalarAsync<int>();
-            return result;
-        }
+        public Task<int> GetCountOfPeopleAsync() => _db.CountAsync<Person>();
 
         public void BulkInsert(IEnumerable<Person> list)
         {
@@ -222,10 +237,18 @@ namespace Net.Code.ADONet.Tests.Integration.TestSupport
             else
                 _db.Insert(list);
         }
-
-        public string GetColumnName(string propertyName)
+        public async Task BulkInsertAsync(IEnumerable<Person> list)
         {
-            return _config.MappingConvention.ToDb(propertyName);
+            if (_target.SupportsBulkInsert)
+                await _db.BulkCopyAsync(list);
+            else
+                await  _db.InsertAsync(list);
+        }
+
+        public string GetTableName<TEntity>() => typeof(TEntity).GetTableName(_config.MappingConvention);
+        public string GetColumnName<TInner>(string propertyName)
+        {
+            return typeof(TInner).GetProperty(propertyName)?.GetColumnName(_config.MappingConvention) ?? propertyName;
         }
     }
 }

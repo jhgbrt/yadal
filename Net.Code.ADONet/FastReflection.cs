@@ -5,12 +5,13 @@ internal sealed class FastReflection<T>
     private FastReflection() { }
     private static readonly Type Type = typeof(FastReflection<T>);
     public static FastReflection<T> Instance = new();
-    public IReadOnlyDictionary<string, Action<T, object?>> GetSettersForType()
+    public IReadOnlyDictionary<string, Action<T, object?>> GetSettersForType(MappingConvention convention)
         => _setters.GetOrAdd(
-            typeof(T),
-            d => d.GetProperties().Where(p => p.SetMethod != null).ToDictionary(p => p.Name, GetSetDelegate)
+            (typeof(T), convention),
+            d => d.type.GetProperties().Where(p => p.SetMethod != null)
+            .ToDictionary(p => p.GetColumnName(convention), GetSetDelegate)
         );
-    private readonly ConcurrentDictionary<Type, IReadOnlyDictionary<string, Action<T, object?>>> _setters = new();
+    private readonly ConcurrentDictionary<(Type type, MappingConvention convention), IReadOnlyDictionary<string, Action<T, object?>>> _setters = new();
     private static Action<T, object?> GetSetDelegate(PropertyInfo p)
     {
         var method = p.GetSetMethod();
