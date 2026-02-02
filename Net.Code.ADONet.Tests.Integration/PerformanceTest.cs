@@ -73,7 +73,7 @@ namespace IntegrationTests.Performance
         {
             public SqLite(DatabaseFixture<SqLiteDb> fixture, ITestOutputHelper output) : base(output, fixture) { }
         }
-        [Trait("Database", "SQLITE")]
+        [Trait("Database", "SQLSERVER")]
         public class SqlServer: PerformanceTest<SqlServerDb>, IClassFixture<DatabaseFixture<SqlServerDb>>
         {
             public SqlServer(DatabaseFixture<SqlServerDb> fixture, ITestOutputHelper output) : base(output, fixture) { }
