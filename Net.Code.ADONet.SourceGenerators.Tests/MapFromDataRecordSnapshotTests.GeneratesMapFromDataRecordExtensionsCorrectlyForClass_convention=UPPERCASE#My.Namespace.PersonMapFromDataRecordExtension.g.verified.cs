@@ -5,85 +5,54 @@ using System.Data;
 namespace My.Namespace;
 public static partial class PersonMapper
 {
-    static class Ordinal
-    {
-        public static bool __initialized__;
-        public static int Id;
-        public static int Age;
-        public static int Float;
-        public static int NullableFloat;
-        public static int Double;
-        public static int NullableDouble;
-        public static int Short;
-        public static int NullableShort;
-        public static int Long;
-        public static int NullableLong;
-        public static int Char;
-        public static int NullableChar;
-        public static int Byte;
-        public static int NullableByte;
-        public static int MyGuid;
-        public static int NullableGuid;
-        public static int IsGood;
-        public static int IsBad;
-        public static int BirthDate;
-        public static int LastSeen;
-        public static int Name;
-        public static int MiddleName;
-    }
     public static Person ToPerson(this IDataRecord record)
     {
-        if (!Ordinal.__initialized__)
-        {
-            Ordinal.Id = record.GetOrdinal("ID");
-            Ordinal.Age = record.GetOrdinal("THE_AGE");
-            Ordinal.Float = record.GetOrdinal("FLOAT");
-            Ordinal.NullableFloat = record.GetOrdinal("NULLABLE_FLOAT");
-            Ordinal.Double = record.GetOrdinal("DOUBLE");
-            Ordinal.NullableDouble = record.GetOrdinal("NULLABLE_DOUBLE");
-            Ordinal.Short = record.GetOrdinal("SHORT");
-            Ordinal.NullableShort = record.GetOrdinal("NULLABLE_SHORT");
-            Ordinal.Long = record.GetOrdinal("LONG");
-            Ordinal.NullableLong = record.GetOrdinal("NULLABLE_LONG");
-            Ordinal.Char = record.GetOrdinal("CHAR");
-            Ordinal.NullableChar = record.GetOrdinal("NULLABLE_CHAR");
-            Ordinal.Byte = record.GetOrdinal("BYTE");
-            Ordinal.NullableByte = record.GetOrdinal("NULLABLE_BYTE");
-            Ordinal.MyGuid = record.GetOrdinal("MY_GUID");
-            Ordinal.NullableGuid = record.GetOrdinal("NULLABLE_GUID");
-            Ordinal.IsGood = record.GetOrdinal("IS_GOOD");
-            Ordinal.IsBad = record.GetOrdinal("IS_BAD");
-            Ordinal.BirthDate = record.GetOrdinal("BIRTH_DATE");
-            Ordinal.LastSeen = record.GetOrdinal("LAST_SEEN");
-            Ordinal.Name = record.GetOrdinal("NAME");
-            Ordinal.MiddleName = record.GetOrdinal("MIDDLE_NAME");
-            System.Threading.Thread.MemoryBarrier();
-            Ordinal.__initialized__ = true;
-        }
+        var __ordinal_Id = record.GetOrdinal("ID");
+        var __ordinal_Age = record.GetOrdinal("THE_AGE");
+        var __ordinal_Float = record.GetOrdinal("FLOAT");
+        var __ordinal_NullableFloat = record.GetOrdinal("NULLABLE_FLOAT");
+        var __ordinal_Double = record.GetOrdinal("DOUBLE");
+        var __ordinal_NullableDouble = record.GetOrdinal("NULLABLE_DOUBLE");
+        var __ordinal_Short = record.GetOrdinal("SHORT");
+        var __ordinal_NullableShort = record.GetOrdinal("NULLABLE_SHORT");
+        var __ordinal_Long = record.GetOrdinal("LONG");
+        var __ordinal_NullableLong = record.GetOrdinal("NULLABLE_LONG");
+        var __ordinal_Char = record.GetOrdinal("CHAR");
+        var __ordinal_NullableChar = record.GetOrdinal("NULLABLE_CHAR");
+        var __ordinal_Byte = record.GetOrdinal("BYTE");
+        var __ordinal_NullableByte = record.GetOrdinal("NULLABLE_BYTE");
+        var __ordinal_MyGuid = record.GetOrdinal("MY_GUID");
+        var __ordinal_NullableGuid = record.GetOrdinal("NULLABLE_GUID");
+        var __ordinal_IsGood = record.GetOrdinal("IS_GOOD");
+        var __ordinal_IsBad = record.GetOrdinal("IS_BAD");
+        var __ordinal_BirthDate = record.GetOrdinal("BIRTH_DATE");
+        var __ordinal_LastSeen = record.GetOrdinal("LAST_SEEN");
+        var __ordinal_Name = record.GetOrdinal("NAME");
+        var __ordinal_MiddleName = record.GetOrdinal("MIDDLE_NAME");
         return new Person
         {
-            Id = record.GetInt32(Ordinal.Id),
-            Age = record.IsDBNull(Ordinal.Age) ? null : record.GetInt32(Ordinal.Age),
-            Float = record.GetFloat(Ordinal.Float),
-            NullableFloat = record.IsDBNull(Ordinal.NullableFloat) ? null : record.GetFloat(Ordinal.NullableFloat),
-            Double = record.GetDouble(Ordinal.Double),
-            NullableDouble = record.IsDBNull(Ordinal.NullableDouble) ? null : record.GetDouble(Ordinal.NullableDouble),
-            Short = record.GetInt16(Ordinal.Short),
-            NullableShort = record.IsDBNull(Ordinal.NullableShort) ? null : record.GetInt16(Ordinal.NullableShort),
-            Long = record.GetInt64(Ordinal.Long),
-            NullableLong = record.IsDBNull(Ordinal.NullableLong) ? null : record.GetInt64(Ordinal.NullableLong),
-            Char = record.GetChar(Ordinal.Char),
-            NullableChar = record.IsDBNull(Ordinal.NullableChar) ? null : record.GetChar(Ordinal.NullableChar),
-            Byte = record.GetByte(Ordinal.Byte),
-            NullableByte = record.IsDBNull(Ordinal.NullableByte) ? null : record.GetByte(Ordinal.NullableByte),
-            MyGuid = record.GetGuid(Ordinal.MyGuid),
-            NullableGuid = record.IsDBNull(Ordinal.NullableGuid) ? null : record.GetGuid(Ordinal.NullableGuid),
-            IsGood = record.GetBoolean(Ordinal.IsGood),
-            IsBad = record.IsDBNull(Ordinal.IsBad) ? null : record.GetBoolean(Ordinal.IsBad),
-            BirthDate = record.GetDateTime(Ordinal.BirthDate),
-            LastSeen = record.IsDBNull(Ordinal.LastSeen) ? null : record.GetDateTime(Ordinal.LastSeen),
-            Name = record.GetString(Ordinal.Name),
-            MiddleName = record.GetString(Ordinal.MiddleName),
+            Id = record.GetInt32(__ordinal_Id),
+            Age = record.IsDBNull(__ordinal_Age) ? null : record.GetInt32(__ordinal_Age),
+            Float = record.GetFloat(__ordinal_Float),
+            NullableFloat = record.IsDBNull(__ordinal_NullableFloat) ? null : record.GetFloat(__ordinal_NullableFloat),
+            Double = record.GetDouble(__ordinal_Double),
+            NullableDouble = record.IsDBNull(__ordinal_NullableDouble) ? null : record.GetDouble(__ordinal_NullableDouble),
+            Short = record.GetInt16(__ordinal_Short),
+            NullableShort = record.IsDBNull(__ordinal_NullableShort) ? null : record.GetInt16(__ordinal_NullableShort),
+            Long = record.GetInt64(__ordinal_Long),
+            NullableLong = record.IsDBNull(__ordinal_NullableLong) ? null : record.GetInt64(__ordinal_NullableLong),
+            Char = record.GetChar(__ordinal_Char),
+            NullableChar = record.IsDBNull(__ordinal_NullableChar) ? null : record.GetChar(__ordinal_NullableChar),
+            Byte = record.GetByte(__ordinal_Byte),
+            NullableByte = record.IsDBNull(__ordinal_NullableByte) ? null : record.GetByte(__ordinal_NullableByte),
+            MyGuid = record.GetGuid(__ordinal_MyGuid),
+            NullableGuid = record.IsDBNull(__ordinal_NullableGuid) ? null : record.GetGuid(__ordinal_NullableGuid),
+            IsGood = record.GetBoolean(__ordinal_IsGood),
+            IsBad = record.IsDBNull(__ordinal_IsBad) ? null : record.GetBoolean(__ordinal_IsBad),
+            BirthDate = record.GetDateTime(__ordinal_BirthDate),
+            LastSeen = record.IsDBNull(__ordinal_LastSeen) ? null : record.GetDateTime(__ordinal_LastSeen),
+            Name = record.GetString(__ordinal_Name),
+            MiddleName = record.IsDBNull(__ordinal_MiddleName) ? null : record.GetString(__ordinal_MiddleName),
         };
     }
 }

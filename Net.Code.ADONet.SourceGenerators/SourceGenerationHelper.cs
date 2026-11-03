@@ -24,41 +24,21 @@ namespace Net.Code.ADONet.SourceGenerators
                 .WriteOpeningBracket();
 
 
-            builder.WriteLine($"static class Ordinal")
-                .WriteOpeningBracket()
-                .WriteLine("public static bool __initialized__;");
-
-            foreach (var p in mapper.Properties)
-            {
-                builder.WriteLine($"public static int {p.Name};");
-            }
-
-            builder.WriteClosingBracket();
-
+            // Ordinals are resolved on every call: the same type may be mapped from
+            // different queries whose columns come back in a different order, so
+            // caching them (e.g. in static fields) would silently map wrong values.
             builder.WriteLine($"public static {mapper.Name} To{mapper.Name}(this IDataRecord record)")
-                .WriteOpeningBracket()
-                .WriteLine("if (!Ordinal.__initialized__)")
                 .WriteOpeningBracket();
             foreach (var p in mapper.Properties)
             {
-                builder.WriteLine($"Ordinal.{p.Name} = record.GetOrdinal(\"{p.ColumnName.Transform(mapper.NamingConvention)}\");");
+                builder.WriteLine($"var {OrdinalVariable(p)} = record.GetOrdinal(\"{p.ColumnName.Transform(mapper.NamingConvention)}\");");
             }
-            builder
-            .WriteLine("System.Threading.Thread.MemoryBarrier();")
-            .WriteLine($"Ordinal.__initialized__ = true;")
-            .WriteClosingBracket();
 
             if (mapper.IsRecord)
             {
                 builder.Write($"return new {mapper.Name} (");
 
-                builder.Write(string.Join(",",
-                    mapper.Properties.Select(p => p switch
-                    {
-                        { Nullable: true, IsValueType: true } => $"record.IsDBNull(Ordinal.{p.Name}) ? null : record.{GetGetMethod(p)}(Ordinal.{p.Name})",
-                        _ => $"record.{GetGetMethod(p)}(Ordinal.{p.Name})"
-                    })
-                    ));
+                builder.Write(string.Join(",", mapper.Properties.Select(GetValueExpression)));
 
                 builder.WriteLine(");");
 
@@ -70,14 +50,7 @@ namespace Net.Code.ADONet.SourceGenerators
 
                 foreach (var p in mapper.Properties)
                 {
-                    if (p.Nullable && p.IsValueType)
-                    {
-                        builder.WriteLine($"{p.Name} = record.IsDBNull(Ordinal.{p.Name}) ? null : record.{GetGetMethod(p)}(Ordinal.{p.Name}),");
-                    }
-                    else
-                    {
-                        builder.WriteLine($"{p.Name} = record.{GetGetMethod(p)}(Ordinal.{p.Name}),");
-                    }
+                    builder.WriteLine($"{p.Name} = {GetValueExpression(p)},");
                 }
                 builder.WriteClosingBracket(true);
             }
@@ -87,6 +60,19 @@ namespace Net.Code.ADONet.SourceGenerators
 
             return new(builder.ToString(), $"{mapper.Namespace??"global"}.{mapper.Name}MapFromDataRecordExtension.g.cs");
 
+        }
+
+        private static string OrdinalVariable(PropertyInfo property) => $"__ordinal_{property.Name}";
+
+        // Nullable value types (int?) and annotated nullable reference types (string?)
+        // map DBNull to null; non-nullable properties read the value directly.
+        private static string GetValueExpression(PropertyInfo property)
+        {
+            var ordinal = OrdinalVariable(property);
+            var getValue = $"record.{GetGetMethod(property)}({ordinal})";
+            return property.Nullable
+                ? $"record.IsDBNull({ordinal}) ? null : {getValue}"
+                : getValue;
         }
 
         private static string GetGetMethod(PropertyInfo property) => property.TypeName switch
