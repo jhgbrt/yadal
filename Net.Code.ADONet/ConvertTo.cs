@@ -48,9 +48,31 @@ public static class ConvertTo<T>
 
     private static T ConvertValueType(object? value) => IsNull(value) ? throw new NullReferenceException("Value is DbNull") : ConvertPrivate<T>(value!);
 
-    private static TElem ConvertPrivate<TElem>(object value) => typeof(TElem).IsEnum
-        ? (TElem)ConvertToEnum(value, typeof(TElem))
-        : (TElem)Convert.ChangeType(value, typeof(TElem));
+    private static TElem ConvertPrivate<TElem>(object value) => value switch
+    {
+        // already the requested type: no conversion needed. This also covers types that do not
+        // implement IConvertible (DateTimeOffset, Guid, byte[], ...), which Convert.ChangeType rejects.
+        TElem t => t,
+        _ when typeof(TElem).IsEnum => (TElem)ConvertToEnum(value, typeof(TElem)),
+#if NET6_0_OR_GREATER
+        DateOnly or TimeOnly or DateTime or TimeSpan when ConvertDateOrTime(value, typeof(TElem)) is { } converted => (TElem)converted,
+#endif
+        _ => (TElem)Convert.ChangeType(value, typeof(TElem))
+    };
+
+#if NET6_0_OR_GREATER
+    // DateOnly and TimeOnly are not IConvertible, so Convert.ChangeType cannot map them to or from
+    // DateTime/TimeSpan. Npgsql (since v10) returns DateOnly for 'date' and TimeOnly for 'time' columns,
+    // while most other providers return DateTime and TimeSpan.
+    private static object? ConvertDateOrTime(object value, Type targetType) => value switch
+    {
+        DateOnly d when targetType == typeof(DateTime) => d.ToDateTime(TimeOnly.MinValue),
+        DateTime d when targetType == typeof(DateOnly) => DateOnly.FromDateTime(d),
+        TimeOnly t when targetType == typeof(TimeSpan) => t.ToTimeSpan(),
+        TimeSpan t when targetType == typeof(TimeOnly) => TimeOnly.FromTimeSpan(t),
+        _ => null
+    };
+#endif
 
     // Enums: strings are parsed by name (case-insensitive), numeric values are converted
     // to the underlying integral type first (e.g. Int64 from SQLite into an int-based enum).
