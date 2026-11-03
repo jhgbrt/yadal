@@ -45,11 +45,11 @@ internal static class EnumerableExtensions
         public override int GetOrdinal(string name) => PropertyIndexesByName[name];
         public override bool GetBoolean(int i) => this.Get<bool>(i);
         public override byte GetByte(int i) => this.Get<byte>(i);
-        public override long GetBytes(int i, long dataOffset, byte[] buffer, int bufferoffset, int length)
-            => Get(i, dataOffset, buffer, bufferoffset, length);
+        public override long GetBytes(int i, long dataOffset, byte[]? buffer, int bufferoffset, int length)
+            => CopyChunk(this.Get<byte[]>(i), dataOffset, buffer, bufferoffset, length);
         public override char GetChar(int i) => this.Get<char>(i);
-        public override long GetChars(int i, long dataOffset, char[] buffer, int bufferoffset, int length)
-            => Get(i, dataOffset, buffer, bufferoffset, length);
+        public override long GetChars(int i, long dataOffset, char[]? buffer, int bufferoffset, int length)
+            => CopyChunk(GetValue(i) is string s ? s.ToCharArray() : this.Get<char[]>(i), dataOffset, buffer, bufferoffset, length);
         public override Guid GetGuid(int i) => this.Get<Guid>(i);
         public override short GetInt16(int i) => this.Get<short>(i);
         public override int GetInt32(int i) => this.Get<int>(i);
@@ -59,14 +59,20 @@ internal static class EnumerableExtensions
         public override string? GetString(int i) => this.Get<string>(i);
         public override decimal GetDecimal(int i) => this.Get<decimal>(i);
         public override DateTime GetDateTime(int i) => this.Get<DateTime>(i);
-        private long Get<TElem>(int i, long dataOffset, TElem[] buffer, int bufferoffset, int length)
+        /// <summary>
+        /// Copies a chunk of <paramref name="data"/> into <paramref name="buffer"/>, following the
+        /// DbDataReader.GetBytes/GetChars contract: returns the total data length when buffer is null,
+        /// otherwise the number of elements actually copied (0 when dataOffset is at or past the end).
+        /// </summary>
+        private static long CopyChunk<TElem>(TElem[]? data, long dataOffset, TElem[]? buffer, int bufferoffset, int length)
         {
-            var data = this.Get<TElem[]>(i);
             if (data is null) return 0;
-            var maxLength = Math.Min((long)buffer.Length - bufferoffset, length);
-            maxLength = Math.Min(data.Length - dataOffset, maxLength);
-            Array.Copy(data, (int)dataOffset, buffer, bufferoffset, length);
-            return maxLength;
+            if (buffer is null) return data.Length;
+            if (dataOffset >= data.Length) return 0;
+            var count = Math.Min(data.Length - dataOffset, Math.Min((long)buffer.Length - bufferoffset, length));
+            if (count <= 0) return 0;
+            Array.Copy(data, dataOffset, buffer, bufferoffset, count);
+            return count;
         }
         public override bool IsDBNull(int i) => DBNull.Value.Equals(GetValue(i));
         public override int FieldCount => Properties.Length;
