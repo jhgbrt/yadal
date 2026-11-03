@@ -67,21 +67,36 @@ internal static class QueryFactory<T>
 
     public static DbKey ToKey(object key)
     {
-        var valueProperties = key.GetType().GetProperties().Select(p => new MyPropertyInfo(p));
+        if (key is null)
+            throw new ArgumentNullException(nameof(key));
+
+        var keyType = key.GetType();
+        var valueProperties = keyType.GetProperties().Select(p => new MyPropertyInfo(p)).ToArray();
 
         return KeyProperties switch
         {
-            [{ Type: { IsPrimitive: true } t, Name: string propertyName }] when key.GetType() == t
-                => new([(propertyName, key)]),
             _ when KeyProperties.OrderBy(x => x.Name).SequenceEqual(valueProperties.OrderBy(x => x.Name))
                 => new(
                     (from k in KeyProperties
                      join p in valueProperties on k.Name equals p.Name
                      select (k.Name, p.GetValue(key))
                      )),
-            _ => throw new InvalidOperationException($"Incompatible key value. Expected: {string.Join(",", KeyProperties.Select(k => $"{k.Name} [{k.Type.Name}]"))} but was: {string.Join(",", key.GetType().GetProperties().Select(k => $"{k.Name} [{k.PropertyType.Name}]"))}")
+            [{ Type: Type t, Name: string propertyName }] when IsAssignableToKey(t, keyType)
+                => new([(propertyName, key)]),
+            _ => throw new InvalidOperationException(
+                $"Incompatible key value for {typeof(T).Name}. " +
+                $"Expected: {string.Join(",", KeyProperties.Select(k => $"{k.Name} [{TypeName(k.Type)}]"))} " +
+                (KeyProperties.Length == 1 ? "(the key value itself, or an object with that property) " : "(an object with exactly these properties) ") +
+                $"but was: {TypeName(keyType)}" +
+                (valueProperties.Length > 0 ? $" with properties {string.Join(",", valueProperties.Select(k => $"{k.Name} [{TypeName(k.Type)}]"))}" : ""))
         };
     }
+
+    private static bool IsAssignableToKey(Type keyPropertyType, Type valueType)
+        => (Nullable.GetUnderlyingType(keyPropertyType) ?? keyPropertyType).IsAssignableFrom(valueType);
+
+    private static string TypeName(Type type)
+        => Nullable.GetUnderlyingType(type) is Type underlying ? $"{underlying.Name}?" : type.Name;
 
     internal static string SELECTALL(MappingConvention convention) => Get(convention).SelectAll;
     internal static string SELECTONE(MappingConvention convention) => Get(convention).Select;
@@ -90,17 +105,9 @@ internal static class QueryFactory<T>
     internal static string DELETE(MappingConvention convention) => Get(convention).Delete;
     internal static string COUNT(MappingConvention convention) => Get(convention).Count;
 
-    static Dictionary<MappingConvention, Query> cache = [];
+    static readonly ConcurrentDictionary<MappingConvention, Query> cache = new();
 
-    internal static Query Get(MappingConvention convention)
-    {
-        if (!cache.TryGetValue(convention, out var query)) 
-        { 
-            query = Create(convention);
-            cache[convention] = query;
-        }
-        return query;
-    }
+    internal static Query Get(MappingConvention convention) => cache.GetOrAdd(convention, Create);
     private static Query Create(MappingConvention convention)
     {
         var insertColumns = string.Join(", ", InsertProperties.Select(p => p.GetColumnName(convention)));
