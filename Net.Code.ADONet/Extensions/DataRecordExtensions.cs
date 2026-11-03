@@ -49,14 +49,38 @@ internal static class DataRecordExtensions
         }
         else
         {
+            // resolve column ordinals and per-parameter converters once, not for every row
+            var ordinals = properties.Select(p => reader.GetOrdinal(p.GetColumnName(config.MappingConvention))).ToArray();
+            var converters = constructor.GetParameters().Select(p => CreateConverter(p.ParameterType)).ToArray();
             return record =>
             {
-                var values = properties.Select(p => DBNullHelper.FromDb(record.GetValue(record.GetOrdinal(p.GetColumnName(config.MappingConvention)))));
-                return (T)constructor.Invoke(values.ToArray());
+                var values = new object?[ordinals.Length];
+                for (var i = 0; i < ordinals.Length; i++)
+                {
+                    values[i] = converters[i](DBNullHelper.FromDb(record.GetValue(ordinals[i])));
+                }
+                return (T)constructor.Invoke(values);
             };
         }
 
     }
+
+    private static readonly MethodInfo CreateConverterMethod = typeof(DataRecordExtensions).GetMethod(nameof(CreateConverterFor), BindingFlags.NonPublic | BindingFlags.Static);
+
+    private static Func<object?, object?> CreateConverter(Type type)
+        => (Func<object?, object?>)CreateConverterMethod.MakeGenericMethod(type).Invoke(null, null);
+
+    // - null (DBNull) is passed through unchanged, as before: ConstructorInfo.Invoke turns it into
+    //   default(T) for non-nullable value type parameters and null otherwise.
+    // - values already assignable to the parameter type are passed through as-is (e.g. a Guid for
+    //   an object parameter, a byte[] for an IEnumerable<byte> parameter).
+    // - anything else is converted with the same semantics as the property setter path.
+    private static Func<object?, object?> CreateConverterFor<TValue>() => value => value switch
+    {
+        null => null,
+        TValue t => t,
+        _ => ConvertTo<TValue>.From(value)
+    };
 
     /// <summary>
     /// Convert a datarecord into a dynamic object, so that properties can be simply accessed
