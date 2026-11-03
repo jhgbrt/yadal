@@ -5,23 +5,11 @@ using System.Data;
 namespace My.Namespace;
 public static partial class PersonMapper
 {
-    static class Ordinal
-    {
-        public static bool __initialized__;
-        public static int Id;
-        public static int Age;
-        public static int Name;
-    }
     public static Person ToPerson(this IDataRecord record)
     {
-        if (!Ordinal.__initialized__)
-        {
-            Ordinal.Id = record.GetOrdinal("Id");
-            Ordinal.Age = record.GetOrdinal("Age");
-            Ordinal.Name = record.GetOrdinal("Name");
-            System.Threading.Thread.MemoryBarrier();
-            Ordinal.__initialized__ = true;
-        }
-        return new Person (record.GetInt32(Ordinal.Id),record.IsDBNull(Ordinal.Age) ? null : record.GetInt32(Ordinal.Age),record.GetString(Ordinal.Name));
+        var __ordinal_Id = record.GetOrdinal("Id");
+        var __ordinal_Age = record.GetOrdinal("Age");
+        var __ordinal_Name = record.GetOrdinal("Name");
+        return new Person (record.GetInt32(__ordinal_Id),record.IsDBNull(__ordinal_Age) ? null : record.GetInt32(__ordinal_Age),record.GetString(__ordinal_Name));
     }
 }
