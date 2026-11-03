@@ -48,5 +48,15 @@ public static class ConvertTo<T>
 
     private static T ConvertValueType(object? value) => IsNull(value) ? throw new NullReferenceException("Value is DbNull") : ConvertPrivate<T>(value!);
 
-    private static TElem ConvertPrivate<TElem>(object value) => (TElem)Convert.ChangeType(value, typeof(TElem));
+    private static TElem ConvertPrivate<TElem>(object value) => typeof(TElem).IsEnum
+        ? (TElem)ConvertToEnum(value, typeof(TElem))
+        : (TElem)Convert.ChangeType(value, typeof(TElem));
+
+    // Enums: strings are parsed by name (case-insensitive), numeric values are converted
+    // to the underlying integral type first (e.g. Int64 from SQLite into an int-based enum).
+    private static object ConvertToEnum(object value, Type enumType) => value switch
+    {
+        string s => Enum.Parse(enumType, s, ignoreCase: true),
+        _ => Enum.ToObject(enumType, Convert.ChangeType(value, Enum.GetUnderlyingType(enumType)))
+    };
 }

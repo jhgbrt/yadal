@@ -49,14 +49,28 @@ internal static class DataRecordExtensions
         }
         else
         {
+            // resolve column ordinals and per-parameter converters once, not for every row
+            var ordinals = properties.Select(p => reader.GetOrdinal(p.GetColumnName(config.MappingConvention))).ToArray();
+            var converters = constructor.GetParameters().Select(p => CreateConverter(p.ParameterType)).ToArray();
             return record =>
             {
-                var values = properties.Select(p => DBNullHelper.FromDb(record.GetValue(record.GetOrdinal(p.GetColumnName(config.MappingConvention)))));
-                return (T)constructor.Invoke(values.ToArray());
+                var values = new object?[ordinals.Length];
+                for (var i = 0; i < ordinals.Length; i++)
+                {
+                    values[i] = converters[i](DBNullHelper.FromDb(record.GetValue(ordinals[i])));
+                }
+                return (T)constructor.Invoke(values);
             };
         }
 
     }
+
+    private static readonly MethodInfo CreateConverterMethod = typeof(DataRecordExtensions).GetMethod(nameof(CreateConverterFor), BindingFlags.NonPublic | BindingFlags.Static);
+
+    private static Func<object?, object?> CreateConverter(Type type)
+        => (Func<object?, object?>)CreateConverterMethod.MakeGenericMethod(type).Invoke(null, null);
+
+    private static Func<object?, object?> CreateConverterFor<TValue>() => value => ConvertTo<TValue>.From(value);
 
     /// <summary>
     /// Convert a datarecord into a dynamic object, so that properties can be simply accessed
