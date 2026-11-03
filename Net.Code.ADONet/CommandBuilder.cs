@@ -35,11 +35,24 @@ public partial class CommandBuilder(DbCommand command, DbConfig config, ILogger?
         if (parameters == null)
             throw new ArgumentNullException(nameof(parameters));
 
-        var getters = FastReflection<T>.Instance.GetGettersForType();
-        var props = parameters.GetType().GetProperties();
-        foreach (var property in props)
+        var runtimeType = parameters.GetType();
+        if (runtimeType == typeof(T))
         {
-            WithParameter(property.Name, getters[property.Name](parameters));
+            var getters = FastReflection<T>.Instance.GetGettersForType();
+            var props = runtimeType.GetProperties();
+            foreach (var property in props)
+            {
+                WithParameter(property.Name, getters[property.Name](parameters));
+            }
+        }
+        else
+        {
+            // the static type T differs from the runtime type (e.g. T is object or a base class):
+            // use the properties and getters of the runtime type
+            foreach (var (name, getter) in FastReflection.GetGetters(runtimeType))
+            {
+                WithParameter(name, getter(parameters));
+            }
         }
         return this;
     }

@@ -1,5 +1,44 @@
 namespace Net.Code.ADONet;
 
+/// <summary>
+/// Non-generic counterpart of <see cref="FastReflection{T}"/>, for when the type is only known at runtime.
+/// Getters are compiled once per type and cached.
+/// </summary>
+internal static class FastReflection
+{
+    private static readonly ConcurrentDictionary<Type, (string name, Func<object, object?> getter)[]> _getters = new();
+
+    /// <summary>
+    /// Returns the (readable, non-indexer) public properties of the given type, in declaration order,
+    /// with a fast getter for each.
+    /// </summary>
+    public static IReadOnlyList<(string name, Func<object, object?> getter)> GetGetters(Type type)
+        => _getters.GetOrAdd(
+            type,
+            t => t.GetProperties()
+                .Where(p => p.GetMethod is { IsStatic: false } && p.GetIndexParameters().Length == 0)
+                .Select(p => (p.Name, GetGetDelegate(p)))
+                .ToArray()
+        );
+
+    private static Func<object, object?> GetGetDelegate(PropertyInfo p)
+    {
+        // open instance delegates over value type getters are not supported; fall back to reflection
+        if (p.DeclaringType!.IsValueType)
+            return target => p.GetValue(target);
+        var method = p.GetGetMethod();
+        var genericHelper = typeof(FastReflection).GetMethod(nameof(CreateGetterDelegateHelper), BindingFlags.Static | BindingFlags.NonPublic);
+        var constructedHelper = genericHelper.MakeGenericMethod(p.DeclaringType, method.ReturnType);
+        return (Func<object, object?>)constructedHelper.Invoke(null, new object[] { method });
+    }
+
+    private static Func<object, object?> CreateGetterDelegateHelper<TTarget, TProperty>(MethodInfo method)
+    {
+        var func = (Func<TTarget, TProperty>)method.CreateDelegate(typeof(Func<TTarget, TProperty>));
+        return target => ConvertTo<TProperty>.From(func((TTarget)target));
+    }
+}
+
 internal sealed class FastReflection<T>
 {
     private FastReflection() { }
