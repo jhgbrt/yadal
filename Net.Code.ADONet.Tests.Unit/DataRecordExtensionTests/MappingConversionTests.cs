@@ -1,4 +1,6 @@
+#nullable enable
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
@@ -17,6 +19,12 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
         public record IntRecord(int Id, int? Count, string? Name);
 
         public record EnumRecord(int Id, Kind Kind, Kind? NullableKind);
+
+        public record ObjectRecord(int Id, object Value);
+
+        public record BytesRecord(int Id, IEnumerable<byte> Data);
+
+        public record NonNullableRecord(int Id, int Count, Kind Kind, Guid Key, string? Name);
 
         public class EnumEntity
         {
@@ -130,6 +138,53 @@ namespace Net.Code.ADONet.Tests.Unit.DataRecordExtensionTests
             Assert.Equal(Kind.A, result[0].NullableKind);
             Assert.Equal(Kind.A, result[1].Kind);
             Assert.Null(result[1].NullableKind);
+        }
+
+        [Fact]
+        public void Record_WithObjectParameter_AcceptsNonConvertibleValue()
+        {
+            var id = Guid.NewGuid();
+            var table = CreateTable(("Id", typeof(int)), ("Value", typeof(Guid)));
+            table.Rows.Add(1, id);
+
+            var result = MapAll<ObjectRecord>(table).Single();
+
+            Assert.Equal(1, result.Id);
+            Assert.Equal(id, result.Value);
+        }
+
+        [Fact]
+        public void Record_WithObjectParameter_KeepsOriginalValueType()
+        {
+            var table = CreateTable(("Id", typeof(int)), ("Value", typeof(long)));
+            table.Rows.Add(1, 42L);
+
+            var result = MapAll<ObjectRecord>(table).Single();
+
+            Assert.IsType<long>(result.Value);
+            Assert.Equal(42L, result.Value);
+        }
+
+        [Fact]
+        public void Record_WithInterfaceParameter_AcceptsAssignableValue()
+        {
+            var table = CreateTable(("Id", typeof(int)), ("Data", typeof(byte[])));
+            table.Rows.Add(1, new byte[] { 1, 2, 3 });
+
+            var result = MapAll<BytesRecord>(table).Single();
+
+            Assert.Equal(new byte[] { 1, 2, 3 }, result.Data);
+        }
+
+        [Fact]
+        public void Record_WithDbNullForNonNullableValueTypeParameters_MapsToDefault()
+        {
+            var table = CreateTable(("Id", typeof(int)), ("Count", typeof(long)), ("Kind", typeof(long)), ("Key", typeof(Guid)), ("Name", typeof(string)));
+            table.Rows.Add(1, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value);
+
+            var result = MapAll<NonNullableRecord>(table).Single();
+
+            Assert.Equal(new NonNullableRecord(1, 0, default, Guid.Empty, null), result);
         }
 
         private class TableCommand : FakeCommand

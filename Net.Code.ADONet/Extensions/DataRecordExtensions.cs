@@ -70,7 +70,17 @@ internal static class DataRecordExtensions
     private static Func<object?, object?> CreateConverter(Type type)
         => (Func<object?, object?>)CreateConverterMethod.MakeGenericMethod(type).Invoke(null, null);
 
-    private static Func<object?, object?> CreateConverterFor<TValue>() => value => ConvertTo<TValue>.From(value);
+    // - null (DBNull) is passed through unchanged, as before: ConstructorInfo.Invoke turns it into
+    //   default(T) for non-nullable value type parameters and null otherwise.
+    // - values already assignable to the parameter type are passed through as-is (e.g. a Guid for
+    //   an object parameter, a byte[] for an IEnumerable<byte> parameter).
+    // - anything else is converted with the same semantics as the property setter path.
+    private static Func<object?, object?> CreateConverterFor<TValue>() => value => value switch
+    {
+        null => null,
+        TValue t => t,
+        _ => ConvertTo<TValue>.From(value)
+    };
 
     /// <summary>
     /// Convert a datarecord into a dynamic object, so that properties can be simply accessed
