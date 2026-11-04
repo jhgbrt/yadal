@@ -2,10 +2,13 @@ namespace Net.Code.ADONet;
 
 internal static class EnumerableExtensions
 {
-    /// <summary>
-    /// Adapter from IEnumerable[T] to IDataReader
-    /// </summary>
-    public static DbDataReader AsDataReader<T>(this IEnumerable<T> input) => new EnumerableDataReaderImpl<T>(input);
+    extension<T>(IEnumerable<T> input)
+    {
+        /// <summary>
+        /// Adapter from IEnumerable[T] to IDataReader
+        /// </summary>
+        public DbDataReader AsDataReader() => new EnumerableDataReaderImpl<T>(input);
+    }
 
     private class EnumerableDataReaderImpl<T> : DbDataReader
     {

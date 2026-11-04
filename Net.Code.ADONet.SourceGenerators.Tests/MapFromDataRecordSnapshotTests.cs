@@ -81,6 +81,10 @@ public class MapFromDataRecordSnapshotTests
                 public bool? IsBad { get; set; }
                 public DateTime BirthDate { get; set; }
                 public DateTime? LastSeen { get; set; }
+                public DateOnly HireDate { get; set; }
+                public DateOnly? ExitDate { get; set; }
+                public TimeOnly StartTime { get; set; }
+                public TimeOnly? EndTime { get; set; }
                 public string Name { get; set; }
                 public string? MiddleName { get; set; }
             }

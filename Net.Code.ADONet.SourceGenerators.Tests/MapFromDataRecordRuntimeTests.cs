@@ -81,6 +81,71 @@ public class MapFromDataRecordRuntimeTests
         Assert.Null(Get(p, "MiddleName"));
     }
 
+    const string DateTimeClassSource = """
+        using System;
+        using Net.Code.ADONet;
+        namespace My.Namespace;
+
+        [MapFromDataRecord]
+        public class Shift
+        {
+            public DateOnly Day { get; set; }
+            public DateOnly? EndDay { get; set; }
+            public TimeOnly Start { get; set; }
+            public TimeOnly? End { get; set; }
+        }
+        """;
+
+    const string DateTimeRecordSource = """
+        using System;
+        using Net.Code.ADONet;
+        namespace My.Namespace;
+
+        [MapFromDataRecord]
+        public record Shift(DateOnly Day, DateOnly? EndDay, TimeOnly Start, TimeOnly? End);
+        """;
+
+    static string DateTimeSourceFor(string kind) => kind == "record" ? DateTimeRecordSource : DateTimeClassSource;
+
+    static readonly DateOnly Day = new(2024, 5, 6);
+    static readonly TimeOnly Start = new(8, 30);
+
+    // Npgsql 10+ reports 'date' and 'time' columns as DateOnly / TimeOnly
+    [Theory]
+    [MemberData(nameof(Kinds))]
+    public void MapsDateOnlyAndTimeOnly_FromDateOnlyAndTimeOnlyColumns(string kind)
+    {
+        var map = GeneratedMapper.Create(DateTimeSourceFor(kind), "My.Namespace.ShiftMapper", "ToShift");
+
+        using var reader = CreateReader(("Day", typeof(DateOnly)), ("EndDay", typeof(DateOnly)), ("Start", typeof(TimeOnly)), ("End", typeof(TimeOnly)))
+            .With(Day, DBNull.Value, Start, new TimeOnly(17, 0));
+
+        Assert.True(reader.Read());
+        var s = map(reader);
+        Assert.Equal(Day, Get(s, "Day"));
+        Assert.Null(Get(s, "EndDay"));
+        Assert.Equal(Start, Get(s, "Start"));
+        Assert.Equal(new TimeOnly(17, 0), Get(s, "End"));
+    }
+
+    // SqlClient, Sqlite, MySql, ... report 'date' and 'time' columns as DateTime / TimeSpan
+    [Theory]
+    [MemberData(nameof(Kinds))]
+    public void MapsDateOnlyAndTimeOnly_FromDateTimeAndTimeSpanColumns(string kind)
+    {
+        var map = GeneratedMapper.Create(DateTimeSourceFor(kind), "My.Namespace.ShiftMapper", "ToShift");
+
+        using var reader = CreateReader(("Day", typeof(DateTime)), ("EndDay", typeof(DateTime)), ("Start", typeof(TimeSpan)), ("End", typeof(TimeSpan)))
+            .With(new DateTime(2024, 5, 6), new DateTime(2024, 5, 7), new TimeSpan(8, 30, 0), DBNull.Value);
+
+        Assert.True(reader.Read());
+        var s = map(reader);
+        Assert.Equal(Day, Get(s, "Day"));
+        Assert.Equal(new DateOnly(2024, 5, 7), Get(s, "EndDay"));
+        Assert.Equal(Start, Get(s, "Start"));
+        Assert.Null(Get(s, "End"));
+    }
+
     static object? Get(object o, string property) => o.GetType().GetProperty(property)!.GetValue(o);
 
     static ReaderBuilder CreateReader(params (string name, Type type)[] columns)

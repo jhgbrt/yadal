@@ -4,55 +4,60 @@ namespace Net.Code.ADONet.Extensions.SqlClient;
 
 public static class DbExtensions
 {
-    /// <summary>
-    /// Adds a table-valued parameter. Only supported on SQL Server (System.Data.SqlClient)
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
     /// <param name="commandBuilder"></param>
-    /// <param name="name">parameter name</param>
-    /// <param name="values">list of values</param>
-    /// <param name="udtTypeName">name of the user-defined table type</param>
-    public static CommandBuilder WithParameter<T>(this CommandBuilder commandBuilder, string name, IEnumerable<T> values, string udtTypeName)
+    extension(CommandBuilder commandBuilder)
     {
-        var dataTable = values.ToDataTable();
-
-        var p = new SqlParameter(name, SqlDbType.Structured)
+        /// <summary>
+        /// Adds a table-valued parameter. Only supported on SQL Server (System.Data.SqlClient)
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="name">parameter name</param>
+        /// <param name="values">list of values</param>
+        /// <param name="udtTypeName">name of the user-defined table type</param>
+        public CommandBuilder WithParameter<T>(string name, IEnumerable<T> values, string udtTypeName)
         {
-            TypeName = udtTypeName,
-            Value = dataTable
-        };
+            var dataTable = values.ToDataTable();
 
-        return commandBuilder.WithParameter(p);
+            var p = new SqlParameter(name, SqlDbType.Structured)
+            {
+                TypeName = udtTypeName,
+                Value = dataTable
+            };
+
+            return commandBuilder.WithParameter(p);
+        }
     }
 
-    /// <summary>
-    /// Assumes one to one mapping between
-    /// - tablename and typename
-    /// - property names and column names
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
     /// <param name="db"></param>
-    /// <param name="items"></param>
-    public static void BulkCopy<T>(this IDb db, IEnumerable<T> items)
+    extension(IDb db)
     {
-        using var bcp = GetBulkCopy<T>(db);
-        var datareader = items.AsDataReader();
-        bcp.WriteToServer(datareader);
-    }
+        /// <summary>
+        /// Assumes one to one mapping between
+        /// - tablename and typename
+        /// - property names and column names
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="items"></param>
+        public void BulkCopy<T>(IEnumerable<T> items)
+        {
+            using var bcp = GetBulkCopy<T>(db);
+            var datareader = items.AsDataReader();
+            bcp.WriteToServer(datareader);
+        }
 
-    /// <summary>
-    /// Assumes one to one mapping between
-    /// - tablename and typename
-    /// - property names and column names
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="db"></param>
-    /// <param name="items"></param>
-    public static async ValueTask BulkCopyAsync<T>(this IDb db, IEnumerable<T> items)
-    {
-        using var bcp = GetBulkCopy<T>(db);
-        var datareader = items.AsDataReader();
-        await bcp.WriteToServerAsync(datareader);
+        /// <summary>
+        /// Assumes one to one mapping between
+        /// - tablename and typename
+        /// - property names and column names
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="items"></param>
+        public async ValueTask BulkCopyAsync<T>(IEnumerable<T> items)
+        {
+            using var bcp = GetBulkCopy<T>(db);
+            var datareader = items.AsDataReader();
+            await bcp.WriteToServerAsync(datareader);
+        }
     }
 
     private static SqlBulkCopy GetBulkCopy<T>(IDb db)

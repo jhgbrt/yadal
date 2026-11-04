@@ -4,25 +4,28 @@ namespace Net.Code.ADONet;
 
 internal static class StringExtensions
 {
-    public static string ToUpperRemoveSpecialChars(this string str)
-        => string.IsNullOrEmpty(str) ? str : Regex.Replace(str, @"([^\w]|_)", "").ToUpperInvariant();
+    extension(string str)
+    {
+        public string ToUpperRemoveSpecialChars()
+            => string.IsNullOrEmpty(str) ? str : Regex.Replace(str, @"([^\w]|_)", "").ToUpperInvariant();
 
-    public static string ToPascalCase(this string str) => str?.Aggregate(
-        (sb: new StringBuilder(), transform: (Func<char, char>)char.ToUpper),
-        (t, c) => char.IsLetterOrDigit(c) ? (t.sb.Append(t.transform(c)), char.ToLower) : (t.sb, char.ToUpper)
-        ).sb.ToString() ?? string.Empty;
+        public string ToPascalCase() => str?.Aggregate(
+            (sb: new StringBuilder(), transform: (Func<char, char>)char.ToUpper),
+            (t, c) => char.IsLetterOrDigit(c) ? (t.sb.Append(t.transform(c)), char.ToLower) : (t.sb, char.ToUpper)
+            ).sb.ToString() ?? string.Empty;
 
-    public static string PascalCaseToSentence(this string source)
-        => string.IsNullOrEmpty(source) ? source : string.Join(" ", SplitUpperCase(source));
+        public string PascalCaseToSentence()
+            => string.IsNullOrEmpty(str) ? str : string.Join(" ", SplitUpperCase(str));
 
-    public static string ToUpperWithUnderscores(this string source)
-        => string.Join("_", SplitUpperCase(source).Select(s => s.ToUpperInvariant()));
+        public string ToUpperWithUnderscores()
+            => string.Join("_", SplitUpperCase(str).Select(s => s.ToUpperInvariant()));
 
-    public static string ToLowerWithUnderscores(this string source)
-        => string.Join("_", SplitUpperCase(source).Select(s => s.ToLowerInvariant()));
+        public string ToLowerWithUnderscores()
+            => string.Join("_", SplitUpperCase(str).Select(s => s.ToLowerInvariant()));
 
-    public static string NoOp(this string source)
-        => source;
+        public string NoOp()
+            => str;
+    }
 
     private static IEnumerable<string> SplitUpperCase(string source)
     {

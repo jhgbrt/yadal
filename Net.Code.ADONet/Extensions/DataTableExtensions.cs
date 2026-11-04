@@ -2,38 +2,48 @@ namespace Net.Code.ADONet;
 
 internal static class DataTableExtensions
 {
-    public static IEnumerable<dynamic> AsEnumerable(this DataTable dataTable) => dataTable.Rows.OfType<DataRow>().Select(Dynamic.From);
-    public static IEnumerable<T> Select<T>(this DataTable dt, Func<dynamic, T> selector) => dt.AsEnumerable().Select(selector);
-    public static IEnumerable<dynamic> Where(this DataTable dt, Func<dynamic, bool> predicate) => dt.AsEnumerable().Where(predicate);
-
-    /// <summary>
-    /// Executes the query (using datareader) and fills a datatable
-    /// </summary>
-    public static DataTable AsDataTable(this CommandBuilder commandBuilder)
+    extension(DataTable dataTable)
     {
-        using var reader = commandBuilder.AsReader();
-        var tb = new DataTable();
-        tb.Load(reader);
-        return tb;
+        public IEnumerable<dynamic> AsEnumerable() => dataTable.Rows.OfType<DataRow>().Select(Dynamic.From);
+        public IEnumerable<T> Select<T>(Func<dynamic, T> selector) => dataTable.AsEnumerable().Select(selector);
+        public IEnumerable<dynamic> Where(Func<dynamic, bool> predicate) => dataTable.AsEnumerable().Where(predicate);
     }
-    public static DataTable ToDataTable<T>(this IEnumerable<T> items)
+
+    extension(CommandBuilder commandBuilder)
     {
-        var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
-
-        var table = new DataTable(typeof(T).Name);
-        foreach (var prop in props)
+        /// <summary>
+        /// Executes the query (using datareader) and fills a datatable
+        /// </summary>
+        public DataTable AsDataTable()
         {
-            var propType = prop.PropertyType.GetUnderlyingType();
-            table.Columns.Add(prop.Name, propType);
+            using var reader = commandBuilder.AsReader();
+            var tb = new DataTable();
+            tb.Load(reader);
+            return tb;
         }
+    }
 
-        var values = new object[props.Length];
-        foreach (var item in items)
+    extension<T>(IEnumerable<T> items)
+    {
+        public DataTable ToDataTable()
         {
-            for (var i = 0; i < props.Length; i++)
-                values[i] = props[i].GetValue(item, null);
-            table.Rows.Add(values);
+            var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+            var table = new DataTable(typeof(T).Name);
+            foreach (var prop in props)
+            {
+                var propType = prop.PropertyType.GetUnderlyingType();
+                table.Columns.Add(prop.Name, propType);
+            }
+
+            var values = new object[props.Length];
+            foreach (var item in items)
+            {
+                for (var i = 0; i < props.Length; i++)
+                    values[i] = props[i].GetValue(item, null);
+                table.Rows.Add(values);
+            }
+            return table;
         }
-        return table;
     }
 }
