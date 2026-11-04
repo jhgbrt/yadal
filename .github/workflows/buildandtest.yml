@@ -16,4 +16,6 @@ jobs:
     - name: build
       run: dotnet build --configuration Release
     - name: test
-      run: dotnet test --no-build --configuration Release Net.Code.ADONet.Tests.Unit
+      run: |
+        dotnet test --no-build --configuration Release Net.Code.ADONet.Tests.Unit
+        dotnet test --no-build --configuration Release Net.Code.ADONet.SourceGenerators.Tests

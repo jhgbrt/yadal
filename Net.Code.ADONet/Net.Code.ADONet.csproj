@@ -12,11 +12,25 @@
     <PackageProjectUrl>https://github.com/jhgbrt/yadal/wiki</PackageProjectUrl>
     <RepositoryUrl>https://github.com/jhgbrt/yadal</RepositoryUrl>
     <PackageTags>ado.net</PackageTags>
-    <PackageReleaseNotes></PackageReleaseNotes>
+    <PackageReleaseNotes>
+7.0.0
+Breaking:
+- Depends on Microsoft.Data.SqlClient 7. Entra ID (Azure AD) authentication now requires referencing Microsoft.Data.SqlClient.Extensions.Azure in your application.
+New:
+- net8.0 target (in addition to netstandard2.1).
+- DateOnly/TimeOnly support, including Npgsql 10, which returns DateOnly/TimeOnly for date/time columns.
+- IDataRecord extensions: GetDateOnly, GetTimeOnly, GetTimeSpan, GetDateTimeOffset, GetByteArray, GetEnum.
+- Source generator: DateOnly, TimeOnly, TimeSpan, DateTimeOffset, byte[] and enum properties; error ADONET001 for unsupported property types.
+Fixed:
+- Mapping a type with a public property with a non-public setter or getter threw NullReferenceException.
+- Generated mappers cached column ordinals across queries and did not map DBNull to null for nullable reference types.
+- Record constructor mapping conversions, enum conversion, SelectOne key handling, WithParameters with runtime types, chunked GetBytes/GetChars, thread-safety of the query cache.
+- Patched vulnerable transitive dependencies (System.Security.Cryptography.Pkcs, Microsoft.Bcl.Memory).
+    </PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Version>6.0.0</Version>
-    <AssemblyVersion>6.0.0</AssemblyVersion>
-    <FileVersion>6.0.0</FileVersion>
+    <Version>7.0.0</Version>
+    <AssemblyVersion>7.0.0</AssemblyVersion>
+    <FileVersion>7.0.0</FileVersion>
     <LangVersion>preview</LangVersion>
     <Nullable>enable</Nullable>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>

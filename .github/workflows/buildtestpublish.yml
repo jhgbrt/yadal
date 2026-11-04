@@ -1,23 +1,42 @@
 name: Build, Test and Publish
 
+# Publishes Net.Code.ADONet to nuget.org using NuGet trusted publishing (OIDC): no long-lived API key.
+# The nuget.org trusted publishing policy is bound to this workflow file (buildtestpublish.yml),
+# repository jhgbrt/yadal and the 'production' environment. Renaming this file or the environment
+# requires updating the policy on nuget.org.
+
 on: [workflow_dispatch]
 
-jobs:
-  build:
+permissions:
+  contents: read
 
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
-    
+    environment: production
+    permissions:
+      contents: read
+      id-token: write # required to request the GitHub OIDC token that NuGet/login exchanges
+
     steps:
     - uses: actions/checkout@v7
-    - name: Setup .NET 
+    - name: Setup .NET
       uses: actions/setup-dotnet@v6
       with:
         global-json-file: global.json
     - name: build
       run: dotnet build --configuration Release
     - name: test
-      run: dotnet test --no-build --configuration Release Net.Code.ADONet.Tests.Unit
+      run: |
+        dotnet test --no-build --configuration Release Net.Code.ADONet.Tests.Unit
+        dotnet test --no-build --configuration Release Net.Code.ADONet.SourceGenerators.Tests
     - name: pack
-      run: dotnet pack Net.Code.ADONet -o out
+      run: dotnet pack Net.Code.ADONet --no-build --configuration Release -o out
+    - name: NuGet login (OIDC)
+      id: login
+      uses: NuGet/login@v1
+      with:
+        user: jeroenh
     - name: push to nuget
-      run: dotnet nuget push out/Net.Code.ADONet.*.nupkg -k ${{secrets.NUGET_API_KEY}} -s https://api.nuget.org/v3/index.json --skip-duplicate
+      run: dotnet nuget push "out/*.nupkg" --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
