@@ -53,7 +53,7 @@ public class Db : IDb
     /// <param name="providerFactory">the connection factory</param>
     internal Db(string connectionString, DbConfig config, DbProviderFactory providerFactory, ILogger? logger = null)
     {
-        _connection = providerFactory.CreateConnection();
+        _connection = providerFactory.CreateConnection() ?? throw new InvalidOperationException($"{providerFactory.GetType()} did not create a connection");
         _connection.ConnectionString = connectionString;
         _externalConnection = false;
         _logger = logger ?? NullLogger.Instance;

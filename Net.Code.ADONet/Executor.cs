@@ -14,7 +14,7 @@ public partial class CommandBuilder
         /// <summary>
         /// Executes the command, returning the first column of the first result as a scalar value
         /// </summary>
-        public object Scalar() => Prepare().ExecuteScalar();
+        public object? Scalar() => Prepare().ExecuteScalar();
 
         /// <summary>
         /// Executes the command as a SQL statement, returning the number of rows affected
@@ -24,8 +24,9 @@ public partial class CommandBuilder
         private DbCommand Prepare()
         {
             Logger.LogCommand(logger, Command);
-            if (Command.Connection.State == ConnectionState.Closed)
-                Command.Connection.Open();
+            var connection = Command.Connection ?? throw new InvalidOperationException("The command has no connection");
+            if (connection.State == ConnectionState.Closed)
+                connection.Open();
             return Command;
         }
     }

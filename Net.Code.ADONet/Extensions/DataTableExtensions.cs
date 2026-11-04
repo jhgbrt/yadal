@@ -36,7 +36,7 @@ internal static class DataTableExtensions
                 table.Columns.Add(prop.Name, propType);
             }
 
-            var values = new object[props.Length];
+            var values = new object?[props.Length];
             foreach (var item in items)
             {
                 for (var i = 0; i < props.Length; i++)

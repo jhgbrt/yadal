@@ -13,7 +13,7 @@ internal static class TypeExtensions
     extension(Type type)
     {
         public Type GetUnderlyingType()
-            => type.IsNullableType() ? Nullable.GetUnderlyingType(type) : type;
+            => Nullable.GetUnderlyingType(type) ?? type;
         public bool IsNullableType()
             => type.IsGenericType
                 && !type.IsGenericTypeDefinition

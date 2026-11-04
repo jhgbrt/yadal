@@ -26,7 +26,7 @@ public class DbConfig(Action<IDbCommand> prepareCommand, MappingConvention mappi
     };
 
     public static DbConfig FromProviderFactory(DbProviderFactory factory)
-        => FromProviderName(factory.GetType().FullName);
+        => FromProviderName(factory.GetType().FullName ?? factory.GetType().Name);
 
     // By default, the Oracle driver does not support binding parameters by name;
     // one has to set the BindByName property on the OracleDbCommand.

@@ -20,8 +20,7 @@ internal static class EnumerableExtensions
         private static readonly IReadOnlyDictionary<string, Func<T, object?>> Getters;
         static EnumerableDataReaderImpl()
         {
-            var propertyInfos = typeof(T).GetProperties();
-            Properties = propertyInfos.ToArray();
+            Properties = typeof(T).GetProperties().Where(FastReflection.IsReadable).ToArray();
             Getters = FastReflection<T>.Instance.GetGettersForType();
             PropertyIndexesByName = Properties.Select((p, i) => (p, i)).ToDictionary(x => x.p.Name, x => x.i);
         }
@@ -34,7 +33,7 @@ internal static class EnumerableExtensions
         public override string GetDataTypeName(int i) => Properties[i].PropertyType.Name;
         public override IEnumerator GetEnumerator() => _enumerator;
         public override Type GetFieldType(int i) => Properties[i].PropertyType;
-        public override object? GetValue(int i)
+        public override object GetValue(int i)
             => DBNullHelper.ToDb(Getters[Properties[i].Name](_enumerator.Current));
         public override int GetValues(object?[] values)
         {
@@ -59,7 +58,8 @@ internal static class EnumerableExtensions
         public override long GetInt64(int i) => this.Get<long>(i);
         public override float GetFloat(int i) => this.Get<float>(i);
         public override double GetDouble(int i) => this.Get<double>(i);
-        public override string? GetString(int i) => this.Get<string>(i);
+        // like before, DBNull reads as null; callers are expected to check IsDBNull first
+        public override string GetString(int i) => this.Get<string>(i)!;
         public override decimal GetDecimal(int i) => this.Get<decimal>(i);
         public override DateTime GetDateTime(int i) => this.Get<DateTime>(i);
         /// <summary>
@@ -80,8 +80,8 @@ internal static class EnumerableExtensions
         public override bool IsDBNull(int i) => DBNull.Value.Equals(GetValue(i));
         public override int FieldCount => Properties.Length;
         public override bool HasRows => _list.Any();
-        public override object? this[int i] => GetValue(i);
-        public override object? this[string name] => GetValue(GetOrdinal(name));
+        public override object this[int i] => GetValue(i);
+        public override object this[string name] => GetValue(GetOrdinal(name));
         public override void Close() => Dispose();
         public override DataTable GetSchemaTable()
             => (from x in EnumerableDataReaderImpl<T>.Properties.Select((p, i) => (p, i))

@@ -18,7 +18,7 @@ public partial class CommandBuilder
         /// <summary>
         /// Executes the command, returning the first column of the first result as a scalar value
         /// </summary>
-        public async Task<object> Scalar()
+        public async Task<object?> Scalar()
         {
             var command = await PrepareAsync().ConfigureAwait(false);
             return await command.ExecuteScalarAsync().ConfigureAwait(false);
@@ -36,8 +36,9 @@ public partial class CommandBuilder
         private async Task<DbCommand> PrepareAsync()
         {
             Logger.LogQuery(logger, LogLevel.Trace, Command.CommandText);
-            if (Command.Connection.State == ConnectionState.Closed)
-                await Command.Connection.OpenAsync().ConfigureAwait(false);
+            var connection = Command.Connection ?? throw new InvalidOperationException("The command has no connection");
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync().ConfigureAwait(false);
             return Command;
         }
 

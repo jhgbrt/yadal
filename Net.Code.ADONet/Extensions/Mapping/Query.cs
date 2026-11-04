@@ -16,9 +16,9 @@ internal class ValueList<T> : List<T>
     {
         base.AddRange(values);
     }
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
-        dynamic d = obj;
+        dynamic? d = obj;
         return IsSequenceEqual(d);
     }
     private bool IsSequenceEqual(IEnumerable<T> other) => this.SequenceEqual(other);
@@ -44,8 +44,8 @@ internal static class QueryFactory<T>
         public string Name { get; } = info.Name;
         public bool HasCustomAttribute<TAttribute>(Func<TAttribute, bool> predicate) => info.HasCustomAttribute<TAttribute>(predicate);
         public string GetColumnName(MappingConvention convention) => info.GetColumnName(convention);
-        public object GetValue(object obj) => info.GetValue(obj);
-        public override bool Equals(object obj) => obj is MyPropertyInfo other && ((other.Name, other.Type)).Equals((Name, Type));
+        public object? GetValue(object obj) => info.GetValue(obj);
+        public override bool Equals(object? obj) => obj is MyPropertyInfo other && ((other.Name, other.Type)).Equals((Name, Type));
         public override int GetHashCode() => (Name, Type).GetHashCode();
     }
 

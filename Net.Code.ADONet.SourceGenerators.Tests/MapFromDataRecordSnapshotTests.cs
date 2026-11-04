@@ -29,7 +29,7 @@ public class Person
     public bool? IsBad { get; set; }
     public DateTime BirthDate { get; set; }
     public DateTime? LastSeen { get; set; }
-    public string Name { get; set; }
+    public string Name { get; set; } = "";
     public string? MiddleName { get; set; }
 }
 

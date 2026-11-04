@@ -32,7 +32,7 @@ public static class ConvertTo<T>
     private static Func<object?, T?> CreateConvertNullableValueTypeFunc(Type type)
     {
         var delegateType = typeof(Func<object?, T?>);
-        var methodInfo = typeof(ConvertTo<T>).GetMethod("ConvertNullableValueType", BindingFlags.NonPublic | BindingFlags.Static);
+        var methodInfo = typeof(ConvertTo<T>).GetMethod(nameof(ConvertNullableValueType), BindingFlags.NonPublic | BindingFlags.Static)!;
         var genericMethodForElement = methodInfo.MakeGenericMethod(type.GetGenericArguments()[0]);
         return (Func<object?, T?>)genericMethodForElement.CreateDelegate(delegateType);
     }

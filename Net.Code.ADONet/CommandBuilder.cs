@@ -252,7 +252,7 @@ public partial class CommandBuilder(DbCommand command, DbConfig config, ILogger?
     /// <typeparam name="T">return type</typeparam>
     public T? AsScalar<T>() => ConvertTo<T>.From(AsScalar());
 
-    public object AsScalar() => Execute.Scalar();
+    public object? AsScalar() => Execute.Scalar();
 
     /// <summary>
     /// Executes the command as a SQL statement, returning the number of rows affected

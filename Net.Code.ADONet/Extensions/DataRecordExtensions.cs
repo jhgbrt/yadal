@@ -36,10 +36,11 @@ internal static class DataRecordExtensions
             if (constructor == null)
             {
                 var setterMap = reader.GetSetters<T>(config);
-                constructor = type.GetConstructor([]);
+                var defaultConstructor = type.GetConstructor([]);
                 return record =>
                 {
-                    var item = (T)constructor.Invoke(null);
+                    var item = (T)(defaultConstructor ?? throw new InvalidOperationException(
+                        $"Cannot map to {type}: it needs a public parameterless constructor, or a single constructor with a parameter for each property")).Invoke(null);
                     foreach (var setter in setterMap)
                     {
                         var val = DBNullHelper.FromDb(record.GetValue(setter.FieldIndex));
@@ -68,13 +69,13 @@ internal static class DataRecordExtensions
 
     extension(ConstructorInfo constructor)
     {
-        private IEnumerable<(string name, Type type)> Parameters() => constructor.GetParameters().Select(p => (p.Name, p.ParameterType));
+        private IEnumerable<(string name, Type type)> Parameters() => constructor.GetParameters().Select(p => (p.Name ?? string.Empty, p.ParameterType));
     }
 
-    private static readonly MethodInfo CreateConverterMethod = typeof(DataRecordExtensions).GetMethod(nameof(CreateConverterFor), BindingFlags.NonPublic | BindingFlags.Static);
+    private static readonly MethodInfo CreateConverterMethod = typeof(DataRecordExtensions).GetMethod(nameof(CreateConverterFor), BindingFlags.NonPublic | BindingFlags.Static)!;
 
     private static Func<object?, object?> CreateConverter(Type type)
-        => (Func<object?, object?>)CreateConverterMethod.MakeGenericMethod(type).Invoke(null, null);
+        => (Func<object?, object?>)CreateConverterMethod.MakeGenericMethod(type).Invoke(null, null)!;
 
     // - null (DBNull) is passed through unchanged, as before: ConstructorInfo.Invoke turns it into
     //   default(T) for non-nullable value type parameters and null otherwise.
