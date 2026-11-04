@@ -18,6 +18,7 @@ namespace IntegrationTests.Performance
         private ITestOutputHelper _output;
         protected PerformanceTest(ITestOutputHelper output, DatabaseFixture<T> target)
         {
+            Skip.IfNot(target.IsAvailable, target.ConnectionFailureException?.Message);
             _output = output;
             _testHelper = new DbTestHelper<T>(target.Target, target.CreateDb(NullLogger.Instance));
             _testHelper.Initialize();
