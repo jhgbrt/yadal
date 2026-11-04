@@ -146,13 +146,109 @@ public class MapFromDataRecordRuntimeTests
         Assert.Null(Get(s, "End"));
     }
 
+    const string OtherTypesClassSource = """
+        using System;
+        using Net.Code.ADONet;
+        namespace My.Namespace;
+
+        public enum Status { Active = 1, Inactive = 2 }
+        public enum Level : byte { Low = 1, High = 200 }
+
+        [MapFromDataRecord]
+        public class Item
+        {
+            public TimeSpan Duration { get; set; }
+            public TimeSpan? Pause { get; set; }
+            public DateTimeOffset CreatedAt { get; set; }
+            public DateTimeOffset? DeletedAt { get; set; }
+            public byte[] Photo { get; set; } = [];
+            public byte[]? Thumbnail { get; set; }
+            public Status Status { get; set; }
+            public Status? PreviousStatus { get; set; }
+            public Level Level { get; set; }
+        }
+        """;
+
+    const string OtherTypesRecordSource = """
+        using System;
+        using Net.Code.ADONet;
+        namespace My.Namespace;
+
+        public enum Status { Active = 1, Inactive = 2 }
+        public enum Level : byte { Low = 1, High = 200 }
+
+        [MapFromDataRecord]
+        public record Item(TimeSpan Duration, TimeSpan? Pause, DateTimeOffset CreatedAt, DateTimeOffset? DeletedAt,
+            byte[] Photo, byte[]? Thumbnail, Status Status, Status? PreviousStatus, Level Level);
+        """;
+
+    static string OtherTypesSourceFor(string kind) => kind == "record" ? OtherTypesRecordSource : OtherTypesClassSource;
+
+    static readonly DateTimeOffset Created = new(2024, 5, 6, 7, 8, 9, TimeSpan.FromHours(2));
+
+    static readonly (string, Type)[] OtherTypesColumns =
+    [
+        ("Duration", typeof(TimeSpan)), ("Pause", typeof(TimeSpan)), ("CreatedAt", typeof(DateTimeOffset)), ("DeletedAt", typeof(DateTimeOffset)),
+        ("Photo", typeof(byte[])), ("Thumbnail", typeof(byte[])), ("Status", typeof(int)), ("PreviousStatus", typeof(int)), ("Level", typeof(byte)),
+    ];
+
+    // each column holds the type that maps most directly to the property
+    [Theory]
+    [MemberData(nameof(Kinds))]
+    public void MapsOtherTypes_FromMatchingColumns(string kind)
+    {
+        var map = GeneratedMapper.Create(OtherTypesSourceFor(kind), "My.Namespace.ItemMapper", "ToItem");
+
+        using var reader = CreateReader(OtherTypesColumns)
+            .With(TimeSpan.FromMinutes(90), DBNull.Value, Created, DBNull.Value, new byte[] { 1, 2, 3 }, DBNull.Value, 2, DBNull.Value, (byte)200);
+
+        Assert.True(reader.Read());
+        var item = map(reader);
+        Assert.Equal(TimeSpan.FromMinutes(90), Get(item, "Duration"));
+        Assert.Null(Get(item, "Pause"));
+        Assert.Equal(Created, Get(item, "CreatedAt"));
+        Assert.Null(Get(item, "DeletedAt"));
+        Assert.Equal(new byte[] { 1, 2, 3 }, Get(item, "Photo"));
+        Assert.Null(Get(item, "Thumbnail"));
+        Assert.Equal("Inactive", Get(item, "Status")!.ToString());
+        Assert.Null(Get(item, "PreviousStatus"));
+        Assert.Equal("High", Get(item, "Level")!.ToString());
+    }
+
+    // the other representations that providers use: TimeOnly for 'time' (Npgsql 10), DateTime for
+    // timestamps (e.g. Npgsql timestamptz, UTC), Int64 integers (Sqlite) and enums stored as strings
+    [Theory]
+    [MemberData(nameof(Kinds))]
+    public void MapsOtherTypes_FromAlternativeColumnTypes(string kind)
+    {
+        var map = GeneratedMapper.Create(OtherTypesSourceFor(kind), "My.Namespace.ItemMapper", "ToItem");
+
+        using var reader = CreateReader(
+                ("Duration", typeof(TimeOnly)), ("Pause", typeof(TimeOnly)), ("CreatedAt", typeof(DateTime)), ("DeletedAt", typeof(DateTime)),
+                ("Photo", typeof(byte[])), ("Thumbnail", typeof(byte[])), ("Status", typeof(string)), ("PreviousStatus", typeof(long)), ("Level", typeof(long)))
+            .With(new TimeOnly(1, 30), new TimeOnly(0, 15), new DateTime(2024, 5, 6, 5, 8, 9, DateTimeKind.Utc), new DateTime(2024, 5, 7, 0, 0, 0, DateTimeKind.Utc),
+                new byte[] { 1 }, new byte[] { 2 }, "inactive", 1L, 1L);
+
+        Assert.True(reader.Read());
+        var item = map(reader);
+        Assert.Equal(TimeSpan.FromMinutes(90), Get(item, "Duration"));
+        Assert.Equal(TimeSpan.FromMinutes(15), Get(item, "Pause"));
+        Assert.Equal(Created, Get(item, "CreatedAt")); // same instant
+        Assert.Equal(new DateTimeOffset(2024, 5, 7, 0, 0, 0, TimeSpan.Zero), Get(item, "DeletedAt"));
+        Assert.Equal(new byte[] { 2 }, Get(item, "Thumbnail"));
+        Assert.Equal("Inactive", Get(item, "Status")!.ToString());
+        Assert.Equal("Active", Get(item, "PreviousStatus")!.ToString());
+        Assert.Equal("Low", Get(item, "Level")!.ToString());
+    }
+
     static object? Get(object o, string property) => o.GetType().GetProperty(property)!.GetValue(o);
 
     static ReaderBuilder CreateReader(params (string name, Type type)[] columns)
     {
         var table = new DataTable();
         foreach (var (name, type) in columns)
-            table.Columns.Add(name, type);
+            // DataTable drops DateTimeKind by default; keep it, like real providers do
+            table.Columns.Add(name, type).DateTimeMode = type == typeof(DateTime) ? DataSetDateTime.Utc : DataSetDateTime.UnspecifiedLocal;
         return new ReaderBuilder(table);
     }
 

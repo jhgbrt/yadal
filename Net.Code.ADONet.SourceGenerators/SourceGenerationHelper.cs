@@ -69,32 +69,11 @@ namespace Net.Code.ADONet.SourceGenerators
         private static string GetValueExpression(PropertyInfo property)
         {
             var ordinal = OrdinalVariable(property);
-            var getValue = $"record.{GetGetMethod(property)}({ordinal})";
+            var getValue = $"record.{property.Getter}({ordinal})";
             return property.Nullable
                 ? $"record.IsDBNull({ordinal}) ? null : {getValue}"
                 : getValue;
         }
-
-        private static string GetGetMethod(PropertyInfo property) => property.TypeName switch
-        {
-            "Boolean" => nameof(IDataRecord.GetBoolean),
-            "Byte" => nameof(IDataRecord.GetByte),
-            "Char" => nameof(IDataRecord.GetChar),
-            "DateTime" => nameof(IDataRecord.GetDateTime),
-            "Decimal" => nameof(IDataRecord.GetDecimal),
-            "Double" => nameof(IDataRecord.GetDouble),
-            "Guid" => nameof(IDataRecord.GetGuid),
-            // DateOnly/TimeOnly have no IDataRecord getter: these are extension methods
-            // in Net.Code.ADONet (DateAndTimeOnlyExtensions) that read either representation
-            "DateOnly" => "GetDateOnly",
-            "TimeOnly" => "GetTimeOnly",
-            "Single" => nameof(IDataRecord.GetFloat),
-            "Int16" => nameof(IDataRecord.GetInt16),
-            "Int32" => nameof(IDataRecord.GetInt32),
-            "Int64" => nameof(IDataRecord.GetInt64),
-            "String" => nameof(IDataRecord.GetString),
-            _ => throw new Exception($"Unsupported property type: can not get datarecord getter for {property.TypeName}")
-        };
     }
 
     class PropertyInfo(IPropertySymbol symbol)
@@ -106,13 +85,52 @@ namespace Net.Code.ADONet.SourceGenerators
             _ => symbol.Name
         };
 
-        public string TypeName { get; } = symbol.Type switch
-        {
-            INamedTypeSymbol { TypeArguments: [ITypeSymbol underlyingType] } => underlyingType.Name,
-            _ => symbol.Type.Name
-        };
+        public string TypeName { get; } = symbol.Type.ToDisplayString();
+
+        /// <summary>
+        /// The IDataRecord getter for this property's type (for Nullable&lt;T&gt;, the getter for T),
+        /// or null when the type is not supported.
+        /// </summary>
+        public string? Getter { get; } = GetGetter(UnwrapNullable(symbol.Type));
         public bool Nullable { get; } = symbol.Type.NullableAnnotation is NullableAnnotation.Annotated;
-        public bool IsValueType { get; } = symbol.Type.IsValueType;
+        public Location? Location { get; } = symbol.Locations.FirstOrDefault();
+
+        private static ITypeSymbol UnwrapNullable(ITypeSymbol type) => type switch
+        {
+            INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T, TypeArguments: [var underlying] } => underlying,
+            _ => type
+        };
+
+        // Types without an IDataRecord getter (or that providers report differently) use the
+        // extension methods in Net.Code.ADONet.DataRecordGetterExtensions.
+        private static string? GetGetter(ITypeSymbol type) => type switch
+        {
+            { TypeKind: TypeKind.Enum } => $"GetEnum<{type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>",
+            IArrayTypeSymbol { Rank: 1, ElementType.SpecialType: SpecialType.System_Byte } => "GetByteArray",
+            _ => type.SpecialType switch
+            {
+                SpecialType.System_Boolean => nameof(IDataRecord.GetBoolean),
+                SpecialType.System_Byte => nameof(IDataRecord.GetByte),
+                SpecialType.System_Char => nameof(IDataRecord.GetChar),
+                SpecialType.System_DateTime => nameof(IDataRecord.GetDateTime),
+                SpecialType.System_Decimal => nameof(IDataRecord.GetDecimal),
+                SpecialType.System_Double => nameof(IDataRecord.GetDouble),
+                SpecialType.System_Single => nameof(IDataRecord.GetFloat),
+                SpecialType.System_Int16 => nameof(IDataRecord.GetInt16),
+                SpecialType.System_Int32 => nameof(IDataRecord.GetInt32),
+                SpecialType.System_Int64 => nameof(IDataRecord.GetInt64),
+                SpecialType.System_String => nameof(IDataRecord.GetString),
+                _ => (type.ContainingNamespace?.ToDisplayString(), type.MetadataName) switch
+                {
+                    ("System", "Guid") => nameof(IDataRecord.GetGuid),
+                    ("System", "TimeSpan") => "GetTimeSpan",
+                    ("System", "DateTimeOffset") => "GetDateTimeOffset",
+                    ("System", "DateOnly") => "GetDateOnly",
+                    ("System", "TimeOnly") => "GetTimeOnly",
+                    _ => null
+                }
+            }
+        };
     }
     internal class MapperInfo(ITypeSymbol type)
     {

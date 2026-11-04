@@ -32,8 +32,23 @@ namespace Net.Code.ADONet.SourceGenerators
             return mapper;
         }
       
+        internal static readonly DiagnosticDescriptor UnsupportedPropertyType = new(
+            id: "ADONET001",
+            title: "Unsupported property type",
+            messageFormat: "Property '{0}' of type '{1}' cannot be mapped from a data record; no mapper is generated for '{2}'",
+            category: "Net.Code.ADONet",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
         private static void GenerateCode(SourceProductionContext context, MapperInfo mapper)
         {
+            var unsupported = mapper.Properties.Where(p => p.Getter is null).ToList();
+            foreach (var p in unsupported)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(UnsupportedPropertyType, p.Location, p.Name, p.TypeName, mapper.Name));
+            }
+            if (unsupported.Count > 0) return;
+
             var result = SourceGenerationHelper.GenerateExtensionClass(mapper);
             context.AddSource(result.HintName, result.Text);
         }

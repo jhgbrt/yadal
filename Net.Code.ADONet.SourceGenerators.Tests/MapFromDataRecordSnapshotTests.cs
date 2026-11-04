@@ -85,9 +85,19 @@ public class MapFromDataRecordSnapshotTests
                 public DateOnly? ExitDate { get; set; }
                 public TimeOnly StartTime { get; set; }
                 public TimeOnly? EndTime { get; set; }
+                public TimeSpan Duration { get; set; }
+                public TimeSpan? Pause { get; set; }
+                public DateTimeOffset CreatedAt { get; set; }
+                public DateTimeOffset? DeletedAt { get; set; }
+                public byte[] Photo { get; set; }
+                public byte[]? Thumbnail { get; set; }
+                public Status Status { get; set; }
+                public Status? PreviousStatus { get; set; }
                 public string Name { get; set; }
                 public string? MiddleName { get; set; }
             }
+
+            public enum Status { Active, Inactive }
             """;
 
         // Pass the source code to our helper and snapshot test the output
@@ -116,6 +126,42 @@ public class MapFromDataRecordSnapshotTests
     }
 }
 
+
+public class UnsupportedPropertyTypeTests
+{
+    [Fact]
+    public void ReportsDiagnostic_AndGeneratesNothing_ForUnsupportedPropertyType()
+    {
+        var source = """
+            using Net.Code.ADONet;
+            using System.Collections.Generic;
+            namespace My.Namespace;
+
+            [MapFromDataRecord]
+            public class Person
+            {
+                public int Id { get; set; }
+                public List<int> Numbers { get; set; } = new();
+            }
+            """;
+
+        var compilation = CSharpCompilation.Create("UnsupportedTypeTests",
+            [CSharpSyntaxTree.ParseText(source)],
+            AppDomain.CurrentDomain.GetAssemblies()
+                .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
+                .Select(a => MetadataReference.CreateFromFile(a.Location)),
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+        var result = CSharpGeneratorDriver.Create(new MappingGenerator()).RunGenerators(compilation).GetRunResult();
+
+        var diagnostic = Assert.Single(result.Diagnostics);
+        Assert.Equal("ADONET001", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Contains("'Numbers'", diagnostic.GetMessage());
+        Assert.Equal("Numbers", diagnostic.Location.SourceTree!.GetText().ToString(diagnostic.Location.SourceSpan));
+        Assert.Empty(result.GeneratedTrees);
+    }
+}
 
 public static class TestHelper
 {

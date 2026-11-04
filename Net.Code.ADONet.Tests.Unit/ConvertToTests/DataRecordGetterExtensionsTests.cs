@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Net.Code.ADONet.Tests.Unit.ConvertToTests
 {
-    public class DateAndTimeOnlyExtensionsTests
+    public class DataRecordGetterExtensionsTests
     {
         static readonly DateOnly Date = new(2000, 1, 2);
         static readonly TimeOnly Time = new(13, 14, 15);
@@ -51,6 +51,70 @@ namespace Net.Code.ADONet.Tests.Unit.ConvertToTests
             Assert.Equal(Date, record.GetDateOnly(0));
             Assert.Equal(Time, record.GetTimeOnly(1));
         }
+
+        public enum Status { Active = 1, Inactive = 2 }
+        public enum Level : byte { Low = 1, High = 200 }
+        public enum Big : long { Huge = long.MaxValue }
+
+        static DataTableReader Single(Type type, object value)
+        {
+            var table = new DataTable();
+            // DataTable drops DateTimeKind by default; keep it, like real providers do
+            table.Columns.Add("c", type).DateTimeMode = type == typeof(DateTime) ? DataSetDateTime.Utc : DataSetDateTime.UnspecifiedLocal;
+            table.Rows.Add(value);
+            var reader = table.CreateDataReader();
+            Assert.True(reader.Read());
+            return reader;
+        }
+
+        [Theory]
+        [InlineData(typeof(int), 2)]
+        [InlineData(typeof(long), 2L)]
+        [InlineData(typeof(short), (short)2)]
+        [InlineData(typeof(byte), (byte)2)]
+        [InlineData(typeof(decimal), 2)]
+        [InlineData(typeof(string), "Inactive")]
+        [InlineData(typeof(string), "inactive")]
+        [InlineData(typeof(string), "2")]
+        public void GetEnum_FromColumnOfType(Type columnType, object value)
+            => Assert.Equal(Status.Inactive, Single(columnType, Convert.ChangeType(value, columnType)).GetEnum<Status>(0));
+
+        [Fact]
+        public void GetEnum_ByteBacked() => Assert.Equal(Level.High, Single(typeof(int), 200).GetEnum<Level>(0));
+
+        [Fact]
+        public void GetEnum_LongBacked() => Assert.Equal(Big.Huge, Single(typeof(long), long.MaxValue).GetEnum<Big>(0));
+
+        [Fact]
+        public void GetEnum_PlainDataRecord() => Assert.Equal(Status.Inactive, ((IDataRecord)new PlainRecord(Single(typeof(long), 2L))).GetEnum<Status>(0));
+
+        [Fact]
+        public void GetTimeSpan_FromTimeSpanColumn() => Assert.Equal(TimeSpan.FromMinutes(90), Single(typeof(TimeSpan), TimeSpan.FromMinutes(90)).GetTimeSpan(0));
+
+        [Fact]
+        public void GetTimeSpan_FromTimeOnlyColumn() => Assert.Equal(new TimeSpan(13, 14, 15), Single(typeof(TimeOnly), Time).GetTimeSpan(0));
+
+        [Fact]
+        public void GetDateTimeOffset_FromDateTimeOffsetColumn()
+        {
+            var value = new DateTimeOffset(2024, 5, 6, 7, 8, 9, TimeSpan.FromHours(2));
+            Assert.Equal(value, Single(typeof(DateTimeOffset), value).GetDateTimeOffset(0));
+        }
+
+        [Fact]
+        public void GetDateTimeOffset_FromUtcDateTimeColumn()
+        {
+            var value = Single(typeof(DateTime), new DateTime(2024, 5, 6, 7, 8, 9, DateTimeKind.Utc)).GetDateTimeOffset(0);
+            Assert.Equal(new DateTimeOffset(2024, 5, 6, 7, 8, 9, TimeSpan.Zero), value);
+            Assert.Equal(TimeSpan.Zero, value.Offset);
+        }
+
+        [Fact]
+        public void GetByteArray() => Assert.Equal(new byte[] { 1, 2, 3 }, Single(typeof(byte[]), new byte[] { 1, 2, 3 }).GetByteArray(0));
+
+        [Fact]
+        public void ConvertTo_DateTimeOffset_FromUtcDateTime()
+            => Assert.Equal(new DateTimeOffset(2024, 5, 6, 7, 8, 9, TimeSpan.Zero), ConvertTo<DateTimeOffset?>.From(new DateTime(2024, 5, 6, 7, 8, 9, DateTimeKind.Utc)));
 
         sealed class PlainRecord(IDataRecord inner) : IDataRecord
         {

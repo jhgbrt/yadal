@@ -54,6 +54,8 @@ public static class ConvertTo<T>
         // implement IConvertible (DateTimeOffset, Guid, byte[], ...), which Convert.ChangeType rejects.
         TElem t => t,
         _ when typeof(TElem).IsEnum => (TElem)ConvertToEnum(value, typeof(TElem)),
+        // DateTimeOffset is not IConvertible; same conversion as DataRecordGetterExtensions.GetDateTimeOffset
+        DateTime d when typeof(TElem) == typeof(DateTimeOffset) => (TElem)(object)new DateTimeOffset(d),
 #if NET6_0_OR_GREATER
         DateOnly or TimeOnly or DateTime or TimeSpan when ConvertDateOrTime(value, typeof(TElem)) is { } converted => (TElem)converted,
 #endif

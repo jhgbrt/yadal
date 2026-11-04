@@ -32,6 +32,14 @@ public static partial class PersonMapper
         var __ordinal_ExitDate = record.GetOrdinal("EXIT_DATE");
         var __ordinal_StartTime = record.GetOrdinal("START_TIME");
         var __ordinal_EndTime = record.GetOrdinal("END_TIME");
+        var __ordinal_Duration = record.GetOrdinal("DURATION");
+        var __ordinal_Pause = record.GetOrdinal("PAUSE");
+        var __ordinal_CreatedAt = record.GetOrdinal("CREATED_AT");
+        var __ordinal_DeletedAt = record.GetOrdinal("DELETED_AT");
+        var __ordinal_Photo = record.GetOrdinal("PHOTO");
+        var __ordinal_Thumbnail = record.GetOrdinal("THUMBNAIL");
+        var __ordinal_Status = record.GetOrdinal("STATUS");
+        var __ordinal_PreviousStatus = record.GetOrdinal("PREVIOUS_STATUS");
         var __ordinal_Name = record.GetOrdinal("NAME");
         var __ordinal_MiddleName = record.GetOrdinal("MIDDLE_NAME");
         return new Person
@@ -60,6 +68,14 @@ public static partial class PersonMapper
             ExitDate = record.IsDBNull(__ordinal_ExitDate) ? null : record.GetDateOnly(__ordinal_ExitDate),
             StartTime = record.GetTimeOnly(__ordinal_StartTime),
             EndTime = record.IsDBNull(__ordinal_EndTime) ? null : record.GetTimeOnly(__ordinal_EndTime),
+            Duration = record.GetTimeSpan(__ordinal_Duration),
+            Pause = record.IsDBNull(__ordinal_Pause) ? null : record.GetTimeSpan(__ordinal_Pause),
+            CreatedAt = record.GetDateTimeOffset(__ordinal_CreatedAt),
+            DeletedAt = record.IsDBNull(__ordinal_DeletedAt) ? null : record.GetDateTimeOffset(__ordinal_DeletedAt),
+            Photo = record.GetByteArray(__ordinal_Photo),
+            Thumbnail = record.IsDBNull(__ordinal_Thumbnail) ? null : record.GetByteArray(__ordinal_Thumbnail),
+            Status = record.GetEnum<global::My.Namespace.Status>(__ordinal_Status),
+            PreviousStatus = record.IsDBNull(__ordinal_PreviousStatus) ? null : record.GetEnum<global::My.Namespace.Status>(__ordinal_PreviousStatus),
             Name = record.GetString(__ordinal_Name),
             MiddleName = record.IsDBNull(__ordinal_MiddleName) ? null : record.GetString(__ordinal_MiddleName),
         };
