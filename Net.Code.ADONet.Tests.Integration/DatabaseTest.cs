@@ -215,6 +215,37 @@ namespace IntegrationTests
         {
             await _testHelper.BulkInsertAsync(FakeData.People.List(100));
         }
+
+        // more items than fit in one DbBatch (Db.DefaultBatchSize), for providers that support batching
+        [SkippableFact]
+        public void InsertUpdateDelete_ManyItems()
+        {
+            var people = FakeData.People.List(250).ToArray();
+            var before = _testHelper.GetCountOfPeople();
+
+            _testHelper.Insert(people: people);
+            Assert.Equal(before + people.Length, _testHelper.GetCountOfPeople());
+
+            foreach (var p in people) p.Email = $"updated{p.Id}@example.com";
+            _testHelper.Update(people);
+            Assert.Equal(people.Last().Email, _testHelper.SelectOne(people.Last().Id)!.Email);
+
+            _testHelper.Delete(people);
+            Assert.Equal(before, _testHelper.GetCountOfPeople());
+        }
+
+        [SkippableFact]
+        public async Task InsertDeleteAsync_ManyItems()
+        {
+            var people = FakeData.People.List(250).ToArray();
+            var before = await _testHelper.GetCountOfPeopleAsync();
+
+            await _testHelper.InsertAsync(people: people);
+            Assert.Equal(before + people.Length, await _testHelper.GetCountOfPeopleAsync());
+
+            await _testHelper.DeleteAsync(people);
+            Assert.Equal(before, await _testHelper.GetCountOfPeopleAsync());
+        }
     }
 
     namespace Database
@@ -253,8 +284,22 @@ namespace IntegrationTests
         [Trait("Database", "POSTGRES")]
         public class Postgres : DatabaseTest<PostgreSqlDb>, IClassFixture<DatabaseFixture<PostgreSqlDb>>
         {
+            private readonly DatabaseFixture<PostgreSqlDb> _fixture;
             public Postgres(DatabaseFixture<PostgreSqlDb> fixture, ITestOutputHelper output)
-            : base(output, fixture) { }
+            : base(output, fixture) { _fixture = fixture; }
+
+            [SkippableFact]
+            public async Task Db_FromNpgsqlDataSource_UsesPostgresConventionAndExecutesQueries()
+            {
+                await using var dataSource = Npgsql.NpgsqlDataSource.Create(Net.Code.ADONet.Tests.Integration.Configuration.ConnectionStrings[_fixture.Target.Name]);
+                await using var db = new Db(dataSource);
+
+                Assert.Equal(DbConfig.PostGreSQL.MappingConvention, db.MappingConvention);
+
+                await db.ConnectAsync(System.Threading.CancellationToken.None);
+                var result = await db.Sql("SELECT @a + @b").WithParameters(new { a = 1, b = 2 }).AsScalarAsync<int>(System.Threading.CancellationToken.None);
+                Assert.Equal(3, result);
+            }
         }
         //[Trait("Database", "DB2")]
         //public class DB2 : DatabaseTest<DB2Db>, IClassFixture<DatabaseFixture<DB2Db>>
