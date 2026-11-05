@@ -25,6 +25,13 @@ internal static class TypeExtensions
         }
     }
 
+    // Mapping only uses public, non-static, non-indexer accessors. A public property can have a
+    // non-public getter or setter (e.g. { get; private set; }); such accessors are skipped.
+    internal static bool IsReadable(PropertyInfo p)
+        => p.GetMethod is { IsPublic: true, IsStatic: false } && p.GetIndexParameters().Length == 0;
+    internal static bool IsWritable(PropertyInfo p)
+        => p.SetMethod is { IsPublic: true, IsStatic: false } && p.GetIndexParameters().Length == 0;
+
     extension(PropertyInfo property)
     {
         public string GetColumnName(MappingConvention convention)

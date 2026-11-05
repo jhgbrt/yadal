@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Net.Code.ADONet;
 
 internal static class EnumerableExtensions
@@ -7,9 +9,13 @@ internal static class EnumerableExtensions
         /// <summary>
         /// Adapter from IEnumerable[T] to IDataReader
         /// </summary>
+        [RequiresUnreferencedCode(Trimming.ReflectionMessage)]
+        [RequiresDynamicCode(Trimming.DynamicCodeMessage)]
         public DbDataReader AsDataReader() => new EnumerableDataReaderImpl<T>(input);
     }
 
+    [RequiresUnreferencedCode(Trimming.ReflectionMessage)]
+    [RequiresDynamicCode(Trimming.DynamicCodeMessage)]
     private class EnumerableDataReaderImpl<T> : DbDataReader
     {
         private readonly IEnumerable<T> _list;
@@ -20,7 +26,7 @@ internal static class EnumerableExtensions
         private static readonly IReadOnlyDictionary<string, Func<T, object?>> Getters;
         static EnumerableDataReaderImpl()
         {
-            Properties = typeof(T).GetProperties().Where(FastReflection.IsReadable).ToArray();
+            Properties = typeof(T).GetProperties().Where(TypeExtensions.IsReadable).ToArray();
             Getters = FastReflection<T>.Instance.GetGettersForType();
             PropertyIndexesByName = Properties.Select((p, i) => (p, i)).ToDictionary(x => x.p.Name, x => x.i);
         }
@@ -32,6 +38,10 @@ internal static class EnumerableExtensions
         public override string GetName(int i) => Properties[i].Name;
         public override string GetDataTypeName(int i) => Properties[i].PropertyType.Name;
         public override IEnumerator GetEnumerator() => _enumerator;
+#if NET
+        [UnconditionalSuppressMessage("Trimming", "IL2073", Justification = "The reader is only used for SqlBulkCopy and DataTable, with types the caller provides.")]
+        [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)]
+#endif
         public override Type GetFieldType(int i) => Properties[i].PropertyType;
         public override object GetValue(int i)
             => DBNullHelper.ToDb(Getters[Properties[i].Name](_enumerator.Current));

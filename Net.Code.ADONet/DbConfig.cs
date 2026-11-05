@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Net.Code.ADONet;
 
 /// <summary>
@@ -15,8 +17,18 @@ namespace Net.Code.ADONet;
 /// </summary>
 public class DbConfig(Action<IDbCommand> prepareCommand, MappingConvention mappingConvention)
 {
+    // declared first: static fields are initialized in textual order, and the configurations below use it
+    private static readonly Action<IDbCommand> NoOp = _ => { };
+
     internal Action<IDbCommand> PrepareCommand => prepareCommand;
     internal MappingConvention MappingConvention => mappingConvention;
+
+    /// <summary>
+    /// True if commands need no provider-specific preparation. Only then the CRUD helpers use
+    /// <c>DbBatch</c>, because batch commands cannot be prepared the same way.
+    /// </summary>
+    internal bool HasNoCommandPreparation => prepareCommand == NoOp;
+
     public static DbConfig FromProviderName(string providerName) => providerName switch
     {
         string s when s.StartsWith("Oracle") => Oracle,
@@ -53,6 +65,12 @@ public class DbConfig(Action<IDbCommand> prepareCommand, MappingConvention mappi
             new MappingConvention(StringExtensions.NoOp, StringExtensions.NoOp, '@')
             );
 
-    private static void SetBindByName(dynamic c) => c.BindByName = true;
-    private static void NoOp(dynamic c) {}
+    private static readonly ConcurrentDictionary<Type, PropertyInfo?> BindByNameProperties = new();
+
+    [UnconditionalSuppressMessage("Trimming", "IL2070",
+        Justification = "BindByName is a public property of the provider's command type (OracleCommand). If it is trimmed, it is not set.")]
+    private static void SetBindByName(IDbCommand c)
+        => BindByNameProperties
+            .GetOrAdd(c.GetType(), t => t.GetProperty("BindByName", typeof(bool)) is { CanWrite: true } p ? p : null)
+            ?.SetValue(c, true);
 }

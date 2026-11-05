@@ -13,6 +13,29 @@
     <RepositoryUrl>https://github.com/jhgbrt/yadal</RepositoryUrl>
     <PackageTags>ado.net</PackageTags>
     <PackageReleaseNotes>
+7.1.0
+Binary compatible with 7.0.0 (verified with package validation).
+New:
+- CancellationToken overloads for all async methods; IAsyncEnumerable results also honour WithCancellation.
+- Db(DbDataSource) constructors (.NET 8+), e.g. new Db(NpgsqlDataSource.Create(...)).
+- AsReaderAsync() returning a DbDataReader; AsEnumerableAsync(Func&lt;IDataRecord, T&gt;).
+- WithParameter(name, value, DbType, size) for explicitly typed parameters.
+- Insert/Update/Delete use DbBatch when the provider supports it (e.g. SqlClient, Npgsql): one round trip per 100 rows.
+- BulkCopy/BulkCopyAsync overloads that take a SqlTransaction.
+- Trimming/AOT annotations: reflection-based mapping and the 'dynamic' APIs are marked [RequiresUnreferencedCode]/[RequiresDynamicCode]; source generated mappers are AOT-safe.
+Changed:
+- Commands no longer open the connection when they are created, but when they are executed (asynchronously for async methods).
+- Column to property mapping falls back to a case-insensitive match (an exact match still wins), consistent with constructor mapping and generated mappers.
+- BulkCopy uses the Db's own connection instead of opening a second one. If a transaction is active on that connection, pass it to BulkCopy.
+- Async commands log their parameters, like synchronous commands (at Trace level).
+- With batching, Npgsql runs each batch in an implicit transaction: a failing row rolls back the rows of the same batch.
+- Removed the dependencies on System.Linq.Async (conflicts with .NET 10's System.Linq.AsyncEnumerable), Microsoft.CSharp and Microsoft.Bcl.AsyncInterfaces. If your code used async LINQ operators (ToListAsync, ...) through this package, reference System.Linq.AsyncEnumerable (or use .NET 10+).
+Fixed:
+- BulkCopy failed with 'Login failed' after the Db's connection was opened (SqlClient removes the password from ConnectionString unless Persist Security Info=true).
+- WithTimeout rounded sub-second timeouts down to 0, which means 'no timeout'.
+- WithParameters threw KeyNotFoundException for types with an indexer or a property without a public getter (also in the CRUD helpers and ToDataTable).
+- Insert bound the database-generated key as an extra parameter, which Oracle (BindByName) rejects; Delete bound all properties instead of only the key.
+
 7.0.0
 Breaking:
 - Depends on Microsoft.Data.SqlClient 7. Entra ID (Azure AD) authentication now requires referencing Microsoft.Data.SqlClient.Extensions.Azure in your application.
@@ -28,15 +51,21 @@ Fixed:
 - Patched vulnerable transitive dependencies (System.Security.Cryptography.Pkcs, Microsoft.Bcl.Memory).
     </PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Version>7.0.0</Version>
-    <AssemblyVersion>7.0.0</AssemblyVersion>
-    <FileVersion>7.0.0</FileVersion>
+    <Version>7.1.0</Version>
+    <AssemblyVersion>7.1.0</AssemblyVersion>
+    <FileVersion>7.1.0</FileVersion>
+    <!-- fail the pack on binary breaking changes compared to the last published version -->
+    <EnablePackageValidation>true</EnablePackageValidation>
+    <PackageValidationBaselineVersion>7.0.0</PackageValidationBaselineVersion>
     <LangVersion>preview</LangVersion>
     <Nullable>enable</Nullable>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
@@ -47,14 +76,11 @@ Fixed:
          CVE-2026-84008 / CVE-2026-70162; reference a patched version until it does so itself -->
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
-    <PackageReference Include="System.Linq.Async" Version="7.0.1" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.403" PrivateAssets="All" />
     <None Include="..\Net.Code.ADONet.SourceGenerators\bin\$(Configuration)\netstandard2.0\Net.Code.ADONet.SourceGenerators.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
     <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
-    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.14" />
   </ItemGroup>
 </Project>

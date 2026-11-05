@@ -56,9 +56,12 @@ namespace Net.Code.ADONet.Tests.Unit
             return (DbDataReader) _dataReader;
         }
 
+        public List<(string name, object value)[]> ExecutedNonQueries { get; } = new();
+
         public override int ExecuteNonQuery()
         {
             Mode = CommandMode.NonQuery;
+            ExecutedNonQueries.Add(System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(System.Linq.Enumerable.Cast<IDataParameter>(Parameters), p => (p.ParameterName, p.Value))));
             return _nonQueryResult;
         }
 

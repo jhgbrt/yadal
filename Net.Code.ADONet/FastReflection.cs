@@ -1,9 +1,13 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Net.Code.ADONet;
 
 /// <summary>
 /// Non-generic counterpart of <see cref="FastReflection{T}"/>, for when the type is only known at runtime.
 /// Getters are compiled once per type and cached.
 /// </summary>
+[RequiresUnreferencedCode(Trimming.ReflectionMessage)]
+[RequiresDynamicCode(Trimming.DynamicCodeMessage)]
 internal static class FastReflection
 {
     private static readonly ConcurrentDictionary<Type, (string name, Func<object, object?> getter)[]> _getters = new();
@@ -16,17 +20,10 @@ internal static class FastReflection
         => _getters.GetOrAdd(
             type,
             t => t.GetProperties()
-                .Where(IsReadable)
+                .Where(TypeExtensions.IsReadable)
                 .Select(p => (p.Name, GetGetDelegate(p)))
                 .ToArray()
         );
-
-    // Mapping only uses public, non-static, non-indexer accessors. A public property can have a
-    // non-public getter or setter (e.g. { get; private set; }); such accessors are skipped.
-    internal static bool IsReadable(PropertyInfo p)
-        => p.GetMethod is { IsPublic: true, IsStatic: false } && p.GetIndexParameters().Length == 0;
-    internal static bool IsWritable(PropertyInfo p)
-        => p.SetMethod is { IsPublic: true, IsStatic: false } && p.GetIndexParameters().Length == 0;
 
     private static Func<object, object?> GetGetDelegate(PropertyInfo p)
     {
@@ -46,6 +43,8 @@ internal static class FastReflection
     }
 }
 
+[RequiresUnreferencedCode(Trimming.ReflectionMessage)]
+[RequiresDynamicCode(Trimming.DynamicCodeMessage)]
 internal sealed class FastReflection<T>
 {
     private FastReflection() { }
@@ -54,10 +53,26 @@ internal sealed class FastReflection<T>
     public IReadOnlyDictionary<string, Action<T, object?>> GetSettersForType(MappingConvention convention)
         => _setters.GetOrAdd(
             (typeof(T), convention),
-            d => d.type.GetProperties().Where(FastReflection.IsWritable)
+            d => d.type.GetProperties().Where(TypeExtensions.IsWritable)
             .ToDictionary(p => p.GetColumnName(convention), GetSetDelegate)
         );
     private readonly ConcurrentDictionary<(Type type, MappingConvention convention), IReadOnlyDictionary<string, Action<T, object?>>> _setters = new();
+
+    /// <summary>
+    /// Same as <see cref="GetSettersForType"/>, but keyed case-insensitively. When two properties map to column
+    /// names that differ only in case, the first one wins; look up exact matches with GetSettersForType first.
+    /// </summary>
+    public IReadOnlyDictionary<string, Action<T, object?>> GetSettersForTypeIgnoreCase(MappingConvention convention)
+        => _settersIgnoreCase.GetOrAdd(
+            (typeof(T), convention),
+            key =>
+            {
+                var result = new Dictionary<string, Action<T, object?>>(StringComparer.OrdinalIgnoreCase);
+                foreach (var setter in GetSettersForType(key.convention))
+                    result.TryAdd(setter.Key, setter.Value);
+                return result;
+            });
+    private readonly ConcurrentDictionary<(Type type, MappingConvention convention), IReadOnlyDictionary<string, Action<T, object?>>> _settersIgnoreCase = new();
     private static Action<T, object?> GetSetDelegate(PropertyInfo p)
     {
         var method = p.SetMethod!;
@@ -75,7 +90,7 @@ internal sealed class FastReflection<T>
     public IReadOnlyDictionary<string, Func<T, object?>> GetGettersForType()
         => _getters.GetOrAdd(
             typeof(T),
-            t => t.GetProperties().Where(FastReflection.IsReadable).ToDictionary(p => p.Name, GetGetDelegate)
+            t => t.GetProperties().Where(TypeExtensions.IsReadable).ToDictionary(p => p.Name, GetGetDelegate)
         );
     private readonly ConcurrentDictionary<Type, IReadOnlyDictionary<string, Func<T, object?>>> _getters = new();
     private static Func<T, object?> GetGetDelegate(PropertyInfo p)

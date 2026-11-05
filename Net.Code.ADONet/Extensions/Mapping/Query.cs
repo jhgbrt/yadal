@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Net.Code.ADONet;
@@ -16,17 +17,9 @@ internal class ValueList<T> : List<T>
     {
         base.AddRange(values);
     }
+    // element-wise equality, so that records containing a ValueList (DbKey) have value semantics
     public override bool Equals(object? obj)
-    {
-        dynamic? d = obj;
-        return IsSequenceEqual(d);
-    }
-    private bool IsSequenceEqual(IEnumerable<T> other) => this.SequenceEqual(other);
-    private bool IsSequenceEqual<TOther>(IEnumerable<TOther> other)
-        => this.Zip(other, (a, b) => (a, b)).All(p =>
-        (p is (null, null)) || (p.a?.Equals(p.b) ?? false)
-        );
-    private bool IsSequenceEqual(object other) => false;
+        => obj is IEnumerable other && this.Cast<object?>().SequenceEqual(other.Cast<object?>());
     public override int GetHashCode()
     {
         int result = 19;
@@ -35,7 +28,9 @@ internal class ValueList<T> : List<T>
         return result;
     }
 }
-internal static class QueryFactory<T> 
+[RequiresUnreferencedCode(Trimming.ReflectionMessage)]
+[RequiresDynamicCode(Trimming.DynamicCodeMessage)]
+internal static class QueryFactory<T>
 {
     struct MyPropertyInfo(PropertyInfo info)
     {
@@ -49,11 +44,27 @@ internal static class QueryFactory<T>
         public override int GetHashCode() => (Name, Type).GetHashCode();
     }
 
-    static readonly MyPropertyInfo[] Properties = typeof(T).GetProperties().Select(p => new MyPropertyInfo(p)).ToArray();
+    static readonly MyPropertyInfo[] Properties = typeof(T).GetProperties().Where(TypeExtensions.IsReadable).Select(p => new MyPropertyInfo(p)).ToArray();
     static readonly MyPropertyInfo[] KeyProperties = GetKeyProperties();
     static IEnumerable<MyPropertyInfo> DbGenerated => KeyProperties.Where(p => p.HasCustomAttribute<DatabaseGeneratedAttribute>(a => a.DatabaseGeneratedOption != DatabaseGeneratedOption.None));
     static readonly IEnumerable<MyPropertyInfo> NonKeyProperties = Properties.Except(KeyProperties);
     static readonly IEnumerable<MyPropertyInfo> InsertProperties = Properties.Except(DbGenerated);
+
+    // the parameters each statement uses: binding parameters that are not used in the statement
+    // (e.g. a database-generated key on INSERT) is rejected by some providers (Oracle with BindByName)
+    static readonly string[] InsertParameterNames = InsertProperties.Select(p => p.Name).ToArray();
+    static readonly string[] UpdateParameterNames = NonKeyProperties.Concat(KeyProperties).Select(p => p.Name).ToArray();
+    static readonly string[] DeleteParameterNames = KeyProperties.Select(p => p.Name).ToArray();
+
+    internal static IEnumerable<IEnumerable<(string name, object? value)>> InsertParameters(IEnumerable<T> items) => ParameterSets(items, InsertParameterNames);
+    internal static IEnumerable<IEnumerable<(string name, object? value)>> UpdateParameters(IEnumerable<T> items) => ParameterSets(items, UpdateParameterNames);
+    internal static IEnumerable<IEnumerable<(string name, object? value)>> DeleteParameters(IEnumerable<T> items) => ParameterSets(items, DeleteParameterNames);
+
+    private static IEnumerable<IEnumerable<(string name, object? value)>> ParameterSets(IEnumerable<T> items, string[] names)
+    {
+        var getters = FastReflection<T>.Instance.GetGettersForType();
+        return items.Select(item => names.Select(name => (name, getters[name](item))));
+    }
 
     static MyPropertyInfo[] GetKeyProperties()
     {
@@ -71,7 +82,7 @@ internal static class QueryFactory<T>
             throw new ArgumentNullException(nameof(key));
 
         var keyType = key.GetType();
-        var valueProperties = keyType.GetProperties().Select(p => new MyPropertyInfo(p)).ToArray();
+        var valueProperties = keyType.GetProperties().Where(TypeExtensions.IsReadable).Select(p => new MyPropertyInfo(p)).ToArray();
 
         return KeyProperties switch
         {

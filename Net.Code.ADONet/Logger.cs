@@ -15,6 +15,8 @@ public static partial class Logger
     public static partial void LogQuery(ILogger logger, LogLevel level, string query);
     [LoggerMessage(EventId = 2, Message = "Parameters: {Parameters}")]
     public static partial void LogParameters(ILogger logger, LogLevel level, string parameters);
+    [LoggerMessage(EventId = 3, Level = LogLevel.Trace, Message = "SQL Batch : {count} x {query}")]
+    internal static partial void LogBatch(ILogger logger, string query, int count);
 
     [Obsolete("This is no longer used, pas an ILogger to the Db constructor instead", true)]
     public static Action<string>? Log = null;

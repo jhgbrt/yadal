@@ -17,7 +17,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             var dr = DataRow();
 
-            var d = Dynamic.From(dr);
+            dynamic d = Dynamic.From(dr);
 
             Assert.Equal(1, d["Id"]);
             Assert.Equal("Name", d["Name"]);
@@ -28,7 +28,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             var dr = DataRow();
 
-            var d = Dynamic.From(dr);
+            dynamic d = Dynamic.From(dr);
 
             Assert.Equal(1, d.Id);
             Assert.Equal("Name", d.Name);
@@ -38,7 +38,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             var dr = DataRow();
 
-            var d = Dynamic.From(dr);
+            dynamic d = Dynamic.From(dr);
 
             Assert.Equal("{\"Id\":1,\"Name\":\"Name\"}", JsonConvert.SerializeObject(d));
         }
@@ -60,7 +60,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             var dr = Dictionary();
 
-            var d = Dynamic.From(dr);
+            dynamic d = Dynamic.From(dr);
 
             Assert.Equal(1, d["Id"]);
             Assert.Equal("Name", d["Name"]);
@@ -71,7 +71,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             var dr = Dictionary();
 
-            var d = Dynamic.From(dr);
+            dynamic d = Dynamic.From(dr);
 
             Assert.Equal(1, d.Id);
             Assert.Equal("Name", d.Name);
@@ -81,7 +81,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             var dr = Dictionary();
 
-            var d = Dynamic.From(dr);
+            dynamic d = Dynamic.From(dr);
 
             Assert.Equal("{\"Id\":1,\"Name\":\"Name\"}", JsonConvert.SerializeObject(d));
         }
@@ -100,7 +100,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             IDataRecord dr = DataRecord();
 
-            var d = Dynamic.From(dr);
+            dynamic d = Dynamic.From(dr);
 
             Assert.Equal(1, d["Id"]);
             Assert.Equal("Name", d["Name"]);
@@ -111,7 +111,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             IDataRecord dr = DataRecord();
 
-            var d = Dynamic.From(dr);
+            dynamic d = Dynamic.From(dr);
 
             Assert.Equal(1, d.Id);
             Assert.Equal("Name", d.Name);
@@ -121,7 +121,7 @@ namespace Net.Code.ADONet.Tests.Unit
         {
             IDataRecord dr = DataRecord();
 
-            var d = Dynamic.From(dr);
+            dynamic d = Dynamic.From(dr);
 
             Assert.Equal("{\"Id\":1,\"Name\":\"Name\"}", JsonConvert.SerializeObject(d));
         }

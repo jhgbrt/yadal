@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Net.Code.ADONet;
 
 internal static class DataTableExtensions
@@ -14,6 +16,7 @@ internal static class DataTableExtensions
         /// <summary>
         /// Executes the query (using datareader) and fills a datatable
         /// </summary>
+        [RequiresUnreferencedCode("DataTable.Load may require types that cannot be statically analyzed.")]
         public DataTable AsDataTable()
         {
             using var reader = commandBuilder.AsReader();
@@ -25,9 +28,10 @@ internal static class DataTableExtensions
 
     extension<T>(IEnumerable<T> items)
     {
+        [RequiresUnreferencedCode(Trimming.ReflectionMessage)]
         public DataTable ToDataTable()
         {
-            var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(TypeExtensions.IsReadable).ToArray();
 
             var table = new DataTable(typeof(T).Name);
             foreach (var prop in props)

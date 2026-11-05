@@ -4,14 +4,14 @@ namespace Net.Code.ADONet;
 
 internal static class Dynamic
 {
-    public static dynamic From(DataRow row) => From(row, (r, s) => r[s], row.Table.Columns.OfType<DataColumn>().Select(c => c.ColumnName));
-    public static dynamic From(IDataRecord record) => From(record, (r, s) => r[s], GetMemberNames(record));
+    public static object From(DataRow row) => From(row, (r, s) => r[s], row.Table.Columns.OfType<DataColumn>().Select(c => c.ColumnName));
+    public static object From(IDataRecord record) => From(record, (r, s) => r[s], GetMemberNames(record));
     public static dynamic From<TValue>(IDictionary<string, TValue> dictionary) => From(dictionary, (d, s) => d[s], dictionary.Keys);
     private static IEnumerable<string> GetMemberNames(IDataRecord record)
     {
         for (int i = 0; i < record.FieldCount; i++) yield return record.GetName(i);
     }
-    private static dynamic From<T>(T item, Func<T, string, object?> getter, IEnumerable<string> memberNames) 
+    private static object From<T>(T item, Func<T, string, object?> getter, IEnumerable<string> memberNames) 
         => new DynamicIndexer<T>(item, getter, memberNames);
 
     private class DynamicIndexer<T>(T item, Func<T, string, object?> getter, IEnumerable<string> memberNames) : DynamicObject

@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Net.Code.ADONet;
 
 internal static class DataRecordExtensions
@@ -6,16 +8,21 @@ internal static class DataRecordExtensions
 
     extension(IDataReader reader)
     {
+        [RequiresUnreferencedCode(Trimming.ReflectionMessage)]
+        [RequiresDynamicCode(Trimming.DynamicCodeMessage)]
         private List<Setter<T>> GetSetters<T>(DbConfig config)
         {
             var convention = config.MappingConvention;
             var setters = FastReflection<T>.Instance.GetSettersForType(convention);
+            var settersIgnoreCase = FastReflection<T>.Instance.GetSettersForTypeIgnoreCase(convention);
 
             var list = new List<Setter<T>>(reader.FieldCount);
             for (var i = 0; i < reader.FieldCount; i++)
             {
                 var columnName = reader.GetName(i);
-                if (setters.TryGetValue(columnName, out var setter))
+                // exact match first; then case-insensitive, like the record constructor path
+                // (IDataRecord.GetOrdinal) and the source generated mappers
+                if (setters.TryGetValue(columnName, out var setter) || settersIgnoreCase.TryGetValue(columnName, out setter))
                 {
                     list.Add(new(i, setter));
                 }
@@ -23,6 +30,8 @@ internal static class DataRecordExtensions
             return list;
         }
 
+        [RequiresUnreferencedCode(Trimming.ReflectionMessage)]
+        [RequiresDynamicCode(Trimming.DynamicCodeMessage)]
         internal Func<IDataRecord, T> GetMapper<T>(DbConfig config)
         {
             var type = typeof(T);
@@ -74,6 +83,7 @@ internal static class DataRecordExtensions
 
     private static readonly MethodInfo CreateConverterMethod = typeof(DataRecordExtensions).GetMethod(nameof(CreateConverterFor), BindingFlags.NonPublic | BindingFlags.Static)!;
 
+    [RequiresDynamicCode(Trimming.DynamicCodeMessage)]
     private static Func<object?, object?> CreateConverter(Type type)
         => (Func<object?, object?>)CreateConverterMethod.MakeGenericMethod(type).Invoke(null, null)!;
 
@@ -96,7 +106,7 @@ internal static class DataRecordExtensions
         /// using standard C# syntax.
         /// </summary>
         /// <returns>A dynamic object with fields corresponding to the database columns</returns>
-        internal dynamic ToExpando() => Dynamic.From(record.NameValues().ToDictionary(p => p.name, p => p.value));
+        internal object ToExpando() => Dynamic.From(record.NameValues().ToDictionary(p => p.name, p => p.value));
 
         internal IEnumerable<(string name, object? value)> NameValues()
         {

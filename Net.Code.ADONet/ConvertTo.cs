@@ -25,41 +25,44 @@ public static class ConvertTo<T>
     private static Func<object?, T?> CreateConvertFunction(Type type) => type switch
     {
         Type t when !t.IsValueType => ConvertRefType,
-        Type t when !t.IsNullableType() => ConvertValueType,
-        Type t => CreateConvertNullableValueTypeFunc(t)
+        Type t when Nullable.GetUnderlyingType(t) is { } underlying => value => ConvertNullableValueType(value, underlying),
+        _ => ConvertValueType
     };
 
-    private static Func<object?, T?> CreateConvertNullableValueTypeFunc(Type type)
+    // T is Nullable<U>: a boxed U unboxes to Nullable<U>, so no generic method over U is needed
+    // (which would require runtime code generation, MakeGenericMethod, and break AOT).
+    private static T? ConvertNullableValueType(object? value, Type underlyingType)
+        => IsNull(value) ? default : (T)Converter.Convert(value!, underlyingType);
+
+    private static T? ConvertRefType(object? value) => IsNull(value) ? default : ConvertPrivate(value!);
+
+    private static T ConvertValueType(object? value) => IsNull(value) ? throw new NullReferenceException("Value is DbNull") : ConvertPrivate(value!);
+
+    private static T ConvertPrivate(object value) => value switch
     {
-        var delegateType = typeof(Func<object?, T?>);
-        var methodInfo = typeof(ConvertTo<T>).GetMethod(nameof(ConvertNullableValueType), BindingFlags.NonPublic | BindingFlags.Static)!;
-        var genericMethodForElement = methodInfo.MakeGenericMethod(type.GetGenericArguments()[0]);
-        return (Func<object?, T?>)genericMethodForElement.CreateDelegate(delegateType);
-    }
+        // already the requested type: no conversion needed
+        T t => t,
+        _ => (T)Converter.Convert(value, typeof(T))
+    };
+}
 
-#pragma warning disable IDE0051 // Remove unused private members
-#pragma warning disable RCS1213 // Remove unused member declaration.
-    private static TElem? ConvertNullableValueType<TElem>(object value) where TElem : struct
-        => IsNull(value) ? default(TElem?) : ConvertPrivate<TElem>(value);
-#pragma warning restore RCS1213 // Remove unused member declaration.
-#pragma warning restore IDE0051 // Remove unused private members
-
-    private static T? ConvertRefType(object? value) => IsNull(value) ? default : ConvertPrivate<T>(value!);
-
-    private static T ConvertValueType(object? value) => IsNull(value) ? throw new NullReferenceException("Value is DbNull") : ConvertPrivate<T>(value!);
-
-    private static TElem ConvertPrivate<TElem>(object value) => value switch
+internal static class Converter
+{
+    /// <summary>
+    /// Converts a non-null value to the given (non-nullable) type
+    /// </summary>
+    public static object Convert(object value, Type targetType) => value switch
     {
         // already the requested type: no conversion needed. This also covers types that do not
         // implement IConvertible (DateTimeOffset, Guid, byte[], ...), which Convert.ChangeType rejects.
-        TElem t => t,
-        _ when typeof(TElem).IsEnum => (TElem)ConvertToEnum(value, typeof(TElem)),
+        _ when targetType.IsInstanceOfType(value) => value,
+        _ when targetType.IsEnum => ConvertToEnum(value, targetType),
         // DateTimeOffset is not IConvertible; same conversion as DataRecordGetterExtensions.GetDateTimeOffset
-        DateTime d when typeof(TElem) == typeof(DateTimeOffset) => (TElem)(object)new DateTimeOffset(d),
+        DateTime d when targetType == typeof(DateTimeOffset) => new DateTimeOffset(d),
 #if NET6_0_OR_GREATER
-        DateOnly or TimeOnly or DateTime or TimeSpan when ConvertDateOrTime(value, typeof(TElem)) is { } converted => (TElem)converted,
+        DateOnly or TimeOnly or DateTime or TimeSpan when ConvertDateOrTime(value, targetType) is { } converted => converted,
 #endif
-        _ => (TElem)Convert.ChangeType(value, typeof(TElem))
+        _ => System.Convert.ChangeType(value, targetType)
     };
 
 #if NET6_0_OR_GREATER
@@ -81,6 +84,6 @@ public static class ConvertTo<T>
     private static object ConvertToEnum(object value, Type enumType) => value switch
     {
         string s => Enum.Parse(enumType, s, ignoreCase: true),
-        _ => Enum.ToObject(enumType, Convert.ChangeType(value, Enum.GetUnderlyingType(enumType)))
+        _ => Enum.ToObject(enumType, System.Convert.ChangeType(value, Enum.GetUnderlyingType(enumType)))
     };
 }

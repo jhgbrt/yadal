@@ -1,3 +1,7 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Threading;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -30,6 +34,8 @@ public partial class CommandBuilder(DbCommand command, DbConfig config, ILogger?
     /// of the parameter and the property value as the corresponding parameter value
     /// </summary>
     /// <param name="parameters"></param>
+    [RequiresUnreferencedCode(Trimming.ReflectionMessage)]
+    [RequiresDynamicCode(Trimming.DynamicCodeMessage)]
     public CommandBuilder WithParameters<T>(T parameters)
     {
         if (parameters == null)
@@ -38,11 +44,9 @@ public partial class CommandBuilder(DbCommand command, DbConfig config, ILogger?
         var runtimeType = parameters.GetType();
         if (runtimeType == typeof(T))
         {
-            var getters = FastReflection<T>.Instance.GetGettersForType();
-            var props = runtimeType.GetProperties();
-            foreach (var property in props)
+            foreach (var getter in FastReflection<T>.Instance.GetGettersForType())
             {
-                WithParameter(property.Name, getters[property.Name](parameters));
+                WithParameter(getter.Key, getter.Value(parameters));
             }
         }
         else
@@ -67,12 +71,17 @@ public partial class CommandBuilder(DbCommand command, DbConfig config, ILogger?
     }
 
     /// <summary>
-    /// Builder method - sets the command timeout
+    /// Builder method - sets the command timeout. The timeout is rounded up to whole seconds;
+    /// <see cref="TimeSpan.Zero"/> means no timeout.
     /// </summary>
     /// <param name="timeout"></param>
     public CommandBuilder WithTimeout(TimeSpan timeout)
     {
-        Command.CommandTimeout = (int)timeout.TotalSeconds;
+        if (timeout < TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(nameof(timeout), timeout, "The timeout must not be negative");
+        // ADO.NET timeouts are whole seconds, and 0 means 'wait indefinitely':
+        // round up, so that a sub-second timeout does not silently become 'no timeout'
+        Command.CommandTimeout = checked((int)Math.Ceiling(timeout.TotalSeconds));
         return this;
     }
 
@@ -84,20 +93,38 @@ public partial class CommandBuilder(DbCommand command, DbConfig config, ILogger?
     /// <returns>the same CommandBuilder instance</returns>
     public CommandBuilder WithParameter(string name, object? value)
     {
-        IDbDataParameter p;
-        if (Command.Parameters.Contains(name))
-        {
-            p = Command.Parameters[name];
-            p.Value = DBNullHelper.ToDb(value);
-        }
-        else
-        {
-            p = Command.CreateParameter();
-            p.ParameterName = name;
-            p.Value = DBNullHelper.ToDb(value);
-            Command.Parameters.Add(p);
-        }
+        GetOrAddParameter(name).Value = DBNullHelper.ToDb(value);
         return this;
+    }
+
+    /// <summary>
+    /// Builder method - adds a name/value pair as parameter, with an explicit database type and (optionally) size.
+    /// Setting the type avoids relying on the provider's type inference; setting a size for variable-length
+    /// types (strings, binary) lets the database reuse query plans across different value lengths.
+    /// </summary>
+    /// <param name="name">the parameter name</param>
+    /// <param name="value">the parameter value</param>
+    /// <param name="dbType">the database type of the parameter</param>
+    /// <param name="size">the size of the parameter (for variable-length types)</param>
+    /// <returns>the same CommandBuilder instance</returns>
+    public CommandBuilder WithParameter(string name, object? value, DbType dbType, int? size = null)
+    {
+        var p = GetOrAddParameter(name);
+        p.DbType = dbType;
+        if (size.HasValue)
+            p.Size = size.Value;
+        p.Value = DBNullHelper.ToDb(value);
+        return this;
+    }
+
+    private IDbDataParameter GetOrAddParameter(string name)
+    {
+        if (Command.Parameters.Contains(name))
+            return Command.Parameters[name];
+        var p = Command.CreateParameter();
+        p.ParameterName = name;
+        Command.Parameters.Add(p);
+        return p;
     }
 
     public CommandBuilder WithParameter<T>(T p) where T : IDbDataParameter
@@ -120,9 +147,10 @@ public partial class CommandBuilder(DbCommand command, DbConfig config, ILogger?
     /// <summary>
     /// Executes the query and returns the result as a list of dynamic objects.
     /// </summary>
+    [RequiresDynamicCode(Trimming.DynamicMessage)]
     public IEnumerable<dynamic> AsEnumerable()
     {
-        using var reader = AsReader();
+        using var reader = Execute.Reader();
         while (reader.Read()) yield return reader.ToExpando();
     }
 
@@ -133,6 +161,7 @@ public partial class CommandBuilder(DbCommand command, DbConfig config, ILogger?
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="selector">mapping function that transforms a datarecord (wrapped as a dynamic object) to an instance of type [T]</param>
+    [RequiresDynamicCode(Trimming.DynamicMessage)]
     public IEnumerable<T> AsEnumerable<T>(Func<dynamic, T> selector) => Select(selector);
 
     /// <summary>
@@ -141,25 +170,30 @@ public partial class CommandBuilder(DbCommand command, DbConfig config, ILogger?
     /// underlying datareader is enumerated.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    /// <param name="selector">mapping function that transforms a datarecord (wrapped as a dynamic object) to an instance of type [T]</param>
+    /// <param name="selector">mapping function that transforms a datarecord to an instance of type [T]</param>
     public IEnumerable<T> AsEnumerable<T>(Func<IDataRecord, T> selector) => Select(selector);
 
     /// <summary>
-    /// Executes the query and returns the result as a list of [T] using the 'case-insensitive, underscore-agnostic column name to property mapping convention.'
+    /// Executes the query and returns the result as a list of [T]. Columns are mapped to properties
+    /// by name, using the mapping convention of the database (exact match first, then case-insensitive),
+    /// or to the parameters of a single 'record-like' constructor.
     /// </summary>
     /// <typeparam name="T"></typeparam>
+    [RequiresUnreferencedCode(Trimming.ReflectionMessage)]
+    [RequiresDynamicCode(Trimming.DynamicCodeMessage)]
     public IEnumerable<T> AsEnumerable<T>()
     {
-        using var reader = AsReader();
+        using var reader = Execute.Reader();
         var mapper = reader.GetMapper<T>(config);
         while (reader.Read())
             yield return mapper(reader);
     }
 
     // enables linq 'select' syntax
+    [RequiresDynamicCode(Trimming.DynamicMessage)]
     public IEnumerable<T> Select<T>(Func<dynamic, T> selector)
     {
-        using var reader = AsReader();
+        using var reader = Execute.Reader();
         while (reader.Read())
             yield return selector(Dynamic.From(reader));
     }
@@ -167,7 +201,7 @@ public partial class CommandBuilder(DbCommand command, DbConfig config, ILogger?
     // enables linq 'select' syntax
     public IEnumerable<T> Select<T>(Func<IDataRecord, T> selector)
     {
-        using var reader = AsReader();
+        using var reader = Execute.Reader();
         while (reader.Read())
             yield return selector(reader);
     }
@@ -176,9 +210,10 @@ public partial class CommandBuilder(DbCommand command, DbConfig config, ILogger?
     /// <summary>
     /// Executes the query and returns the result as a list of lists
     /// </summary>
+    [RequiresDynamicCode(Trimming.DynamicMessage)]
     public IEnumerable<IReadOnlyCollection<dynamic>> AsMultiResultSet()
     {
-        using var reader = AsReader();
+        using var reader = Execute.Reader();
         do
         {
             var list = new Collection<dynamic>();
@@ -189,60 +224,71 @@ public partial class CommandBuilder(DbCommand command, DbConfig config, ILogger?
     /// <summary>
     /// Executes the query and returns the result as a tuple of lists
     /// </summary>
+    [RequiresUnreferencedCode(Trimming.ReflectionMessage)]
+    [RequiresDynamicCode(Trimming.DynamicCodeMessage)]
     public (IReadOnlyCollection<T1>, IReadOnlyCollection<T2>) AsMultiResultSet<T1, T2>()
     {
-        using var reader = AsReader();
+        using var reader = Execute.Reader();
         return (
-            GetResultSet<T1>(reader, config, out _),
-            GetResultSet<T2>(reader, config, out _)
+            GetResultSet<T1>(reader, config),
+            GetResultSet<T2>(reader, config)
             );
     }
 
     /// <summary>
     /// Executes the query and returns the result as a tuple of lists
     /// </summary>
+    [RequiresUnreferencedCode(Trimming.ReflectionMessage)]
+    [RequiresDynamicCode(Trimming.DynamicCodeMessage)]
     public (IReadOnlyCollection<T1>, IReadOnlyCollection<T2>, IReadOnlyCollection<T3>) AsMultiResultSet<T1, T2, T3>()
     {
-        using var reader = AsReader();
+        using var reader = Execute.Reader();
         return (
-            GetResultSet<T1>(reader, config, out _),
-            GetResultSet<T2>(reader, config, out _),
-            GetResultSet<T3>(reader, config, out _)
+            GetResultSet<T1>(reader, config),
+            GetResultSet<T2>(reader, config),
+            GetResultSet<T3>(reader, config)
             );
     }
     /// <summary>
     /// Executes the query and returns the result as a tuple of lists
     /// </summary>
+    [RequiresUnreferencedCode(Trimming.ReflectionMessage)]
+    [RequiresDynamicCode(Trimming.DynamicCodeMessage)]
     public (IReadOnlyCollection<T1>, IReadOnlyCollection<T2>, IReadOnlyCollection<T3>, IReadOnlyCollection<T4>) AsMultiResultSet<T1, T2, T3, T4>()
     {
-        using var reader = AsReader();
+        using var reader = Execute.Reader();
         return (
-            GetResultSet<T1>(reader, config, out _),
-            GetResultSet<T2>(reader, config, out _),
-            GetResultSet<T3>(reader, config, out _),
-            GetResultSet<T4>(reader, config, out _)
+            GetResultSet<T1>(reader, config),
+            GetResultSet<T2>(reader, config),
+            GetResultSet<T3>(reader, config),
+            GetResultSet<T4>(reader, config)
             );
     }
     /// <summary>
     /// Executes the query and returns the result as a tuple of lists
     /// </summary>
+    [RequiresUnreferencedCode(Trimming.ReflectionMessage)]
+    [RequiresDynamicCode(Trimming.DynamicCodeMessage)]
     public (IReadOnlyCollection<T1>, IReadOnlyCollection<T2>, IReadOnlyCollection<T3>, IReadOnlyCollection<T4>, IReadOnlyCollection<T5>) AsMultiResultSet<T1, T2, T3, T4, T5>()
     {
-        using var reader = AsReader();
+        using var reader = Execute.Reader();
         return (
-            GetResultSet<T1>(reader, config, out _),
-            GetResultSet<T2>(reader, config, out _),
-            GetResultSet<T3>(reader, config, out _),
-            GetResultSet<T4>(reader, config, out _),
-            GetResultSet<T5>(reader, config, out _)
+            GetResultSet<T1>(reader, config),
+            GetResultSet<T2>(reader, config),
+            GetResultSet<T3>(reader, config),
+            GetResultSet<T4>(reader, config),
+            GetResultSet<T5>(reader, config)
             );
     }
-    private static IReadOnlyCollection<T> GetResultSet<T>(IDataReader reader, DbConfig config, out bool moreResults)
+
+    [RequiresUnreferencedCode(Trimming.ReflectionMessage)]
+    [RequiresDynamicCode(Trimming.DynamicCodeMessage)]
+    private static IReadOnlyCollection<T> GetResultSet<T>(IDataReader reader, DbConfig config)
     {
         var list = new List<T>();
         var map = reader.GetMapper<T>(config);
         while (reader.Read()) list.Add(map(reader));
-        moreResults = reader.NextResult();
+        reader.NextResult();
         return list;
     }
 
@@ -261,73 +307,139 @@ public partial class CommandBuilder(DbCommand command, DbConfig config, ILogger?
 
     /// <summary>
     /// Executes the command as a datareader. Use this if you need best performance.
+    /// The returned reader is a <see cref="DbDataReader"/>.
     /// </summary>
     public IDataReader AsReader() => Execute.Reader();
 
+    [RequiresUnreferencedCode(Trimming.ReflectionMessage)]
+    [RequiresDynamicCode(Trimming.DynamicCodeMessage)]
     public T Single<T>() => AsEnumerable<T>().Single();
 
     private Executor Execute => new(Command, logger ?? NullLogger.Instance);
 
     /// <summary>
     /// Executes the command as a statement, returning the number of rows affected asynchronously
-    /// This method is only supported if the underlying provider propertly implements async behaviour.
     /// </summary>
-    public Task<int> AsNonQueryAsync() => ExecuteAsync.NonQuery();
+    public Task<int> AsNonQueryAsync() => AsNonQueryAsync(CancellationToken.None);
+
+    /// <summary>
+    /// Executes the command as a statement, returning the number of rows affected asynchronously
+    /// </summary>
+    public Task<int> AsNonQueryAsync(CancellationToken cancellationToken) => ExecuteAsync.NonQuery(cancellationToken);
 
     /// <summary>
     /// Executes the command, returning the first column of the first result, converted to the type T asynchronously.
-    /// This method is only supported if the underlying provider propertly implements async behaviour.
     /// </summary>
     /// <typeparam name="T">return type</typeparam>
-    public async Task<T?> AsScalarAsync<T>()
+    public Task<T?> AsScalarAsync<T>() => AsScalarAsync<T>(CancellationToken.None);
+
+    /// <summary>
+    /// Executes the command, returning the first column of the first result, converted to the type T asynchronously.
+    /// </summary>
+    /// <typeparam name="T">return type</typeparam>
+    public async Task<T?> AsScalarAsync<T>(CancellationToken cancellationToken)
     {
-        var result = await ExecuteAsync.Scalar().ConfigureAwait(false);
+        var result = await ExecuteAsync.Scalar(cancellationToken).ConfigureAwait(false);
         return ConvertTo<T>.From(result);
     }
 
     /// <summary>
-    /// Executes the query and returns the result as a list of dynamic objects asynchronously
-    /// This method is only supported if the underlying provider propertly implements async behaviour.
+    /// Executes the command as a datareader asynchronously. The caller is responsible for disposing the reader.
     /// </summary>
-    public async IAsyncEnumerable<dynamic> AsEnumerableAsync()
+    public Task<DbDataReader> AsReaderAsync(CancellationToken cancellationToken = default) => ExecuteAsync.Reader(cancellationToken);
+
+    /// <summary>
+    /// Executes the query and returns the result as a list of dynamic objects asynchronously
+    /// </summary>
+    [RequiresDynamicCode(Trimming.DynamicMessage)]
+    public IAsyncEnumerable<dynamic> AsEnumerableAsync() => AsEnumerableAsync(CancellationToken.None);
+
+    /// <summary>
+    /// Executes the query and returns the result as a list of dynamic objects asynchronously
+    /// </summary>
+    [RequiresDynamicCode(Trimming.DynamicMessage)]
+    public async IAsyncEnumerable<dynamic> AsEnumerableAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        using var reader = await ExecuteAsync.Reader().ConfigureAwait(false);
-        while (await reader.ReadAsync().ConfigureAwait(false))
+        var reader = await ExecuteAsync.Reader(cancellationToken).ConfigureAwait(false);
+        await using var _ = reader.ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             yield return reader.ToExpando();
     }
 
     /// <summary>
     /// Executes the query and returns the result as a list of [T] asynchronously
-    /// This method is only supported if the underlying provider propertly implements async behaviour.
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="selector">mapping function that transforms a datarecord (wrapped as a dynamic object) to an instance of type [T]</param>
-    public async IAsyncEnumerable<T> AsEnumerableAsync<T>(Func<dynamic, T> selector)
+    [RequiresDynamicCode(Trimming.DynamicMessage)]
+    public IAsyncEnumerable<T> AsEnumerableAsync<T>(Func<dynamic, T> selector) => AsEnumerableAsync(selector, CancellationToken.None);
+
+    /// <summary>
+    /// Executes the query and returns the result as a list of [T] asynchronously
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="selector">mapping function that transforms a datarecord (wrapped as a dynamic object) to an instance of type [T]</param>
+    /// <param name="cancellationToken"></param>
+    [RequiresDynamicCode(Trimming.DynamicMessage)]
+    public async IAsyncEnumerable<T> AsEnumerableAsync<T>(Func<dynamic, T> selector, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        using var reader = await ExecuteAsync.Reader().ConfigureAwait(false);
-        while (await reader.ReadAsync().ConfigureAwait(false))
-        {
-            var d = Dynamic.From(reader);
-            var item = selector(d);
-            yield return item;
-        }
+        var reader = await ExecuteAsync.Reader(cancellationToken).ConfigureAwait(false);
+        await using var _ = reader.ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            yield return selector(Dynamic.From(reader));
     }
 
     /// <summary>
     /// Executes the query and returns the result as a list of [T] asynchronously
-    /// This method is only supported if the underlying provider propertly implements async behaviour.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    /// <param name="selector">mapping function that transforms a datarecord (wrapped as a dynamic object) to an instance of type [T]</param>
-    public async IAsyncEnumerable<T> AsEnumerableAsync<T>()
+    /// <param name="selector">mapping function that transforms a datarecord to an instance of type [T]</param>
+    public IAsyncEnumerable<T> AsEnumerableAsync<T>(Func<IDataRecord, T> selector) => AsEnumerableAsync(selector, CancellationToken.None);
+
+    /// <summary>
+    /// Executes the query and returns the result as a list of [T] asynchronously
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="selector">mapping function that transforms a datarecord to an instance of type [T]</param>
+    /// <param name="cancellationToken"></param>
+    public async IAsyncEnumerable<T> AsEnumerableAsync<T>(Func<IDataRecord, T> selector, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        using var reader = await ExecuteAsync.Reader().ConfigureAwait(false);
+        var reader = await ExecuteAsync.Reader(cancellationToken).ConfigureAwait(false);
+        await using var _ = reader.ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            yield return selector(reader);
+    }
+
+    /// <summary>
+    /// Executes the query and returns the result as a list of [T] asynchronously
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    [RequiresUnreferencedCode(Trimming.ReflectionMessage)]
+    [RequiresDynamicCode(Trimming.DynamicCodeMessage)]
+    public IAsyncEnumerable<T> AsEnumerableAsync<T>() => AsEnumerableAsync<T>(CancellationToken.None);
+
+    /// <summary>
+    /// Executes the query and returns the result as a list of [T] asynchronously
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    [RequiresUnreferencedCode(Trimming.ReflectionMessage)]
+    [RequiresDynamicCode(Trimming.DynamicCodeMessage)]
+    public async IAsyncEnumerable<T> AsEnumerableAsync<T>([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var reader = await ExecuteAsync.Reader(cancellationToken).ConfigureAwait(false);
+        await using var _ = reader.ConfigureAwait(false);
         var map = reader.GetMapper<T>(config);
-        while (await reader.ReadAsync().ConfigureAwait(false))
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             yield return map(reader);
     }
 
-    public ValueTask<T> SingleAsync<T>() => AsEnumerableAsync<T>().SingleAsync();
+    [RequiresUnreferencedCode(Trimming.ReflectionMessage)]
+    [RequiresDynamicCode(Trimming.DynamicCodeMessage)]
+    public ValueTask<T> SingleAsync<T>() => SingleAsync<T>(CancellationToken.None);
+
+    [RequiresUnreferencedCode(Trimming.ReflectionMessage)]
+    [RequiresDynamicCode(Trimming.DynamicCodeMessage)]
+    public ValueTask<T> SingleAsync<T>(CancellationToken cancellationToken) => AsyncEnumerableHelpers.SingleAsync(AsEnumerableAsync<T>(cancellationToken), cancellationToken);
 
     public void Dispose() => Command.Dispose();
 
