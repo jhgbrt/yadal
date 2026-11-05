@@ -20,7 +20,7 @@ New:
 - Db(DbDataSource) constructors (.NET 8+), e.g. new Db(NpgsqlDataSource.Create(...)).
 - AsReaderAsync() returning a DbDataReader; AsEnumerableAsync(Func&lt;IDataRecord, T&gt;).
 - WithParameter(name, value, DbType, size) for explicitly typed parameters.
-- Insert/Update/Delete use DbBatch when the provider supports it (e.g. SqlClient, Npgsql): one round trip per 100 rows.
+- Insert/Update/Delete use DbBatch when the provider supports it (e.g. SqlClient, Npgsql): one round trip per 100 rows. Only with the built-in Default, PostGreSQL and DB2 configurations; Oracle, or a custom DbConfig with a prepare action, still executes row by row.
 - BulkCopy/BulkCopyAsync overloads that take a SqlTransaction.
 - Trimming/AOT annotations: reflection-based mapping and the 'dynamic' APIs are marked [RequiresUnreferencedCode]/[RequiresDynamicCode]; source generated mappers are AOT-safe.
 Changed:

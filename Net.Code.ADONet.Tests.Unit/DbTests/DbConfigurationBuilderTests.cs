@@ -34,6 +34,13 @@ namespace Net.Code.ADONet.Tests.Unit.DbTests
         }
 
         [Fact]
+        public void Oracle_PrepareCommand_CommandWithoutBindByName_Throws()
+        {
+            var config = DbConfig.FromProviderName("Oracle.ManagedDataAccess.Client");
+            Assert.Throws<System.InvalidOperationException>(() => config.PrepareCommand(new SqlCommand()));
+        }
+
+        [Fact]
         public void OracleManaged_PrepareCommand_SetsBindByName()
         {
             var config = DbConfig.FromProviderName("Oracle.ManagedDataAccess.Client");

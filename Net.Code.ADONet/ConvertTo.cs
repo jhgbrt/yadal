@@ -32,7 +32,12 @@ public static class ConvertTo<T>
     // T is Nullable<U>: a boxed U unboxes to Nullable<U>, so no generic method over U is needed
     // (which would require runtime code generation, MakeGenericMethod, and break AOT).
     private static T? ConvertNullableValueType(object? value, Type underlyingType)
-        => IsNull(value) ? default : (T)Converter.Convert(value!, underlyingType);
+        => value switch
+        {
+            _ when IsNull(value) => default,
+            T t => t, // fast path: a boxed U matches Nullable<U>
+            _ => (T)Converter.Convert(value!, underlyingType)
+        };
 
     private static T? ConvertRefType(object? value) => IsNull(value) ? default : ConvertPrivate(value!);
 

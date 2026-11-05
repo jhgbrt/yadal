@@ -17,7 +17,9 @@ Install it from NuGet: `dotnet add package Net.Code.ADONet`
 ```csharp
 // from a connection string and provider factory...
 await using var db = new Db(connectionString, SqlClientFactory.Instance);
-// ...or (.NET 8+) from a DbDataSource, e.g. new Db(NpgsqlDataSource.Create(connectionString))
+// ...or (.NET 8+) from a DbDataSource; the Db does not own the data source, so dispose it yourself
+// (typically it is a singleton): await using var dataSource = NpgsqlDataSource.Create(connectionString);
+//                                 await using var db = new Db(dataSource);
 
 // map rows to objects (by column name; [Column] overrides it)
 var adults = await db.Sql("SELECT * FROM Person WHERE Age >= @age")
@@ -34,7 +36,7 @@ await db.Sql("UPDATE Person SET Name = @name WHERE Id = @id")
     .AsNonQueryAsync(cancellationToken);
 
 // simple CRUD (table/column names follow the database's mapping convention);
-// sent in batches when the provider supports DbBatch (e.g. SqlClient, Npgsql)
+// sent in batches when the provider supports DbBatch (e.g. SqlClient, Npgsql; not with Oracle)
 await db.InsertAsync(people, cancellationToken);
 var person = await db.SelectOneAsync<Person>(42, cancellationToken);
 ```

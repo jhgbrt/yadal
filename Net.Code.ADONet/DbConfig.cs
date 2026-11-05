@@ -68,9 +68,13 @@ public class DbConfig(Action<IDbCommand> prepareCommand, MappingConvention mappi
     private static readonly ConcurrentDictionary<Type, PropertyInfo?> BindByNameProperties = new();
 
     [UnconditionalSuppressMessage("Trimming", "IL2070",
-        Justification = "BindByName is a public property of the provider's command type (OracleCommand). If it is trimmed, it is not set.")]
+        Justification = "BindByName is a public property of the provider's command type (OracleCommand). If it is not found (e.g. trimmed), an exception explains why.")]
     private static void SetBindByName(IDbCommand c)
-        => BindByNameProperties
-            .GetOrAdd(c.GetType(), t => t.GetProperty("BindByName", typeof(bool)) is { CanWrite: true } p ? p : null)
-            ?.SetValue(c, true);
+    {
+        var property = BindByNameProperties.GetOrAdd(c.GetType(), t => t.GetProperty("BindByName", typeof(bool)) is { CanWrite: true } p ? p : null)
+            ?? throw new InvalidOperationException(
+                $"{c.GetType()} has no writable BindByName property, which is required to bind parameters by name. "
+                + "If the application is trimmed, make sure the property is preserved.");
+        property.SetValue(c, true);
+    }
 }
